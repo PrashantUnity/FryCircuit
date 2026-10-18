@@ -15,7 +15,7 @@ public enum OscilloscopeDisplayMode
 public class OscilloscopeTrace
 {
     public string Name { get; set; } = "Trace";
-    public Color Color { get; set; } = Color.FromRgb(255, 215, 0); // Gold for CH1
+    public Color Color { get; set; } = Color.FromRgb(245, 158, 11); // Amber for CH1
     public bool IsVisible { get; set; } = true;
     public Queue<double> Samples { get; } = new();
     public int MaxSamples { get; set; } = 300;
@@ -65,19 +65,20 @@ public class OscilloscopeControl : Control
         ClipToBounds = true;
         MinHeight = 120;
         Focusable = true;
+        FryCircuit.UI.Theming.CircuitThemeService.Instance.TokensChanged += _ => InvalidateVisual();
 
-        // Default 2 channels: CH1 (Tektronix/Keysight Gold), CH2 (Electric Cyan)
+        // Default 2 channels: CH1 (Warm Amber Gold), CH2 (Precision Cyan)
         Traces.Add(new OscilloscopeTrace
         {
             Name = "CH1 (V)",
-            Color = Color.FromRgb(255, 215, 0),
+            Color = Color.FromRgb(245, 158, 11),
             Unit = "V"
         });
 
         Traces.Add(new OscilloscopeTrace
         {
             Name = "CH2 (I)",
-            Color = Color.FromRgb(0, 240, 255),
+            Color = Color.FromRgb(6, 182, 212),
             Unit = "mA"
         });
     }
@@ -243,8 +244,9 @@ public class OscilloscopeControl : Control
         double headerH = 26.0;
         double screenH = h - headerH;
 
+        var tokens = FryCircuit.UI.Theming.CircuitThemeService.Instance.Tokens;
         // Grid lines (8 horizontal divisions, 10 vertical divisions across active display area)
-        var gridPen = new Pen(new SolidColorBrush(Color.FromArgb(40, 0, 230, 160)), 1);
+        var gridPen = new Pen(tokens.ScopeGridBrush, 1);
         for (int i = 1; i < 8; i++)
         {
             double y = headerH + (screenH / 8.0) * i;
@@ -260,12 +262,12 @@ public class OscilloscopeControl : Control
         // Center axes lines
         double centerY = headerH + screenH / 2.0;
         double centerX = w / 2.0;
-        var centerPen = new Pen(new SolidColorBrush(Color.FromArgb(80, 0, 255, 180)), 1);
+        var centerPen = new Pen(tokens.ScopeCenterBrush, 1);
         context.DrawLine(centerPen, new Point(0, centerY), new Point(w, centerY));
         context.DrawLine(centerPen, new Point(centerX, headerH), new Point(centerX, h));
 
         // Center crosshair tick marks (minor divisions)
-        var tickPen = new Pen(new SolidColorBrush(Color.FromArgb(120, 0, 255, 180)), 1);
+        var tickPen = new Pen(tokens.ScopeTickBrush, 1);
         for (int i = 0; i <= 50; i++)
         {
             double tx = (w / 50.0) * i;
@@ -389,9 +391,7 @@ public class OscilloscopeControl : Control
             var bgBrush = trace.IsVisible
                 ? new SolidColorBrush(Color.FromArgb(200, 16, 24, 34))
                 : new SolidColorBrush(Color.FromArgb(140, 10, 14, 20));
-            var borderBrush = trace.IsVisible
-                ? new SolidColorBrush(Color.FromArgb(90, trace.Color.R, trace.Color.G, trace.Color.B))
-                : new SolidColorBrush(Color.FromArgb(40, trace.Color.R, trace.Color.G, trace.Color.B));
+            var borderBrush = new SolidColorBrush(Color.FromArgb(50, 51, 65, 85));
 
             context.FillRectangle(bgBrush, badgeRect, 4);
             context.DrawRectangle(new Pen(borderBrush, 1), badgeRect, 4);
@@ -531,8 +531,8 @@ public class OscilloscopeControl : Control
         double x1 = Cursor1X * w;
         double x2 = Cursor2X * w;
 
-        var c1Color = Color.FromRgb(255, 200, 0);   // Amber Gold
-        var c2Color = Color.FromRgb(0, 240, 255);   // Electric Cyan
+        var c1Color = Color.FromRgb(245, 158, 11);   // Amber Gold
+        var c2Color = Color.FromRgb(6, 182, 212);   // Precision Cyan
 
         var c1Pen = new Pen(new SolidColorBrush(c1Color), 1.5) { DashStyle = DashStyle.Dash };
         var c2Pen = new Pen(new SolidColorBrush(c2Color), 1.5) { DashStyle = DashStyle.Dash };
@@ -591,21 +591,21 @@ public class OscilloscopeControl : Control
         double pillY = dumbbellY - pillH / 2.0;
         var pillRect = new Rect(pillX, pillY, pillW, pillH);
         context.FillRectangle(new SolidColorBrush(Color.FromArgb(235, 12, 18, 26)), pillRect, 8);
-        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(180, 255, 255, 255)), 1), pillRect, 8);
+        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(70, 51, 65, 85)), 1), pillRect, 8);
         context.DrawText(ftDt, new Point(pillX + 7, pillY + 1.5));
 
         var ft = new FormattedText(
             cursorInfo,
             System.Globalization.CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
-            new Typeface("Inter", FontStyle.Normal, FontWeight.Bold),
+            new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold),
             10.0,
-            new SolidColorBrush(Color.FromRgb(255, 230, 120))
+            new SolidColorBrush(Color.FromRgb(226, 232, 240))
         );
 
         var box = new Rect(w / 2.0 - ft.Width / 2.0 - 8, h - 22, ft.Width + 16, 18);
         context.FillRectangle(new SolidColorBrush(Color.FromArgb(235, 12, 18, 26)), box, 4);
-        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(120, 255, 200, 0)), 1), box, 4);
+        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(60, 51, 65, 85)), 1), box, 4);
         context.DrawText(ft, new Point(w / 2.0 - ft.Width / 2.0, h - 20));
     }
 
@@ -780,8 +780,8 @@ public class OscilloscopeControl : Control
         double x1 = Cursor1X * w;
         double x2 = Cursor2X * w;
 
-        var c1Color = Color.FromRgb(255, 200, 0);   // Amber Gold
-        var c2Color = Color.FromRgb(0, 240, 255);   // Electric Cyan
+        var c1Color = Color.FromRgb(245, 158, 11);   // Amber Gold
+        var c2Color = Color.FromRgb(6, 182, 212);   // Precision Cyan
 
         // Cursor Handles (Hanging cleanly below the top HUD banner line, completely non-colliding)
         DrawHandle(context, x1, headerH, c1Color, "X1");
@@ -939,18 +939,19 @@ public class OscilloscopeControl : Control
     private void RenderInstrumentButtons(DrawingContext context, double w, double h)
     {
         // Time / FFT Mode button
-        string modeLabel = DisplayMode == OscilloscopeDisplayMode.TimeDomain ? "MODE: TIME" : "MODE: FFT";
+        bool isFft = DisplayMode == OscilloscopeDisplayMode.FftSpectrum;
+        string modeLabel = isFft ? "MODE: FFT" : "MODE: TIME";
         var ftMode = new FormattedText(
             modeLabel,
             System.Globalization.CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
             new Typeface("Inter", FontStyle.Normal, FontWeight.Bold),
             10,
-            new SolidColorBrush(DisplayMode == OscilloscopeDisplayMode.FftSpectrum ? Color.FromRgb(0, 240, 255) : Color.FromRgb(0, 230, 140))
+            new SolidColorBrush(isFft ? Color.FromRgb(56, 189, 248) : Color.FromRgb(148, 163, 184))
         );
 
-        context.FillRectangle(new SolidColorBrush(Color.FromArgb(220, 18, 25, 36)), _modeBtnRect, 4);
-        context.DrawRectangle(new Pen(new SolidColorBrush(DisplayMode == OscilloscopeDisplayMode.FftSpectrum ? Color.FromRgb(0, 240, 255) : Color.FromRgb(40, 60, 80)), 1), _modeBtnRect, 4);
+        context.FillRectangle(new SolidColorBrush(isFft ? Color.FromArgb(220, 30, 41, 59) : Color.FromArgb(200, 15, 23, 42)), _modeBtnRect, 4);
+        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(70, 51, 65, 85)), 1), _modeBtnRect, 4);
         context.DrawText(ftMode, new Point(_modeBtnRect.X + 7, _modeBtnRect.Y + 3.5));
 
         // Cursors toggle button
@@ -959,13 +960,13 @@ public class OscilloscopeControl : Control
             cursorLabel,
             System.Globalization.CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
-            new Typeface("Inter", FontStyle.Normal, FontWeight.Bold),
+            new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold),
             10,
-            new SolidColorBrush(ShowCursors ? Color.FromRgb(255, 200, 0) : Color.FromRgb(120, 140, 160))
+            new SolidColorBrush(ShowCursors ? Color.FromRgb(226, 232, 240) : Color.FromRgb(148, 163, 184))
         );
 
-        context.FillRectangle(new SolidColorBrush(Color.FromArgb(220, 18, 25, 36)), _cursorBtnRect, 4);
-        context.DrawRectangle(new Pen(new SolidColorBrush(ShowCursors ? Color.FromRgb(255, 200, 0) : Color.FromRgb(40, 60, 80)), 1), _cursorBtnRect, 4);
+        context.FillRectangle(new SolidColorBrush(ShowCursors ? Color.FromArgb(220, 30, 41, 59) : Color.FromArgb(200, 15, 23, 42)), _cursorBtnRect, 4);
+        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(70, 51, 65, 85)), 1), _cursorBtnRect, 4);
         context.DrawText(ftCursor, new Point(_cursorBtnRect.X + 7, _cursorBtnRect.Y + 3.5));
     }
 

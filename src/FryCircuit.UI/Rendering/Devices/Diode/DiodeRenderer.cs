@@ -39,7 +39,7 @@ public class DiodeRenderer : IDeviceRenderer
             ? new SolidColorBrush(Color.FromArgb(230, ledColor.R, ledColor.G, ledColor.B))
             : isLed
                 ? new SolidColorBrush(Color.FromArgb(55, ledColor.R, ledColor.G, ledColor.B))
-                : new SolidColorBrush(Color.FromRgb(30, 42, 60));
+                : new SolidColorBrush(Color.FromArgb(220, 15, 23, 42));
 
         // Leads from pins to triangle
         context.DrawLine(strokePen, new Point(center.X, center.Y - u), new Point(center.X, center.Y - u * 0.35));
@@ -74,7 +74,6 @@ public class DiodeRenderer : IDeviceRenderer
             {
                 LineCap = PenLineCap.Round
             };
-
             for (int r = 0; r < 2; r++)
             {
                 double offX = u * 0.45 + r * u * 0.22;
@@ -91,7 +90,7 @@ public class DiodeRenderer : IDeviceRenderer
         }
 
         // Terminal solder pads
-        double padRadius = (renderContext.IsGlowPass ? 4.8 : 3.2) * z;
+        double padRadius = (renderContext.IsGlowPass ? 4.0 : 2.5) * z;
         context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y - u), padRadius, padRadius);
         context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y + u), padRadius, padRadius);
     }

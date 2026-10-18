@@ -236,20 +236,50 @@ public class MnaSolver
 
     private void EnsureGroundNode()
     {
-        if (_circuit.FindGroundNode() == null)
+        // 1. Explicit Ground component placed on schematic (Highest priority)
+        var groundDev = _circuit.Devices.OfType<GroundDevice>().FirstOrDefault();
+        if (groundDev != null && groundDev.Pins.Count > 0)
         {
-            var groundDev = _circuit.Devices.OfType<GroundDevice>().FirstOrDefault();
-            if (groundDev != null && groundDev.Pins.Count > 0)
+            int gNodeId = groundDev.Pins[0].NodeId;
+            // Clear any previously assigned fallback ground flags
+            foreach (var node in _circuit.Nodes.Values)
             {
-                int gNodeId = groundDev.Pins[0].NodeId;
-                _circuit.GetOrCreateNode(gNodeId, isGround: true);
+                if (node.Id != gNodeId && node.IsGround) node.IsGround = false;
             }
-            else if (_circuit.Nodes.Count > 0)
+            _circuit.GetOrCreateNode(gNodeId, isGround: true);
+            return;
+        }
+
+        // If an explicit ground node exists from an earlier ground component, retain it
+        var currentGnd = _circuit.FindGroundNode();
+        if (currentGnd != null && _circuit.Devices.Any(d => d.Type == "ground" && d.Pins.Any(p => p.NodeId == currentGnd.Id)))
+        {
+            return;
+        }
+
+        // 2. Intelligent Reference Ground (when no Ground symbol is present):
+        // Prioritize the negative terminal (Pin 1) of the primary DC Voltage Source or Battery
+        var primarySource = _circuit.Devices.FirstOrDefault(d =>
+            (d is VoltageSourceDevice || d.Type == "vsource" || d.Type == "battery") &&
+            d.Pins.Count > 1 && d.Pins[1].NodeId >= 0 && _circuit.Nodes.ContainsKey(d.Pins[1].NodeId));
+
+        int refNodeId = -1;
+        if (primarySource != null)
+        {
+            refNodeId = primarySource.Pins[1].NodeId;
+        }
+        else if (_circuit.Nodes.Count > 0)
+        {
+            refNodeId = _circuit.Nodes.Keys.Min();
+        }
+
+        if (refNodeId >= 0 && _circuit.Nodes.ContainsKey(refNodeId))
+        {
+            foreach (var node in _circuit.Nodes.Values)
             {
-                // Fallback: pick lowest id node as reference ground
-                int minId = _circuit.Nodes.Keys.Min();
-                _circuit.Nodes[minId].IsGround = true;
+                if (node.Id != refNodeId && node.IsGround) node.IsGround = false;
             }
+            _circuit.GetOrCreateNode(refNodeId, isGround: true);
         }
     }
 

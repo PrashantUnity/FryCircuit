@@ -17,30 +17,30 @@ public class DeviceRenderContext
     {
         if (IsPlacingGhost)
         {
-            return new SolidColorBrush(Color.FromArgb(140, 0, 240, 255));
+            return new SolidColorBrush(Color.FromArgb(140, 56, 189, 248));
         }
         if (IsGlowPass)
         {
             var glowColor = IsDragCollision
-                ? Color.FromArgb(190, 255, 60, 60)
-                : Color.FromArgb(180, 0, 240, 255);
+                ? Color.FromArgb(160, 244, 63, 94)
+                : Color.FromArgb(100, 56, 189, 248);
             return new SolidColorBrush(glowColor);
         }
         if (IsSelected)
         {
             var selColor = IsDragCollision
-                ? Color.FromRgb(255, 75, 75)
-                : Color.FromRgb(0, 240, 255);
+                ? Color.FromRgb(244, 63, 94)
+                : Color.FromRgb(56, 189, 248);
             return new SolidColorBrush(selColor);
         }
-        return new SolidColorBrush(defaultColor ?? Color.FromRgb(240, 246, 255));
+        return new SolidColorBrush(defaultColor ?? Color.FromRgb(226, 232, 240));
     }
 
-    public Pen GetStrokePen(double baseThickness = 2.8, Color? defaultColor = null)
+    public Pen GetStrokePen(double baseThickness = 2.4, Color? defaultColor = null)
     {
         if (IsPlacingGhost)
         {
-            return new Pen(new SolidColorBrush(Color.FromArgb(140, 0, 240, 255)), baseThickness * Zoom)
+            return new Pen(new SolidColorBrush(Color.FromArgb(140, 56, 189, 248)), baseThickness * Zoom)
             {
                 LineCap = PenLineCap.Round,
                 LineJoin = PenLineJoin.Round
@@ -49,9 +49,9 @@ public class DeviceRenderContext
         if (IsGlowPass)
         {
             var glowColor = IsDragCollision
-                ? Color.FromArgb(190, 255, 60, 60)
-                : Color.FromArgb(180, 0, 240, 255);
-            return new Pen(new SolidColorBrush(glowColor), (baseThickness + 5.5) * Zoom)
+                ? Color.FromArgb(160, 244, 63, 94)
+                : Color.FromArgb(100, 56, 189, 248);
+            return new Pen(new SolidColorBrush(glowColor), (baseThickness + 4.5) * Zoom)
             {
                 LineCap = PenLineCap.Round,
                 LineJoin = PenLineJoin.Round
@@ -60,15 +60,15 @@ public class DeviceRenderContext
         if (IsSelected)
         {
             var selColor = IsDragCollision
-                ? Color.FromRgb(255, 75, 75)
-                : Color.FromRgb(0, 240, 255);
-            return new Pen(new SolidColorBrush(selColor), (baseThickness + 0.4) * Zoom)
+                ? Color.FromRgb(244, 63, 94)
+                : Color.FromRgb(56, 189, 248);
+            return new Pen(new SolidColorBrush(selColor), (baseThickness + 0.3) * Zoom)
             {
                 LineCap = PenLineCap.Round,
                 LineJoin = PenLineJoin.Round
             };
         }
-        return new Pen(new SolidColorBrush(defaultColor ?? Color.FromRgb(240, 246, 255)), baseThickness * Zoom)
+        return new Pen(new SolidColorBrush(defaultColor ?? Color.FromRgb(226, 232, 240)), baseThickness * Zoom)
         {
             LineCap = PenLineCap.Round,
             LineJoin = PenLineJoin.Round

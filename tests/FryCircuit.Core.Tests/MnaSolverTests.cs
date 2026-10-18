@@ -1,4 +1,5 @@
 using FryCircuit.Core.Devices;
+using FryCircuit.Core.Devices.Battery;
 using FryCircuit.Core.Models;
 using FryCircuit.Core.Simulation;
 using Xunit;
@@ -310,6 +311,85 @@ public class MnaSolverTests
         Assert.InRange(circuit.Nodes[2].Voltage, 4.90, 5.00);
         Assert.InRange(op.Current, 0.048, 0.052);
         Assert.Equal(op.Current, load.Current, precision: 3);
+    }
+
+    [Fact]
+    public void CircuitWithoutGround_PrioritizesNegativeTerminalOfVoltageSourceAsGround()
+    {
+        // User scenario: 5V DC Source + two 10 Ohm resistors in series. No GroundDevice!
+        // Middle wire was drawn first (NodeId 1).
+        // Positive rail is Node 2.
+        // Negative rail is Node 3.
+        var circuit = new Circuit("NoGroundDivider");
+        circuit.GetOrCreateNode(1); // Middle divider
+        circuit.GetOrCreateNode(2); // Top (+)
+        circuit.GetOrCreateNode(3); // Bottom (-)
+
+        // 5V DC Source between Node 2 (+) and Node 3 (-)
+        var vs = new VoltageSourceDevice(1, 0, 0, voltage: 5.0);
+        vs.Pins[0].NodeId = 2; // Positive
+        vs.Pins[1].NodeId = 3; // Negative
+        circuit.AddDevice(vs);
+
+        // Top Resistor (10 Ohm) between Node 2 and Node 1
+        var r1 = new ResistorDevice(2, 0, 0, resistance: 10.0);
+        r1.Pins[0].NodeId = 2;
+        r1.Pins[1].NodeId = 1;
+        circuit.AddDevice(r1);
+
+        // Bottom/Right Resistor (10 Ohm) between Node 1 and Node 3
+        var r2 = new ResistorDevice(3, 0, 0, resistance: 10.0);
+        r2.Pins[0].NodeId = 1;
+        r2.Pins[1].NodeId = 3;
+        circuit.AddDevice(r2);
+
+        var solver = new MnaSolver(circuit);
+        solver.Step(0.001);
+
+        // Negative rail must resolve to 0.0 V (Reference Ground)
+        Assert.True(circuit.Nodes[3].IsGround);
+        Assert.Equal(0.0, circuit.Nodes[3].Voltage, precision: 4);
+
+        // Positive rail must be +5.0 V
+        Assert.Equal(5.0, circuit.Nodes[2].Voltage, precision: 4);
+
+        // Middle divider must be +2.50 V (NOT 0.0 V!)
+        Assert.Equal(2.5, circuit.Nodes[1].Voltage, precision: 4);
+
+        // Current through all components: 5V / (10 + 10) = 0.25 A (250 mA)
+        Assert.Equal(0.25, vs.Current, precision: 4);
+        Assert.Equal(0.25, r1.Current, precision: 4);
+        Assert.Equal(0.25, r2.Current, precision: 4);
+    }
+
+    [Fact]
+    public void CircuitWithoutGround_BatteryCell_PrioritizesNegativeTerminalAsGround()
+    {
+        var circuit = new Circuit("BatteryNoGround");
+        circuit.GetOrCreateNode(1);
+        circuit.GetOrCreateNode(2);
+
+        var bat = new BatteryCellDevice(1, 0, 0)
+        {
+            StateOfCharge = 1.0,
+            NominalSeriesResistance = 0.05
+        };
+        bat.Pins[0].NodeId = 1; // (+)
+        bat.Pins[1].NodeId = 2; // (-)
+        circuit.AddDevice(bat);
+
+        var load = new ResistorDevice(2, 0, 0, resistance: 100.0);
+        load.Pins[0].NodeId = 1;
+        load.Pins[1].NodeId = 2;
+        circuit.AddDevice(load);
+
+        var solver = new MnaSolver(circuit);
+        solver.Step(0.001);
+
+        // Negative terminal of battery (Node 2) must be Ground (0 V)
+        Assert.True(circuit.Nodes[2].IsGround);
+        Assert.Equal(0.0, circuit.Nodes[2].Voltage, precision: 4);
+        Assert.InRange(circuit.Nodes[1].Voltage, 4.10, 4.25);
     }
 }
 

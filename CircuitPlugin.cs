@@ -105,6 +105,35 @@ public class CircuitPlugin : IFryPlugin
             }
         }
 
+        // Register FryWorld theme contributor and track host theme changes
+        if (ctx.TryGetService<FryWorld.Sdk.Theming.IThemeManager>(out var themeManager))
+        {
+            var contributor = new FryCircuit.UI.Theming.CircuitStudioTokenContributor();
+            var sub = themeManager.RegisterTokenContributor(contributor);
+            ctx.RegisterDisposable(sub);
+        }
+
+        if (ctx.TryGetService<IThemeService>(out var hostThemeService))
+        {
+            FryCircuit.UI.Theming.CircuitThemeService.Instance.SetTheme(hostThemeService.CurrentTheme);
+            hostThemeService.ThemeChanged += t => FryCircuit.UI.Theming.CircuitThemeService.Instance.SetTheme(t);
+        }
+
+        CircuitStudioView CreateStudioView()
+        {
+            var vm = new MainWindowViewModel(ctx);
+            ctx.RegisterDisposable(vm);
+            var view = new CircuitStudioView { DataContext = vm };
+
+            if (ctx.TryGetService<FryWorld.Sdk.Theming.IThemeManager>(out var tm))
+            {
+                tm.TrackResourceRoot(view);
+            }
+            FryCircuit.UI.Theming.CircuitThemeService.Instance.TrackResourceRoot(view);
+
+            return view;
+        }
+
         // 1. Full-Viewport Navigation Rail Item in FryWorld host
         ctx.RegisterNavigationItem(new NavigationItemDescriptor
         {
@@ -114,12 +143,7 @@ public class CircuitPlugin : IFryPlugin
             IconKind = "LightningBolt",
             AccentColor = "#00F0FF",
             Order = 40,
-            ViewFactory = () =>
-            {
-                var vm = new MainWindowViewModel(ctx);
-                ctx.RegisterDisposable(vm);
-                return new CircuitStudioView { DataContext = vm };
-            }
+            ViewFactory = () => CreateStudioView()
         });
 
         // 2. Floating Draggable Shell Overlay
@@ -134,12 +158,7 @@ public class CircuitPlugin : IFryPlugin
             MinHeight = 550,
             IsResizable = true,
             AutoOpenOnMount = false,
-            ViewFactory = () =>
-            {
-                var vm = new MainWindowViewModel(ctx);
-                ctx.RegisterDisposable(vm);
-                return new CircuitStudioView { DataContext = vm };
-            }
+            ViewFactory = () => CreateStudioView()
         });
 
         // 3. Command Palette (Ctrl+K / ⌘K)

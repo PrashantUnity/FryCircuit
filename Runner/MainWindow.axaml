@@ -8,6 +8,6 @@
         Width="1420" Height="860"
         MinWidth="960" MinHeight="640"
         WindowStartupLocation="CenterScreen"
-        Background="#0F1219">
+        Background="{DynamicResource CircuitBgBrush}">
     <views:CircuitStudioView />
 </Window>

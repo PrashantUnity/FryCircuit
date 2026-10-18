@@ -1,0 +1,294 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ===================================================================== -->
+    <!-- MASTER FRYCIRCUIT STUDIO STYLES BUNDLE                                 -->
+    <!-- Unified canonical entry point for all Circuit CAD and simulation      -->
+    <!-- control styles, themes, and design tokens.                             -->
+    <!-- ===================================================================== -->
+
+    <Styles.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://FryCircuit.UI/Styles/Tokens/CircuitPaletteTokens.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- ============================================================= -->
+            <!-- 1. CYBER PRECISION SLIDER THEMES                              -->
+            <!-- ============================================================= -->
+
+            <!-- Sleek Minimal Slider Thumb Theme -->
+            <ControlTheme x:Key="CircuitSliderThumbTheme" TargetType="Thumb">
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Ellipse Width="12" Height="12" 
+                                 Fill="{DynamicResource CircuitTextWhiteBrush}" 
+                                 Stroke="{DynamicResource CircuitBorderLightBrush}" 
+                                 StrokeThickness="1.5"/>
+                    </ControlTemplate>
+                </Setter>
+            </ControlTheme>
+
+            <!-- Precision Slider Decrease Track Theme -->
+            <ControlTheme x:Key="CircuitSliderDecreaseButtonTheme" TargetType="RepeatButton">
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Border Height="4" CornerRadius="2"
+                                Background="{DynamicResource CircuitAccentBrush}"
+                                VerticalAlignment="Center"/>
+                    </ControlTemplate>
+                </Setter>
+            </ControlTheme>
+
+            <!-- Precision Slider Increase Track Theme -->
+            <ControlTheme x:Key="CircuitSliderIncreaseButtonTheme" TargetType="RepeatButton">
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Border Height="4" CornerRadius="2"
+                                Background="{DynamicResource CircuitSurfaceHoverBrush}"
+                                BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1"
+                                VerticalAlignment="Center"/>
+                    </ControlTemplate>
+                </Setter>
+            </ControlTheme>
+
+            <!-- Precision Slider Master Control Theme -->
+            <ControlTheme x:Key="CircuitSliderTheme" TargetType="Slider">
+                <Setter Property="Background" Value="{DynamicResource CircuitSurfaceHoverBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource CircuitAccentBrush}"/>
+                <Setter Property="MinHeight" Value="20"/>
+                <Setter Property="Height" Value="20"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Border Background="Transparent" VerticalAlignment="Center">
+                            <Grid Name="SliderContainer" VerticalAlignment="Center" Height="20">
+                                <Track Name="PART_Track"
+                                       Minimum="{TemplateBinding Minimum}"
+                                       Maximum="{TemplateBinding Maximum}"
+                                       Value="{TemplateBinding Value, Mode=TwoWay}"
+                                       IsDirectionReversed="{TemplateBinding IsDirectionReversed}"
+                                       Orientation="{TemplateBinding Orientation}">
+                                    <Track.DecreaseButton>
+                                        <RepeatButton Name="PART_DecreaseButton"
+                                                      Theme="{StaticResource CircuitSliderDecreaseButtonTheme}"
+                                                      Focusable="False"/>
+                                    </Track.DecreaseButton>
+                                    <Track.IncreaseButton>
+                                        <RepeatButton Name="PART_IncreaseButton"
+                                                      Theme="{StaticResource CircuitSliderIncreaseButtonTheme}"
+                                                      Focusable="False"/>
+                                    </Track.IncreaseButton>
+                                    <Thumb Name="thumb"
+                                           Width="14" Height="14"
+                                           Margin="0" Padding="0"
+                                           Theme="{StaticResource CircuitSliderThumbTheme}"/>
+                                </Track>
+                            </Grid>
+                        </Border>
+                    </ControlTemplate>
+                </Setter>
+            </ControlTheme>
+
+            <!-- Default Theme for all Sliders -->
+            <ControlTheme x:Key="{x:Type Slider}" TargetType="Slider" BasedOn="{StaticResource CircuitSliderTheme}"/>
+        </ResourceDictionary>
+    </Styles.Resources>
+
+    <!-- ===================================================================== -->
+    <!-- 2. TOOLBAR BUTTON STYLES (Clean, Flat, No Neon Colored Borders)        -->
+    <!-- ===================================================================== -->
+
+    <!-- Base Toolbar Button -->
+    <Style Selector="Button.toolbtn">
+        <Setter Property="Background" Value="{DynamicResource CircuitSurfaceHighBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CircuitTextBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderSubtleBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="{DynamicResource CircuitRadiusMd}"/>
+        <Setter Property="Padding" Value="6,3.5"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="{DynamicResource CircuitFontSizeBody}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.12"/>
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.12"/>
+                <BrushTransition Property="Foreground" Duration="0:0:0.12"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Button.toolbtn:pointerover">
+        <Setter Property="Background" Value="{DynamicResource CircuitSurfaceHoverBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderLightBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CircuitTextWhiteBrush}"/>
+    </Style>
+    <Style Selector="Button.toolbtn:pressed">
+        <Setter Property="Background" Value="{DynamicResource CircuitSurfaceLowestBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderSubtleBrush}"/>
+    </Style>
+    <Style Selector="Button.toolbtn:disabled">
+        <Setter Property="Opacity" Value="0.45"/>
+    </Style>
+
+    <!-- Simulation Play/Pause Button (Subtle emerald tint fill when running, no neon outline) -->
+    <Style Selector="Button.toolbtn.simplay">
+        <Setter Property="Background" Value="{DynamicResource CircuitSimRunningBgBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderSubtleBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CircuitSecondaryBrush}"/>
+    </Style>
+    <Style Selector="Button.toolbtn.simplay:pointerover">
+        <Setter Property="Background" Value="{DynamicResource CircuitSecondarySubtleBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderLightBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CircuitSecondaryHoverBrush}"/>
+    </Style>
+
+    <!-- SPICE Netlist Button (Standard clean tool button, no neon border) -->
+    <Style Selector="Button.toolbtn.spice">
+        <Setter Property="Background" Value="{DynamicResource CircuitSurfaceHighBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderSubtleBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CircuitTextBrush}"/>
+    </Style>
+    <Style Selector="Button.toolbtn.spice:pointerover">
+        <Setter Property="Background" Value="{DynamicResource CircuitSurfaceHoverBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderLightBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CircuitTextWhiteBrush}"/>
+    </Style>
+
+    <!-- BOM Button (Standard clean tool button, no neon border) -->
+    <Style Selector="Button.toolbtn.bom">
+        <Setter Property="Background" Value="{DynamicResource CircuitSurfaceHighBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderSubtleBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CircuitTextBrush}"/>
+    </Style>
+    <Style Selector="Button.toolbtn.bom:pointerover">
+        <Setter Property="Background" Value="{DynamicResource CircuitSurfaceHoverBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderLightBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CircuitTextWhiteBrush}"/>
+    </Style>
+
+    <!-- Accent Tool Button (Neutral border, subtle tint background) -->
+    <Style Selector="Button.toolbtn.accent">
+        <Setter Property="Background" Value="{DynamicResource CircuitSurfaceHoverBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderSubtleBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CircuitTextWhiteBrush}"/>
+    </Style>
+    <Style Selector="Button.toolbtn.accent:pointerover">
+        <Setter Property="Background" Value="{DynamicResource CircuitSurfaceHoverBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderLightBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CircuitTextWhiteBrush}"/>
+    </Style>
+
+    <!-- Warning Tool Button (Subtle, no neon border) -->
+    <Style Selector="Button.toolbtn.warning">
+        <Setter Property="Background" Value="{DynamicResource CircuitWarningSubtleBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderSubtleBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CircuitWarningBrush}"/>
+    </Style>
+    <Style Selector="Button.toolbtn.warning:pointerover">
+        <Setter Property="Background" Value="{DynamicResource CircuitSurfaceHoverBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderLightBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CircuitTextWhiteBrush}"/>
+    </Style>
+
+    <!-- Danger Tool Button (Subtle, no neon border) -->
+    <Style Selector="Button.toolbtn.danger">
+        <Setter Property="Background" Value="{DynamicResource CircuitDangerSubtleBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderSubtleBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CircuitDangerBrush}"/>
+    </Style>
+    <Style Selector="Button.toolbtn.danger:pointerover">
+        <Setter Property="Background" Value="{DynamicResource CircuitDangerBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderSubtleBrush}"/>
+        <Setter Property="Foreground" Value="#FFFFFF"/>
+    </Style>
+
+    <!-- Icon-Only Micro Button -->
+    <Style Selector="Button.iconbtn">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{DynamicResource CircuitTextDimBrush}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="{DynamicResource CircuitRadiusSm}"/>
+        <Setter Property="Padding" Value="4"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.12"/>
+                <BrushTransition Property="Foreground" Duration="0:0:0.12"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Button.iconbtn:pointerover">
+        <Setter Property="Background" Value="{DynamicResource CircuitSurfaceHoverBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CircuitTextWhiteBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderSubtleBrush}"/>
+    </Style>
+    <Style Selector="Button.iconbtn:pressed">
+        <Setter Property="Background" Value="{DynamicResource CircuitSurfaceLowBrush}"/>
+    </Style>
+
+    <!-- ===================================================================== -->
+    <!-- 3. PANEL & CONTAINER STYLES                                           -->
+    <!-- ===================================================================== -->
+
+    <Style Selector="Border.circuit-panel">
+        <Setter Property="Background" Value="{DynamicResource CircuitPanelBgBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BoxShadow" Value="{DynamicResource CircuitCardShadow}"/>
+    </Style>
+
+    <Style Selector="Border.circuit-panel-header">
+        <Setter Property="Background" Value="{DynamicResource CircuitPanelHeaderBgBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderSubtleBrush}"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="Padding" Value="10,8"/>
+    </Style>
+
+    <Style Selector="Border.circuit-card">
+        <Setter Property="Background" Value="{DynamicResource CircuitSurfaceHighBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="{DynamicResource CircuitRadiusMd}"/>
+    </Style>
+
+    <Style Selector="Border.circuit-search">
+        <Setter Property="Background" Value="{DynamicResource CircuitSurfaceLowBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="{DynamicResource CircuitRadiusMd}"/>
+        <Setter Property="Padding" Value="8,4"/>
+    </Style>
+
+    <!-- ===================================================================== -->
+    <!-- 4. TEXTBOX & COMBOBOX STYLES                                          -->
+    <!-- ===================================================================== -->
+
+    <Style Selector="TextBox.circuit-searchbox">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{DynamicResource CircuitTextBrush}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="FontSize" Value="{DynamicResource CircuitFontSizeBody}"/>
+    </Style>
+    <Style Selector="TextBox.circuit-searchbox:focus /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+
+    <!-- ===================================================================== -->
+    <!-- 5. TOOLTIPS                                                           -->
+    <!-- ===================================================================== -->
+
+    <Style Selector="ToolTip">
+        <Setter Property="Background" Value="{DynamicResource CircuitSurfaceHighBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CircuitTextBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderLightBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="{DynamicResource CircuitRadiusMd}"/>
+        <Setter Property="Padding" Value="8,5"/>
+        <Setter Property="FontSize" Value="{DynamicResource CircuitFontSizeSmall}"/>
+    </Style>
+
+</Styles>

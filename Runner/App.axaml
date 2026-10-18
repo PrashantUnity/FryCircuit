@@ -7,5 +7,6 @@
     <Application.Styles>
         <FluentTheme />
         <materialIcons:MaterialIconStyles />
+        <StyleInclude Source="avares://FryCircuit.UI/Styles/CircuitStyles.axaml" />
     </Application.Styles>
 </Application>

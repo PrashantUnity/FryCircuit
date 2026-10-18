@@ -198,8 +198,8 @@ public class RotaryKnobControl : Control
             double r1 = radius + 3;
             double r2 = isMajor ? (radius + 8) : (radius + 5.5);
             var tickColor = isMajor 
-                ? (notchAngle <= rad ? Color.FromRgb(0, 240, 255) : Color.FromArgb(160, 120, 150, 180))
-                : Color.FromArgb(80, 80, 110, 140);
+                ? (notchAngle <= rad ? Color.FromRgb(56, 189, 248) : Color.FromArgb(160, 100, 116, 139))
+                : Color.FromArgb(80, 71, 85, 105);
             var notchPen = new Pen(new SolidColorBrush(tickColor), isMajor ? 1.4 : 1.0);
             context.DrawLine(notchPen, 
                 new Point(center.X + r1 * Math.Cos(notchAngle), center.Y + r1 * Math.Sin(notchAngle)),
@@ -207,7 +207,7 @@ public class RotaryKnobControl : Control
         }
 
         // 3. Outer track background arc (Deep slot groove)
-        var trackPen = new Pen(new SolidColorBrush(Color.FromRgb(18, 24, 34)), 6)
+        var trackPen = new Pen(new SolidColorBrush(Color.FromRgb(15, 23, 42)), 6)
         {
             LineCap = PenLineCap.Round
         };
@@ -222,14 +222,14 @@ public class RotaryKnobControl : Control
         }
         context.DrawGeometry(null, trackPen, trackGeom);
 
-        // 4. Glowing active progress arc (Dual-pass neon glow)
+        // 4. Glowing active progress arc (Dual-pass refined cyan glow)
         if (sweepAngle > 2.0)
         {
-            var glowArcPen = new Pen(new SolidColorBrush(Color.FromArgb(50, 0, 240, 255)), 9)
+            var glowArcPen = new Pen(new SolidColorBrush(Color.FromArgb(40, 56, 189, 248)), 8)
             {
                 LineCap = PenLineCap.Round
             };
-            var activeArcPen = new Pen(new SolidColorBrush(Color.FromRgb(0, 230, 118)), 4.5)
+            var activeArcPen = new Pen(new SolidColorBrush(Color.FromRgb(56, 189, 248)), 4.0)
             {
                 LineCap = PenLineCap.Round
             };
@@ -252,26 +252,26 @@ public class RotaryKnobControl : Control
             EndPoint = new RelativePoint(0.9, 0.9, RelativeUnit.Relative),
             GradientStops =
             {
-                new GradientStop(Color.FromRgb(46, 58, 78), 0.0),
-                new GradientStop(Color.FromRgb(24, 30, 42), 0.5),
-                new GradientStop(Color.FromRgb(16, 21, 30), 1.0)
+                new GradientStop(Color.FromRgb(30, 41, 59), 0.0),
+                new GradientStop(Color.FromRgb(15, 23, 42), 0.5),
+                new GradientStop(Color.FromRgb(11, 17, 32), 1.0)
             }
         };
-        var knobBorder = new Pen(new SolidColorBrush(Color.FromRgb(70, 90, 120)), 1.5);
+        var knobBorder = new Pen(new SolidColorBrush(Color.FromRgb(51, 65, 85)), 1.5);
         context.DrawEllipse(knobBrush, knobBorder, center, radius - 6, radius - 6);
 
         // Precision concentric chamfer ring
-        var chamferPen = new Pen(new SolidColorBrush(Color.FromArgb(40, 0, 240, 255)), 1);
+        var chamferPen = new Pen(new SolidColorBrush(Color.FromArgb(30, 56, 189, 248)), 1);
         context.DrawEllipse(null, chamferPen, center, radius - 11, radius - 11);
 
         // 6. Illuminated Radial Indicator Pointer Notch
         double needleInnerR = radius - 15;
         double needleOuterR = radius - 7;
-        var needlePenGlow = new Pen(new SolidColorBrush(Color.FromArgb(100, 0, 240, 255)), 4)
+        var needlePenGlow = new Pen(new SolidColorBrush(Color.FromArgb(80, 56, 189, 248)), 4)
         {
             LineCap = PenLineCap.Round
         };
-        var needlePenCore = new Pen(new SolidColorBrush(Color.FromRgb(0, 255, 136)), 2.2)
+        var needlePenCore = new Pen(new SolidColorBrush(Color.FromRgb(125, 211, 252)), 2.2)
         {
             LineCap = PenLineCap.Round
         };
@@ -281,7 +281,7 @@ public class RotaryKnobControl : Control
         context.DrawLine(needlePenCore, ptInner, ptOuter);
 
         // Glowing indicator pip at the needle tip
-        context.DrawEllipse(new SolidColorBrush(Color.FromArgb(140, 0, 255, 136)), null, ptOuter, 3.8, 3.8);
+        context.DrawEllipse(new SolidColorBrush(Color.FromArgb(140, 56, 189, 248)), null, ptOuter, 3.8, 3.8);
         context.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 255, 255)), null, ptOuter, 1.8, 1.8);
 
         // 7. Formatted value string in center (High-tech digital HUD pill)

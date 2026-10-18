@@ -1,0 +1,327 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://FryCircuit.UI/Styles/Tokens/CircuitLayoutTokens.axaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- ===================================================================== -->
+    <!-- FryCircuit Studio Palette Tokens                                       -->
+    <!-- Theme-variant aware tokens (Dark & Light) for Circuit CAD & Simulator  -->
+    <!-- ===================================================================== -->
+
+    <ResourceDictionary.ThemeDictionaries>
+
+        <!-- ================================================================= -->
+        <!-- DARK THEME (Refined Precision Engineering Dark)                   -->
+        <!-- ================================================================= -->
+        <ResourceDictionary x:Key="Dark">
+            <!-- 1. Backgrounds & Surfaces -->
+            <Color x:Key="CircuitBgColor">#080C14</Color>
+            <Color x:Key="CircuitSurfaceColor">#0F172A</Color>
+            <Color x:Key="CircuitSurfaceHoverColor">#1E293B</Color>
+            <Color x:Key="CircuitSurfaceHighColor">#1E293B</Color>
+            <Color x:Key="CircuitSurfaceLowColor">#0B1120</Color>
+            <Color x:Key="CircuitSurfaceLowestColor">#060911</Color>
+            <Color x:Key="CircuitGlassBgColor">#E60F172A</Color>
+            <Color x:Key="CircuitHeaderBgColor">#0B1120</Color>
+            <Color x:Key="CircuitPanelBgColor">#0F172A</Color>
+            <Color x:Key="CircuitPanelHeaderBgColor">#0B1120</Color>
+
+            <SolidColorBrush x:Key="CircuitBgBrush" Color="{StaticResource CircuitBgColor}" />
+            <SolidColorBrush x:Key="CircuitSurfaceBrush" Color="{StaticResource CircuitSurfaceColor}" />
+            <SolidColorBrush x:Key="CircuitSurfaceHoverBrush" Color="{StaticResource CircuitSurfaceHoverColor}" />
+            <SolidColorBrush x:Key="CircuitSurfaceHighBrush" Color="{StaticResource CircuitSurfaceHighColor}" />
+            <SolidColorBrush x:Key="CircuitSurfaceLowBrush" Color="{StaticResource CircuitSurfaceLowColor}" />
+            <SolidColorBrush x:Key="CircuitSurfaceLowestBrush" Color="{StaticResource CircuitSurfaceLowestColor}" />
+            <SolidColorBrush x:Key="CircuitGlassBgBrush" Color="{StaticResource CircuitGlassBgColor}" />
+            <SolidColorBrush x:Key="CircuitHeaderBgBrush" Color="{StaticResource CircuitHeaderBgColor}" />
+            <SolidColorBrush x:Key="CircuitPanelBgBrush" Color="{StaticResource CircuitPanelBgColor}" />
+            <SolidColorBrush x:Key="CircuitPanelHeaderBgBrush" Color="{StaticResource CircuitPanelHeaderBgColor}" />
+            <SolidColorBrush x:Key="CircuitHoverOverlayBrush" Color="#14FFFFFF" />
+            <SolidColorBrush x:Key="CircuitScrimBrush" Color="#B305070B" />
+
+            <!-- 2. Borders & Outlines -->
+            <Color x:Key="CircuitBorderColor">#1E293B</Color>
+            <Color x:Key="CircuitBorderSubtleColor">#151E2E</Color>
+            <Color x:Key="CircuitBorderLightColor">#334155</Color>
+            <Color x:Key="CircuitFocusBorderColor">#8038BDF8</Color>
+
+            <SolidColorBrush x:Key="CircuitBorderBrush" Color="{StaticResource CircuitBorderColor}" />
+            <SolidColorBrush x:Key="CircuitBorderSubtleBrush" Color="{StaticResource CircuitBorderSubtleColor}" />
+            <SolidColorBrush x:Key="CircuitBorderLightBrush" Color="{StaticResource CircuitBorderLightColor}" />
+            <SolidColorBrush x:Key="CircuitFocusBorderBrush" Color="{StaticResource CircuitFocusBorderColor}" />
+
+            <!-- 3. Text & Typography -->
+            <Color x:Key="CircuitTextColor">#E2E8F0</Color>
+            <Color x:Key="CircuitTextWhiteColor">#F8FAFC</Color>
+            <Color x:Key="CircuitTextDimColor">#94A3B8</Color>
+            <Color x:Key="CircuitTextMutedColor">#64748B</Color>
+            <Color x:Key="CircuitTextFaintColor">#475569</Color>
+
+            <SolidColorBrush x:Key="CircuitTextBrush" Color="{StaticResource CircuitTextColor}" />
+            <SolidColorBrush x:Key="CircuitTextWhiteBrush" Color="{StaticResource CircuitTextWhiteColor}" />
+            <SolidColorBrush x:Key="CircuitTextDimBrush" Color="{StaticResource CircuitTextDimColor}" />
+            <SolidColorBrush x:Key="CircuitTextMutedBrush" Color="{StaticResource CircuitTextMutedColor}" />
+            <SolidColorBrush x:Key="CircuitTextFaintBrush" Color="{StaticResource CircuitTextFaintColor}" />
+
+            <!-- 4. Accents & Simulation Brand Colors -->
+            <Color x:Key="CircuitAccentColor">#38BDF8</Color>
+            <Color x:Key="CircuitAccentHoverColor">#7DD3FC</Color>
+            <Color x:Key="CircuitAccentSubtleColor">#1F38BDF8</Color>
+            <Color x:Key="CircuitAccentGlowColor">#3338BDF8</Color>
+            <Color x:Key="CircuitOnAccentColor">#080C14</Color>
+
+            <SolidColorBrush x:Key="CircuitAccentBrush" Color="{StaticResource CircuitAccentColor}" />
+            <SolidColorBrush x:Key="CircuitAccentHoverBrush" Color="{StaticResource CircuitAccentHoverColor}" />
+            <SolidColorBrush x:Key="CircuitAccentSubtleBrush" Color="{StaticResource CircuitAccentSubtleColor}" />
+            <SolidColorBrush x:Key="CircuitAccentGlowBrush" Color="{StaticResource CircuitAccentGlowColor}" />
+            <SolidColorBrush x:Key="CircuitOnAccentBrush" Color="{StaticResource CircuitOnAccentColor}" />
+
+            <Color x:Key="CircuitSecondaryColor">#10B981</Color>
+            <Color x:Key="CircuitSecondaryHoverColor">#34D399</Color>
+            <Color x:Key="CircuitSecondarySubtleColor">#1F10B981</Color>
+
+            <SolidColorBrush x:Key="CircuitSecondaryBrush" Color="{StaticResource CircuitSecondaryColor}" />
+            <SolidColorBrush x:Key="CircuitSecondaryHoverBrush" Color="{StaticResource CircuitSecondaryHoverColor}" />
+            <SolidColorBrush x:Key="CircuitSecondarySubtleBrush" Color="{StaticResource CircuitSecondarySubtleColor}" />
+
+            <!-- 5. Status & Physics -->
+            <Color x:Key="CircuitWarningColor">#F59E0B</Color>
+            <Color x:Key="CircuitWarningSubtleColor">#1FF59E0B</Color>
+            <Color x:Key="CircuitDangerColor">#F43F5E</Color>
+            <Color x:Key="CircuitDangerSubtleColor">#1FF43F5E</Color>
+
+            <SolidColorBrush x:Key="CircuitWarningBrush" Color="{StaticResource CircuitWarningColor}" />
+            <SolidColorBrush x:Key="CircuitWarningSubtleBrush" Color="{StaticResource CircuitWarningSubtleColor}" />
+            <SolidColorBrush x:Key="CircuitDangerBrush" Color="{StaticResource CircuitDangerColor}" />
+            <SolidColorBrush x:Key="CircuitDangerSubtleBrush" Color="{StaticResource CircuitDangerSubtleColor}" />
+
+            <SolidColorBrush x:Key="CircuitSimRunningBrush" Color="#10B981" />
+            <SolidColorBrush x:Key="CircuitSimRunningBgBrush" Color="#1A10B981" />
+            <SolidColorBrush x:Key="CircuitSimRunningBorderBrush" Color="#4D10B981" />
+            <SolidColorBrush x:Key="CircuitSimPausedBrush" Color="#F59E0B" />
+            <SolidColorBrush x:Key="CircuitSimPausedBgBrush" Color="#1AF59E0B" />
+
+            <SolidColorBrush x:Key="CircuitSpiceBrush" Color="#38BDF8" />
+            <SolidColorBrush x:Key="CircuitSpiceBgBrush" Color="#1A38BDF8" />
+            <SolidColorBrush x:Key="CircuitSpiceHoverBgBrush" Color="#2B38BDF8" />
+
+            <SolidColorBrush x:Key="CircuitBomBrush" Color="#10B981" />
+            <SolidColorBrush x:Key="CircuitBomBgBrush" Color="#1A10B981" />
+            <SolidColorBrush x:Key="CircuitBomHoverBgBrush" Color="#2B10B981" />
+
+            <!-- 6. Schematic Canvas & Waveform Scopes -->
+            <Color x:Key="CircuitCanvasBgColor">#080C14</Color>
+            <Color x:Key="CircuitCanvasDotMinorColor">#151F30</Color>
+            <Color x:Key="CircuitCanvasDotMajorColor">#2638BDF8</Color>
+
+            <SolidColorBrush x:Key="CircuitCanvasBgBrush" Color="{StaticResource CircuitCanvasBgColor}" />
+            <SolidColorBrush x:Key="CircuitCanvasDotMinorBrush" Color="{StaticResource CircuitCanvasDotMinorColor}" />
+            <SolidColorBrush x:Key="CircuitCanvasDotMajorBrush" Color="{StaticResource CircuitCanvasDotMajorColor}" />
+
+            <Color x:Key="CircuitScopeBgColor">#070B12</Color>
+            <Color x:Key="CircuitScopeGridColor">#142032</Color>
+            <Color x:Key="CircuitScopeCenterColor">#1E314B</Color>
+            <Color x:Key="CircuitScopeTickColor">#284263</Color>
+
+            <SolidColorBrush x:Key="CircuitScopeBgBrush" Color="{StaticResource CircuitScopeBgColor}" />
+            <SolidColorBrush x:Key="CircuitScopeGridBrush" Color="{StaticResource CircuitScopeGridColor}" />
+            <SolidColorBrush x:Key="CircuitScopeCenterBrush" Color="{StaticResource CircuitScopeCenterColor}" />
+            <SolidColorBrush x:Key="CircuitScopeTickBrush" Color="{StaticResource CircuitScopeTickColor}" />
+
+            <SolidColorBrush x:Key="CircuitScopeCh1Brush" Color="#F59E0B" />
+            <SolidColorBrush x:Key="CircuitScopeCh2Brush" Color="#06B6D4" />
+            <SolidColorBrush x:Key="CircuitScopeCh3Brush" Color="#10B981" />
+            <SolidColorBrush x:Key="CircuitScopeCh4Brush" Color="#F43F5E" />
+
+            <SolidColorBrush x:Key="CircuitProbeCh1Brush" Color="#F59E0B" />
+            <SolidColorBrush x:Key="CircuitProbeCh2Brush" Color="#06B6D4" />
+
+            <SolidColorBrush x:Key="CircuitWireNormalBrush" Color="#64748B" />
+            <SolidColorBrush x:Key="CircuitWireActiveBrush" Color="#10B981" />
+            <SolidColorBrush x:Key="CircuitWireSelectedBrush" Color="#38BDF8" />
+            <SolidColorBrush x:Key="CircuitWireGlowBrush" Color="#3338BDF8" />
+            <SolidColorBrush x:Key="CircuitPinBrush" Color="#CBD5E1" />
+
+            <SolidColorBrush x:Key="CircuitKnobTrackBrush" Color="#162032" />
+            <SolidColorBrush x:Key="CircuitKnobBezelBrush" Color="#243248" />
+
+            <!-- 7. M3 / FryWorld Host Compatibility Mappings (Dark) -->
+            <SolidColorBrush x:Key="M3SurfaceBrush" Color="{StaticResource CircuitBgColor}" />
+            <SolidColorBrush x:Key="M3BackgroundBrush" Color="{StaticResource CircuitBgColor}" />
+            <SolidColorBrush x:Key="M3SurfaceContainerBrush" Color="{StaticResource CircuitSurfaceColor}" />
+            <SolidColorBrush x:Key="M3SurfaceContainerHighBrush" Color="{StaticResource CircuitSurfaceHighColor}" />
+            <SolidColorBrush x:Key="M3SurfaceContainerHighestBrush" Color="{StaticResource CircuitSurfaceHoverColor}" />
+            <SolidColorBrush x:Key="M3SurfaceContainerLowBrush" Color="{StaticResource CircuitSurfaceLowColor}" />
+            <SolidColorBrush x:Key="M3SurfaceContainerLowestBrush" Color="{StaticResource CircuitSurfaceLowestColor}" />
+            <SolidColorBrush x:Key="M3OnSurfaceBrush" Color="{StaticResource CircuitTextWhiteColor}" />
+            <SolidColorBrush x:Key="M3OnSurfaceVariantBrush" Color="{StaticResource CircuitTextDimColor}" />
+            <SolidColorBrush x:Key="M3OutlineVariantBrush" Color="{StaticResource CircuitBorderSubtleColor}" />
+            <SolidColorBrush x:Key="M3OutlineBrush" Color="{StaticResource CircuitBorderColor}" />
+            <SolidColorBrush x:Key="M3PrimaryBrush" Color="{StaticResource CircuitAccentColor}" />
+            <SolidColorBrush x:Key="M3PrimaryContainerBrush" Color="{StaticResource CircuitAccentSubtleColor}" />
+            <SolidColorBrush x:Key="M3OnPrimaryContainerBrush" Color="{StaticResource CircuitAccentColor}" />
+            <SolidColorBrush x:Key="M3SecondaryBrush" Color="{StaticResource CircuitSecondaryColor}" />
+            <SolidColorBrush x:Key="M3SecondaryContainerBrush" Color="{StaticResource CircuitSecondarySubtleColor}" />
+            <SolidColorBrush x:Key="M3ErrorBrush" Color="{StaticResource CircuitDangerColor}" />
+        </ResourceDictionary>
+
+        <!-- ================================================================= -->
+        <!-- LIGHT THEME (Clean Precision Engineering Light)                   -->
+        <!-- ================================================================= -->
+        <ResourceDictionary x:Key="Light">
+            <!-- 1. Backgrounds & Surfaces -->
+            <Color x:Key="CircuitBgColor">#F4F7FA</Color>
+            <Color x:Key="CircuitSurfaceColor">#FFFFFF</Color>
+            <Color x:Key="CircuitSurfaceHoverColor">#EAF0F6</Color>
+            <Color x:Key="CircuitSurfaceHighColor">#F0F4F9</Color>
+            <Color x:Key="CircuitSurfaceLowColor">#F8FAFC</Color>
+            <Color x:Key="CircuitSurfaceLowestColor">#E9EFF6</Color>
+            <Color x:Key="CircuitGlassBgColor">#F2FFFFFF</Color>
+            <Color x:Key="CircuitHeaderBgColor">#FFFFFF</Color>
+            <Color x:Key="CircuitPanelBgColor">#FFFFFF</Color>
+            <Color x:Key="CircuitPanelHeaderBgColor">#F3F7FA</Color>
+
+            <SolidColorBrush x:Key="CircuitBgBrush" Color="{StaticResource CircuitBgColor}" />
+            <SolidColorBrush x:Key="CircuitSurfaceBrush" Color="{StaticResource CircuitSurfaceColor}" />
+            <SolidColorBrush x:Key="CircuitSurfaceHoverBrush" Color="{StaticResource CircuitSurfaceHoverColor}" />
+            <SolidColorBrush x:Key="CircuitSurfaceHighBrush" Color="{StaticResource CircuitSurfaceHighColor}" />
+            <SolidColorBrush x:Key="CircuitSurfaceLowBrush" Color="{StaticResource CircuitSurfaceLowColor}" />
+            <SolidColorBrush x:Key="CircuitSurfaceLowestBrush" Color="{StaticResource CircuitSurfaceLowestColor}" />
+            <SolidColorBrush x:Key="CircuitGlassBgBrush" Color="{StaticResource CircuitGlassBgColor}" />
+            <SolidColorBrush x:Key="CircuitHeaderBgBrush" Color="{StaticResource CircuitHeaderBgColor}" />
+            <SolidColorBrush x:Key="CircuitPanelBgBrush" Color="{StaticResource CircuitPanelBgColor}" />
+            <SolidColorBrush x:Key="CircuitPanelHeaderBgBrush" Color="{StaticResource CircuitPanelHeaderBgColor}" />
+            <SolidColorBrush x:Key="CircuitHoverOverlayBrush" Color="#0D000000" />
+            <SolidColorBrush x:Key="CircuitScrimBrush" Color="#66000000" />
+
+            <!-- 2. Borders & Outlines -->
+            <Color x:Key="CircuitBorderColor">#D6DFE8</Color>
+            <Color x:Key="CircuitBorderSubtleColor">#E6ECF2</Color>
+            <Color x:Key="CircuitBorderLightColor">#CBD5E1</Color>
+            <Color x:Key="CircuitFocusBorderColor">#B30088CC</Color>
+
+            <SolidColorBrush x:Key="CircuitBorderBrush" Color="{StaticResource CircuitBorderColor}" />
+            <SolidColorBrush x:Key="CircuitBorderSubtleBrush" Color="{StaticResource CircuitBorderSubtleColor}" />
+            <SolidColorBrush x:Key="CircuitBorderLightBrush" Color="{StaticResource CircuitBorderLightColor}" />
+            <SolidColorBrush x:Key="CircuitFocusBorderBrush" Color="{StaticResource CircuitFocusBorderColor}" />
+
+            <!-- 3. Text & Typography -->
+            <Color x:Key="CircuitTextColor">#1E293B</Color>
+            <Color x:Key="CircuitTextWhiteColor">#0F172A</Color>
+            <Color x:Key="CircuitTextDimColor">#475569</Color>
+            <Color x:Key="CircuitTextMutedColor">#64748B</Color>
+            <Color x:Key="CircuitTextFaintColor">#94A3B8</Color>
+
+            <SolidColorBrush x:Key="CircuitTextBrush" Color="{StaticResource CircuitTextColor}" />
+            <SolidColorBrush x:Key="CircuitTextWhiteBrush" Color="{StaticResource CircuitTextWhiteColor}" />
+            <SolidColorBrush x:Key="CircuitTextDimBrush" Color="{StaticResource CircuitTextDimColor}" />
+            <SolidColorBrush x:Key="CircuitTextMutedBrush" Color="{StaticResource CircuitTextMutedColor}" />
+            <SolidColorBrush x:Key="CircuitTextFaintBrush" Color="{StaticResource CircuitTextFaintColor}" />
+
+            <!-- 4. Accents & Simulation Brand Colors -->
+            <Color x:Key="CircuitAccentColor">#0088CC</Color>
+            <Color x:Key="CircuitAccentHoverColor">#0073B0</Color>
+            <Color x:Key="CircuitAccentSubtleColor">#150088CC</Color>
+            <Color x:Key="CircuitAccentGlowColor">#250088CC</Color>
+            <Color x:Key="CircuitOnAccentColor">#FFFFFF</Color>
+
+            <SolidColorBrush x:Key="CircuitAccentBrush" Color="{StaticResource CircuitAccentColor}" />
+            <SolidColorBrush x:Key="CircuitAccentHoverBrush" Color="{StaticResource CircuitAccentHoverColor}" />
+            <SolidColorBrush x:Key="CircuitAccentSubtleBrush" Color="{StaticResource CircuitAccentSubtleColor}" />
+            <SolidColorBrush x:Key="CircuitAccentGlowBrush" Color="{StaticResource CircuitAccentGlowColor}" />
+            <SolidColorBrush x:Key="CircuitOnAccentBrush" Color="{StaticResource CircuitOnAccentColor}" />
+
+            <Color x:Key="CircuitSecondaryColor">#059669</Color>
+            <Color x:Key="CircuitSecondaryHoverColor">#047857</Color>
+            <Color x:Key="CircuitSecondarySubtleColor">#15059669</Color>
+
+            <SolidColorBrush x:Key="CircuitSecondaryBrush" Color="{StaticResource CircuitSecondaryColor}" />
+            <SolidColorBrush x:Key="CircuitSecondaryHoverBrush" Color="{StaticResource CircuitSecondaryHoverColor}" />
+            <SolidColorBrush x:Key="CircuitSecondarySubtleBrush" Color="{StaticResource CircuitSecondarySubtleColor}" />
+
+            <!-- 5. Status & Physics -->
+            <Color x:Key="CircuitWarningColor">#D97706</Color>
+            <Color x:Key="CircuitWarningSubtleColor">#15D97706</Color>
+            <Color x:Key="CircuitDangerColor">#DC2626</Color>
+            <Color x:Key="CircuitDangerSubtleColor">#15DC2626</Color>
+
+            <SolidColorBrush x:Key="CircuitWarningBrush" Color="{StaticResource CircuitWarningColor}" />
+            <SolidColorBrush x:Key="CircuitWarningSubtleBrush" Color="{StaticResource CircuitWarningSubtleColor}" />
+            <SolidColorBrush x:Key="CircuitDangerBrush" Color="{StaticResource CircuitDangerColor}" />
+            <SolidColorBrush x:Key="CircuitDangerSubtleBrush" Color="{StaticResource CircuitDangerSubtleColor}" />
+
+            <SolidColorBrush x:Key="CircuitSimRunningBrush" Color="#059669" />
+            <SolidColorBrush x:Key="CircuitSimRunningBgBrush" Color="#ECFDF5" />
+            <SolidColorBrush x:Key="CircuitSimRunningBorderBrush" Color="#A7F3D0" />
+            <SolidColorBrush x:Key="CircuitSimPausedBrush" Color="#D97706" />
+            <SolidColorBrush x:Key="CircuitSimPausedBgBrush" Color="#FFFBEB" />
+
+            <SolidColorBrush x:Key="CircuitSpiceBrush" Color="#0284C7" />
+            <SolidColorBrush x:Key="CircuitSpiceBgBrush" Color="#F0F9FF" />
+            <SolidColorBrush x:Key="CircuitSpiceHoverBgBrush" Color="#E0F2FE" />
+
+            <SolidColorBrush x:Key="CircuitBomBrush" Color="#059669" />
+            <SolidColorBrush x:Key="CircuitBomBgBrush" Color="#ECFDF5" />
+            <SolidColorBrush x:Key="CircuitBomHoverBgBrush" Color="#D1FAE5" />
+
+            <!-- 6. Schematic Canvas & Waveform Scopes (Light) -->
+            <Color x:Key="CircuitCanvasBgColor">#F9FBFC</Color>
+            <Color x:Key="CircuitCanvasDotMinorColor">#CBD5E1</Color>
+            <Color x:Key="CircuitCanvasDotMajorColor">#330088CC</Color>
+
+            <SolidColorBrush x:Key="CircuitCanvasBgBrush" Color="{StaticResource CircuitCanvasBgColor}" />
+            <SolidColorBrush x:Key="CircuitCanvasDotMinorBrush" Color="{StaticResource CircuitCanvasDotMinorColor}" />
+            <SolidColorBrush x:Key="CircuitCanvasDotMajorBrush" Color="{StaticResource CircuitCanvasDotMajorColor}" />
+
+            <Color x:Key="CircuitScopeBgColor">#0D1520</Color>
+            <Color x:Key="CircuitScopeGridColor">#1C2A3A</Color>
+            <Color x:Key="CircuitScopeCenterColor">#2A3F56</Color>
+            <Color x:Key="CircuitScopeTickColor">#385472</Color>
+
+            <SolidColorBrush x:Key="CircuitScopeBgBrush" Color="{StaticResource CircuitScopeBgColor}" />
+            <SolidColorBrush x:Key="CircuitScopeGridBrush" Color="{StaticResource CircuitScopeGridColor}" />
+            <SolidColorBrush x:Key="CircuitScopeCenterBrush" Color="{StaticResource CircuitScopeCenterColor}" />
+            <SolidColorBrush x:Key="CircuitScopeTickBrush" Color="{StaticResource CircuitScopeTickColor}" />
+
+            <SolidColorBrush x:Key="CircuitScopeCh1Brush" Color="#F59E0B" />
+            <SolidColorBrush x:Key="CircuitScopeCh2Brush" Color="#00B4D8" />
+            <SolidColorBrush x:Key="CircuitScopeCh3Brush" Color="#10B981" />
+            <SolidColorBrush x:Key="CircuitScopeCh4Brush" Color="#EF4444" />
+
+            <SolidColorBrush x:Key="CircuitProbeCh1Brush" Color="#D97706" />
+            <SolidColorBrush x:Key="CircuitProbeCh2Brush" Color="#0088CC" />
+
+            <SolidColorBrush x:Key="CircuitWireNormalBrush" Color="#475569" />
+            <SolidColorBrush x:Key="CircuitWireActiveBrush" Color="#059669" />
+            <SolidColorBrush x:Key="CircuitWireSelectedBrush" Color="#0088CC" />
+            <SolidColorBrush x:Key="CircuitWireGlowBrush" Color="#300088CC" />
+            <SolidColorBrush x:Key="CircuitPinBrush" Color="#334155" />
+
+            <SolidColorBrush x:Key="CircuitKnobTrackBrush" Color="#E2E8F0" />
+            <SolidColorBrush x:Key="CircuitKnobBezelBrush" Color="#CBD5E1" />
+
+            <!-- 7. M3 / FryWorld Host Compatibility Mappings (Light) -->
+            <SolidColorBrush x:Key="M3SurfaceBrush" Color="{StaticResource CircuitBgColor}" />
+            <SolidColorBrush x:Key="M3BackgroundBrush" Color="{StaticResource CircuitBgColor}" />
+            <SolidColorBrush x:Key="M3SurfaceContainerBrush" Color="{StaticResource CircuitSurfaceColor}" />
+            <SolidColorBrush x:Key="M3SurfaceContainerHighBrush" Color="{StaticResource CircuitSurfaceHighColor}" />
+            <SolidColorBrush x:Key="M3SurfaceContainerHighestBrush" Color="{StaticResource CircuitSurfaceHoverColor}" />
+            <SolidColorBrush x:Key="M3SurfaceContainerLowBrush" Color="{StaticResource CircuitSurfaceLowColor}" />
+            <SolidColorBrush x:Key="M3SurfaceContainerLowestBrush" Color="{StaticResource CircuitSurfaceLowestColor}" />
+            <SolidColorBrush x:Key="M3OnSurfaceBrush" Color="{StaticResource CircuitTextWhiteColor}" />
+            <SolidColorBrush x:Key="M3OnSurfaceVariantBrush" Color="{StaticResource CircuitTextDimColor}" />
+            <SolidColorBrush x:Key="M3OutlineVariantBrush" Color="{StaticResource CircuitBorderSubtleColor}" />
+            <SolidColorBrush x:Key="M3OutlineBrush" Color="{StaticResource CircuitBorderColor}" />
+            <SolidColorBrush x:Key="M3PrimaryBrush" Color="{StaticResource CircuitAccentColor}" />
+            <SolidColorBrush x:Key="M3PrimaryContainerBrush" Color="{StaticResource CircuitAccentSubtleColor}" />
+            <SolidColorBrush x:Key="M3OnPrimaryContainerBrush" Color="{StaticResource CircuitAccentColor}" />
+            <SolidColorBrush x:Key="M3SecondaryBrush" Color="{StaticResource CircuitSecondaryColor}" />
+            <SolidColorBrush x:Key="M3SecondaryContainerBrush" Color="{StaticResource CircuitSecondarySubtleColor}" />
+            <SolidColorBrush x:Key="M3ErrorBrush" Color="{StaticResource CircuitDangerColor}" />
+        </ResourceDictionary>
+
+    </ResourceDictionary.ThemeDictionaries>
+
+</ResourceDictionary>

@@ -31,7 +31,7 @@ public class ResistorRenderer : IDeviceRenderer
         context.DrawGeometry(null, strokePen, geom);
 
         // Terminal solder pads
-        double padRadius = (renderContext.IsGlowPass ? 4.8 : 3.2) * z;
+        double padRadius = (renderContext.IsGlowPass ? 4.0 : 2.5) * z;
         context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y - u), padRadius, padRadius);
         context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y + u), padRadius, padRadius);
     }

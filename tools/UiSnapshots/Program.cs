@@ -13,6 +13,11 @@ public class SnapshotApp : Application
     public override void Initialize()
     {
         Styles.Add(new FluentTheme());
+        Styles.Add(new Material.Icons.Avalonia.MaterialIconStyles(null));
+        Styles.Add(new Avalonia.Markup.Xaml.Styling.StyleInclude(new Uri("avares://UiSnapshots"))
+        {
+            Source = new Uri("avares://FryCircuit.UI/Styles/CircuitStyles.axaml")
+        });
         RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark;
     }
 }
@@ -39,6 +44,13 @@ public static class Program
         {
             CaptureLedInspector(outDir);
             Console.WriteLine("LED snapshot captured successfully!");
+            return;
+        }
+
+        if (args.Length > 0 && args[0].Equals("probe", StringComparison.OrdinalIgnoreCase))
+        {
+            CaptureWireProbingStates(outDir);
+            Console.WriteLine("Wire probing snapshots captured successfully!");
             return;
         }
 
@@ -141,6 +153,7 @@ public static class Program
             DataContext = vm,
             Content = studio
         };
+        FryCircuit.UI.Theming.CircuitThemeService.Instance.TrackResourceRoot(window);
 
         if (true)
         {
@@ -300,6 +313,36 @@ public static class Program
             vm.IsInspectorOpen = true;
             vm.IsOscilloscopeOpen = true;
             vm.IsOscilloscopeMaximized = true;
+        });
+    }
+
+    private static void CaptureWireProbingStates(string outDir)
+    {
+        // 1. Wire Inspector Unprobed (shows [👁️ View on Scope] button and wire connection)
+        CaptureLayoutVariant(outDir, "wire_inspector_unprobed.png", vm =>
+        {
+            vm.LoadPreset("Half-Wave Rectifier");
+            for (int i = 0; i < 50; i++) vm.StepSimulationCommand.Execute(null);
+            var wire = vm.CurrentCircuit?.Wires.FirstOrDefault(w => w.NodeId != 0);
+            if (wire != null)
+            {
+                vm.SelectedWire = wire;
+                vm.DetachSelectedWireProbe();
+            }
+        });
+
+        // 2. Wire Inspector Probed on CH1 (shows [👁️ Probed on CH1 (Amber)] active button and scope trace)
+        CaptureLayoutVariant(outDir, "wire_inspector_probed_ch1.png", vm =>
+        {
+            vm.LoadPreset("Half-Wave Rectifier");
+            for (int i = 0; i < 50; i++) vm.StepSimulationCommand.Execute(null);
+            var wire = vm.CurrentCircuit?.Wires.FirstOrDefault(w => w.NodeId != 0);
+            if (wire != null)
+            {
+                vm.SelectedWire = wire;
+                vm.ToggleSelectedWireProbe();
+            }
+            for (int i = 0; i < 30; i++) vm.StepSimulationCommand.Execute(null);
         });
     }
 

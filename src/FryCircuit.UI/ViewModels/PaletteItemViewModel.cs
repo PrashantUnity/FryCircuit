@@ -15,34 +15,34 @@ public sealed class PaletteItemViewModel
 
     public string AccentColor => Category switch
     {
-        "Passives" => "#00F0FF",
-        "Sources" => "#FFD700",
-        "Semiconductors" => "#00E676",
-        "Quantum & RF" => "#B388FF",
-        "Logic & ICs" => "#40C4FF",
-        "Meters & Switches" => "#FFAB40",
-        _ => "#00F0FF"
+        "Passives" => "#38BDF8",
+        "Sources" => "#F59E0B",
+        "Semiconductors" => "#10B981",
+        "Quantum & RF" => "#A78BFA",
+        "Logic & ICs" => "#60A5FA",
+        "Meters & Switches" => "#FB923C",
+        _ => "#38BDF8"
     };
 
     public string AccentBackground => Category switch
     {
-        "Passives" => "#1800F0FF",
-        "Sources" => "#18FFD700",
-        "Semiconductors" => "#1800E676",
-        "Quantum & RF" => "#18B388FF",
-        "Logic & ICs" => "#1840C4FF",
-        "Meters & Switches" => "#18FFAB40",
-        _ => "#1800F0FF"
+        "Passives" => "#1438BDF8",
+        "Sources" => "#14F59E0B",
+        "Semiconductors" => "#1410B981",
+        "Quantum & RF" => "#14A78BFA",
+        "Logic & ICs" => "#1460A5FA",
+        "Meters & Switches" => "#14FB923C",
+        _ => "#1438BDF8"
     };
 
     public string AccentBorder => Category switch
     {
-        "Passives" => "#3800F0FF",
-        "Sources" => "#38FFD700",
-        "Semiconductors" => "#3800E676",
-        "Quantum & RF" => "#38B388FF",
-        "Logic & ICs" => "#3840C4FF",
-        "Meters & Switches" => "#38FFAB40",
-        _ => "#3800F0FF"
+        "Passives" => "#3338BDF8",
+        "Sources" => "#33F59E0B",
+        "Semiconductors" => "#3310B981",
+        "Quantum & RF" => "#33A78BFA",
+        "Logic & ICs" => "#3360A5FA",
+        "Meters & Switches" => "#33FB923C",
+        _ => "#3338BDF8"
     };
 }

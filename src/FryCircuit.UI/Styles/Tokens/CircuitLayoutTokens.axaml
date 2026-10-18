@@ -1,0 +1,54 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ===================================================================== -->
+    <!-- FryCircuit Studio Layout Tokens                                        -->
+    <!-- Standardized corner radii, font scales, shadows, and spacings          -->
+    <!-- ===================================================================== -->
+
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+            <BoxShadows x:Key="CircuitCardShadow">0 2 8 0 #50000000</BoxShadows>
+            <BoxShadows x:Key="CircuitFloatingShadow">0 8 28 0 #80000000</BoxShadows>
+            <BoxShadows x:Key="CircuitModalShadow">0 24 64 0 #CC000000</BoxShadows>
+            <BoxShadows x:Key="CircuitAccentGlow">0 0 16 0 #4D00F0FF</BoxShadows>
+            <BoxShadows x:Key="CircuitSecondaryGlow">0 0 16 0 #4D00E676</BoxShadows>
+            <BoxShadows x:Key="CircuitWarningGlow">0 0 16 0 #4DFFD700</BoxShadows>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+            <BoxShadows x:Key="CircuitCardShadow">0 2 8 0 #12000000</BoxShadows>
+            <BoxShadows x:Key="CircuitFloatingShadow">0 6 20 0 #20000000</BoxShadows>
+            <BoxShadows x:Key="CircuitModalShadow">0 16 48 0 #38000000</BoxShadows>
+            <BoxShadows x:Key="CircuitAccentGlow">0 0 12 0 #330088CC</BoxShadows>
+            <BoxShadows x:Key="CircuitSecondaryGlow">0 0 12 0 #33059669</BoxShadows>
+            <BoxShadows x:Key="CircuitWarningGlow">0 0 12 0 #33D97706</BoxShadows>
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+
+    <!-- Radii Scale -->
+    <CornerRadius x:Key="CircuitRadiusSm">4</CornerRadius>
+    <CornerRadius x:Key="CircuitRadiusMd">6</CornerRadius>
+    <CornerRadius x:Key="CircuitRadiusLg">10</CornerRadius>
+    <CornerRadius x:Key="CircuitRadiusXl">14</CornerRadius>
+    <CornerRadius x:Key="CircuitRadiusPill">9999</CornerRadius>
+
+    <x:Double x:Key="CircuitRadiusSmValue">4</x:Double>
+    <x:Double x:Key="CircuitRadiusMdValue">6</x:Double>
+    <x:Double x:Key="CircuitRadiusLgValue">10</x:Double>
+    <x:Double x:Key="CircuitRadiusXlValue">14</x:Double>
+
+    <!-- Typography Scale -->
+    <x:Double x:Key="CircuitFontSizeMicro">8.5</x:Double>
+    <x:Double x:Key="CircuitFontSizeSmall">9.5</x:Double>
+    <x:Double x:Key="CircuitFontSizeBodySm">10.5</x:Double>
+    <x:Double x:Key="CircuitFontSizeBody">11.5</x:Double>
+    <x:Double x:Key="CircuitFontSizeLabel">12</x:Double>
+    <x:Double x:Key="CircuitFontSizeHeading">14</x:Double>
+    <x:Double x:Key="CircuitFontSizeTitle">16</x:Double>
+    <x:Double x:Key="CircuitFontSizeDisplay">20</x:Double>
+
+    <!-- Standard Font Families -->
+    <FontFamily x:Key="CircuitCodeFont">Cascadia Code, JetBrains Mono, Fira Code, Consolas, SF Mono, Menlo, monospace</FontFamily>
+    <FontFamily x:Key="CircuitUiFont">Inter, Segoe UI, -apple-system, BlinkMacSystemFont, sans-serif</FontFamily>
+
+</ResourceDictionary>

@@ -17,6 +17,7 @@ using FryCircuit.Core.Models;
 using FryCircuit.Core.Simulation;
 using FryCircuit.UI.Controls;
 using FryWorld.Sdk.Plugins;
+using Material.Icons;
 
 namespace FryCircuit.UI.ViewModels;
 
@@ -469,6 +470,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             Interval = TimeSpan.FromMilliseconds(16) // 60 FPS
         };
         _timer.Tick += OnSimulationTick;
+        FryCircuit.UI.Theming.CircuitThemeService.Instance.ThemeChanged += OnThemeChanged;
 
         LoadAvailablePresets();
         UpdateFilteredPaletteItems();
@@ -650,6 +652,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             HasSelectedWire = false;
         }
 
+        OnPropertyChanged(nameof(HasNoSelection));
         OnPropertyChanged(nameof(SelectedDeviceDisplayName));
         OnPropertyChanged(nameof(SelectedDeviceCategoryName));
         OnPropertyChanged(nameof(ShowPrimaryKnob));
@@ -702,6 +705,69 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
+    public bool HasNoSelection => !HasSelectedDevice && !HasSelectedWire;
+
+    public bool IsSelectedWireProbed => SelectedWire != null && 
+        ((ProbedNodeCh1.HasValue && ProbedNodeCh1.Value == SelectedWire.NodeId) || 
+         (ProbedNodeCh2.HasValue && ProbedNodeCh2.Value == SelectedWire.NodeId));
+
+    public bool IsSelectedWireProbedCh1 => SelectedWire != null && ProbedNodeCh1.HasValue && ProbedNodeCh1.Value == SelectedWire.NodeId;
+    public bool IsSelectedWireProbedCh2 => SelectedWire != null && ProbedNodeCh2.HasValue && ProbedNodeCh2.Value == SelectedWire.NodeId;
+
+    public string SelectedWireProbeButtonText
+    {
+        get
+        {
+            if (SelectedWire == null) return "View on Oscilloscope";
+            if (IsSelectedWireProbedCh1) return "Probed on CH1 (Click to Detach)";
+            if (IsSelectedWireProbedCh2) return "Probed on CH2 (Click to Detach)";
+            return "View on Oscilloscope";
+        }
+    }
+
+    public MaterialIconKind SelectedWireProbeEyeIconKind =>
+        IsSelectedWireProbed ? MaterialIconKind.Eye : MaterialIconKind.EyeOutline;
+
+    public string SelectedWireProbeButtonTooltip =>
+        IsSelectedWireProbed 
+            ? "Signal is currently streaming on the oscilloscope. Click to detach." 
+            : "Click to stream this wire's voltage waveform on the oscilloscope.";
+
+    public IBrush SelectedWireProbeAccentBrush
+    {
+        get
+        {
+            if (IsSelectedWireProbedCh1) return new SolidColorBrush(Color.FromRgb(245, 158, 11)); // Amber
+            if (IsSelectedWireProbedCh2) return new SolidColorBrush(Color.FromRgb(6, 182, 212)); // Cyan
+            return new SolidColorBrush(Color.FromRgb(248, 250, 252)); // Slate/white
+        }
+    }
+
+    public string SelectedWireRailTypeText =>
+        IsSelectedWireGround ? "Ground (0 V Ref)" : "Active Signal Net";
+
+    public IBrush SelectedWireRailTypeColor =>
+        IsSelectedWireGround 
+            ? new SolidColorBrush(Color.FromRgb(148, 163, 184)) 
+            : new SolidColorBrush(Color.FromRgb(56, 189, 248));
+
+    public string SelectedWireConnectionDescription
+    {
+        get
+        {
+            if (SelectedWire == null || CurrentCircuit == null) return "Floating Wire";
+            var d1 = CurrentCircuit.Devices.FirstOrDefault(d => d.Id == SelectedWire.FromDeviceId);
+            var d2 = CurrentCircuit.Devices.FirstOrDefault(d => d.Id == SelectedWire.ToDeviceId);
+            string name1 = d1 != null 
+                ? $"{(DeviceRegistry.GetDescriptor(d1)?.DisplayName ?? d1.Type)} (Pin {SelectedWire.FromPinIndex})" 
+                : $"Dev #{SelectedWire.FromDeviceId}";
+            string name2 = d2 != null 
+                ? $"{(DeviceRegistry.GetDescriptor(d2)?.DisplayName ?? d2.Type)} (Pin {SelectedWire.ToPinIndex})" 
+                : $"Dev #{SelectedWire.ToDeviceId}";
+            return $"{name1} ── {name2}";
+        }
+    }
+
     partial void OnSelectedWireChanged(CircuitWire? value)
     {
         HasSelectedWire = value != null;
@@ -719,6 +785,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             FormattedSelectedWireVoltage = "0.00 V";
             IsSelectedWireGround = false;
         }
+        NotifySelectedWireProbeProperties();
     }
 
     private void UpdateSelectedWireMeasurements()
@@ -733,12 +800,72 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
+    public void ToggleSelectedWireProbe()
+    {
+        if (SelectedWire == null) return;
+
+        if (IsSelectedWireProbed)
+        {
+            DetachSelectedWireProbe();
+        }
+        else
+        {
+            // Auto-assign: prefer CH1 if not set or auto, otherwise CH2
+            if (!ProbedNodeCh1.HasValue || ProbedNodeCh1.Value < 0)
+            {
+                ProbeSelectedWireCh1();
+            }
+            else if (!ProbedNodeCh2.HasValue || ProbedNodeCh2.Value < 0)
+            {
+                ProbeSelectedWireCh2();
+            }
+            else
+            {
+                // Default to replacing CH1
+                ProbeSelectedWireCh1();
+            }
+        }
+    }
+
+    [RelayCommand]
+    public void DetachSelectedWireProbe()
+    {
+        if (SelectedWire == null) return;
+        int nodeId = SelectedWire.NodeId;
+
+        if (ProbedNodeCh1 == nodeId)
+        {
+            ProbedNodeCh1 = null;
+            ProbedCh1Label = "CH1: Auto (Input)";
+            if (_canvas != null) _canvas.ProbedNodeCh1 = null;
+        }
+        if (ProbedNodeCh2 == nodeId)
+        {
+            ProbedNodeCh2 = null;
+            ProbedCh2Label = "CH2: Auto (Output)";
+            if (_canvas != null) _canvas.ProbedNodeCh2 = null;
+        }
+
+        StatusText = $"Detached probe from Node #{nodeId}";
+        NotifySelectedWireProbeProperties();
+        _canvas?.InvalidateVisual();
+    }
+
+    [RelayCommand]
     public void ProbeSelectedWireCh1()
     {
         if (SelectedWire == null) return;
         ProbedNodeCh1 = SelectedWire.NodeId;
+        ProbedCh1Label = $"CH1: Net #{SelectedWire.NodeId}";
         if (_canvas != null) _canvas.ProbedNodeCh1 = SelectedWire.NodeId;
-        StatusText = $"CH1 (Gold) Probing Node #{SelectedWire.NodeId}";
+        
+        if (!IsOscilloscopeOpen)
+        {
+            IsOscilloscopeOpen = true;
+        }
+        
+        StatusText = $"CH1 (Amber) Probing Net #{SelectedWire.NodeId}";
+        NotifySelectedWireProbeProperties();
         _canvas?.InvalidateVisual();
     }
 
@@ -747,9 +874,32 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         if (SelectedWire == null) return;
         ProbedNodeCh2 = SelectedWire.NodeId;
+        ProbedCh2Label = $"CH2: Net #{SelectedWire.NodeId}";
         if (_canvas != null) _canvas.ProbedNodeCh2 = SelectedWire.NodeId;
-        StatusText = $"CH2 (Cyan) Probing Node #{SelectedWire.NodeId}";
+        
+        if (!IsOscilloscopeOpen)
+        {
+            IsOscilloscopeOpen = true;
+        }
+        
+        StatusText = $"CH2 (Cyan) Probing Net #{SelectedWire.NodeId}";
+        NotifySelectedWireProbeProperties();
         _canvas?.InvalidateVisual();
+    }
+
+    private void NotifySelectedWireProbeProperties()
+    {
+        OnPropertyChanged(nameof(IsSelectedWireProbed));
+        OnPropertyChanged(nameof(IsSelectedWireProbedCh1));
+        OnPropertyChanged(nameof(IsSelectedWireProbedCh2));
+        OnPropertyChanged(nameof(SelectedWireProbeButtonText));
+        OnPropertyChanged(nameof(SelectedWireProbeEyeIconKind));
+        OnPropertyChanged(nameof(SelectedWireProbeButtonTooltip));
+        OnPropertyChanged(nameof(SelectedWireProbeAccentBrush));
+        OnPropertyChanged(nameof(SelectedWireConnectionDescription));
+        OnPropertyChanged(nameof(SelectedWireRailTypeText));
+        OnPropertyChanged(nameof(SelectedWireRailTypeColor));
+        OnPropertyChanged(nameof(HasNoSelection));
     }
 
     partial void OnInspectorValueChanged(double value)
@@ -888,6 +1038,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             _canvas.InvalidateVisual();
         }
         StatusText = "Cleared oscilloscope probes to Auto";
+        NotifySelectedWireProbeProperties();
     }
 
     public void SetProbedNode(int channel, int nodeId)
@@ -895,14 +1046,18 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         if (channel == 1)
         {
             ProbedNodeCh1 = nodeId;
-            ProbedCh1Label = $"CH1: Probed Node #{nodeId}";
-            StatusText = $"Oscilloscope CH1 attached to Node #{nodeId}";
+            ProbedCh1Label = $"CH1: Net #{nodeId}";
+            StatusText = $"Oscilloscope CH1 attached to Net #{nodeId}";
         }
         else
         {
             ProbedNodeCh2 = nodeId;
-            ProbedCh2Label = $"CH2: Probed Node #{nodeId}";
-            StatusText = $"Oscilloscope CH2 attached to Node #{nodeId}";
+            ProbedCh2Label = $"CH2: Net #{nodeId}";
+            StatusText = $"Oscilloscope CH2 attached to Net #{nodeId}";
+        }
+        if (!IsOscilloscopeOpen)
+        {
+            IsOscilloscopeOpen = true;
         }
         ActiveToolMode = CircuitToolMode.Select;
         if (_canvas != null)
@@ -910,6 +1065,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             _canvas.ToolMode = CircuitToolMode.Select;
             _canvas.InvalidateVisual();
         }
+        NotifySelectedWireProbeProperties();
     }
 
     [RelayCommand]
@@ -1289,11 +1445,33 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
-    public string PlayPauseButtonText => IsSimulating ? "⏸ Pause" : "▶ Play";
+    public string PlayPauseButtonText => IsSimulating ? "Pause" : "Play";
+    public MaterialIconKind PlayPauseIconKind => IsSimulating ? MaterialIconKind.Pause : MaterialIconKind.Play;
+
+    public bool IsDarkTheme => FryCircuit.UI.Theming.CircuitThemeService.Instance.IsDark;
+    public MaterialIconKind ThemeIconKind => IsDarkTheme ? MaterialIconKind.WeatherSunny : MaterialIconKind.WeatherNight;
+    public string ThemeTooltip => IsDarkTheme ? "Switch to Light Theme" : "Switch to Dark Theme";
+
+    [RelayCommand]
+    public void ToggleTheme()
+    {
+        FryCircuit.UI.Theming.CircuitThemeService.Instance.ToggleTheme();
+        OnPropertyChanged(nameof(IsDarkTheme));
+        OnPropertyChanged(nameof(ThemeIconKind));
+        OnPropertyChanged(nameof(ThemeTooltip));
+    }
+
+    private void OnThemeChanged(FryWorld.Sdk.Services.AppTheme theme)
+    {
+        OnPropertyChanged(nameof(IsDarkTheme));
+        OnPropertyChanged(nameof(ThemeIconKind));
+        OnPropertyChanged(nameof(ThemeTooltip));
+    }
 
     partial void OnIsSimulatingChanged(bool value)
     {
         OnPropertyChanged(nameof(PlayPauseButtonText));
+        OnPropertyChanged(nameof(PlayPauseIconKind));
     }
 
     [ObservableProperty]
@@ -1443,6 +1621,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
         _timer.Stop();
         _timer.Tick -= OnSimulationTick;
+        FryCircuit.UI.Theming.CircuitThemeService.Instance.ThemeChanged -= OnThemeChanged;
 
         if (_historyHandler != null)
         {

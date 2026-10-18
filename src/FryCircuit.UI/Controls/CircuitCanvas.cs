@@ -163,6 +163,7 @@ public class CircuitCanvas : Control
     {
         ClipToBounds = true;
         Focusable = true;
+        FryCircuit.UI.Theming.CircuitThemeService.Instance.TokensChanged += _ => InvalidateVisual();
     }
 
     protected override void OnSizeChanged(SizeChangedEventArgs e)
@@ -1159,8 +1160,9 @@ public class CircuitCanvas : Control
             ZoomToFit();
         }
 
-        // 1. Sleek Modern Dark PCB Canvas
-        var bgBrush = new SolidColorBrush(Color.FromRgb(15, 18, 25));
+        // 1. Sleek Theme-Aware PCB Canvas
+        var tokens = FryCircuit.UI.Theming.CircuitThemeService.Instance.Tokens;
+        var bgBrush = tokens.CanvasBgBrush;
         context.FillRectangle(bgBrush, new Rect(0, 0, w, h));
 
         // 2. High-precision dot grid
@@ -1227,8 +1229,8 @@ public class CircuitCanvas : Control
             if (mw > 2 && mh > 2)
             {
                 var mRect = new Rect(x1, y1, mw, mh);
-                var fillBrush = new SolidColorBrush(Color.FromArgb(35, 0, 240, 255));
-                var borderPen = new Pen(new SolidColorBrush(Color.FromArgb(220, 0, 240, 255)), 1.5)
+                var fillBrush = new SolidColorBrush(Color.FromArgb(25, 56, 189, 248));
+                var borderPen = new Pen(new SolidColorBrush(Color.FromArgb(160, 56, 189, 248)), 1.5)
                 {
                     DashStyle = DashStyle.Dash
                 };
@@ -1250,7 +1252,7 @@ public class CircuitCanvas : Control
             var pt = FindNodeDisplayPosition(ProbedNodeCh1.Value);
             if (pt.HasValue)
             {
-                DrawChannelBadge(context, pt.Value, "CH1", Color.FromRgb(255, 215, 0));
+                DrawChannelBadge(context, pt.Value, "CH1", Color.FromRgb(245, 158, 11));
             }
         }
 
@@ -1259,7 +1261,7 @@ public class CircuitCanvas : Control
             var pt = FindNodeDisplayPosition(ProbedNodeCh2.Value);
             if (pt.HasValue)
             {
-                DrawChannelBadge(context, pt.Value, "CH2", Color.FromRgb(0, 240, 255));
+                DrawChannelBadge(context, pt.Value, "CH2", Color.FromRgb(6, 182, 212));
             }
         }
     }
@@ -1267,6 +1269,21 @@ public class CircuitCanvas : Control
     private Point? FindNodeDisplayPosition(int nodeId)
     {
         if (Circuit == null) return null;
+
+        // If a wire is selected and matches this node, anchor the probe test clip directly on it!
+        if (SelectedWire != null && SelectedWire.NodeId == nodeId)
+        {
+            var pt = GetWireMidpoint(SelectedWire);
+            if (pt.HasValue) return WorldToScreen(pt.Value.X, pt.Value.Y);
+        }
+
+        // Try to find a wire with this nodeId
+        var wire = Circuit.Wires.FirstOrDefault(w => w.NodeId == nodeId);
+        if (wire != null)
+        {
+            var pt = GetWireMidpoint(wire);
+            if (pt.HasValue) return WorldToScreen(pt.Value.X, pt.Value.Y);
+        }
 
         // Try to find a pin with this nodeId
         foreach (var dev in Circuit.Devices)
@@ -1281,9 +1298,24 @@ public class CircuitCanvas : Control
             }
         }
 
-        // Try to find a wire with this nodeId
-        var wire = Circuit.Wires.FirstOrDefault(w => w.NodeId == nodeId);
-        if (wire != null)
+        return null;
+    }
+
+    private Point? GetWireMidpoint(CircuitWire wire)
+    {
+        if (wire.PathPoints != null && wire.PathPoints.Count >= 2)
+        {
+            int midIdx = wire.PathPoints.Count / 2;
+            if (wire.PathPoints.Count % 2 == 0)
+            {
+                var p1 = wire.PathPoints[midIdx - 1];
+                var p2 = wire.PathPoints[midIdx];
+                return new Point((p1.X + p2.X) / 2.0, (p1.Y + p2.Y) / 2.0);
+            }
+            return new Point(wire.PathPoints[midIdx].X, wire.PathPoints[midIdx].Y);
+        }
+
+        if (Circuit != null)
         {
             var d1 = Circuit.Devices.FirstOrDefault(d => d.Id == wire.FromDeviceId);
             var d2 = Circuit.Devices.FirstOrDefault(d => d.Id == wire.ToDeviceId);
@@ -1291,7 +1323,7 @@ public class CircuitCanvas : Control
             {
                 var p1 = d1.GetAbsolutePinPosition(wire.FromPinIndex);
                 var p2 = d2.GetAbsolutePinPosition(wire.ToPinIndex);
-                return WorldToScreen((p1.X + p2.X) / 2.0, (p1.Y + p2.Y) / 2.0);
+                return new Point((p1.X + p2.X) / 2.0, (p1.Y + p2.Y) / 2.0);
             }
         }
 
@@ -1305,17 +1337,17 @@ public class CircuitCanvas : Control
         double bx = screenPt.X - badgeW / 2.0;
         double by = screenPt.Y - badgeH - 12 * Zoom;
 
-        var bgBrush = new SolidColorBrush(Color.FromArgb(235, 10, 15, 24));
-        var borderPen = new Pen(new SolidColorBrush(color), 1.8);
+        var bgBrush = new SolidColorBrush(Color.FromArgb(235, 15, 23, 42));
+        var borderPen = new Pen(new SolidColorBrush(color), 1.5);
         var badgeRect = new Rect(bx, by, badgeW, badgeH);
 
         // Radiant probe concentric target at screenPt
-        context.DrawEllipse(new SolidColorBrush(Color.FromArgb(80, color.R, color.G, color.B)), null, screenPt, 10.0 * Zoom, 10.0 * Zoom);
-        context.DrawEllipse(new SolidColorBrush(Color.FromArgb(220, 10, 15, 24)), new Pen(new SolidColorBrush(color), 2.0 * Zoom), screenPt, 6.5 * Zoom, 6.5 * Zoom);
-        context.DrawEllipse(new SolidColorBrush(color), null, screenPt, 3.2 * Zoom, 3.2 * Zoom);
+        context.DrawEllipse(new SolidColorBrush(Color.FromArgb(50, color.R, color.G, color.B)), null, screenPt, 8.0 * Zoom, 8.0 * Zoom);
+        context.DrawEllipse(new SolidColorBrush(Color.FromArgb(235, 15, 23, 42)), new Pen(new SolidColorBrush(color), 1.8 * Zoom), screenPt, 5.0 * Zoom, 5.0 * Zoom);
+        context.DrawEllipse(new SolidColorBrush(color), null, screenPt, 2.5 * Zoom, 2.5 * Zoom);
 
         // Pointer line to terminal
-        context.DrawLine(borderPen, new Point(screenPt.X, by + badgeH), new Point(screenPt.X, screenPt.Y - 6.5 * Zoom));
+        context.DrawLine(borderPen, new Point(screenPt.X, by + badgeH), new Point(screenPt.X, screenPt.Y - 5.0 * Zoom));
 
         // Badge pill
         context.DrawRectangle(bgBrush, borderPen, badgeRect, 4, 4);
@@ -1347,8 +1379,8 @@ public class CircuitCanvas : Control
         double bx = screenPt.X - badgeW / 2.0;
         double by = screenPt.Y - badgeH - 12 * Zoom;
 
-        var bgBrush = new SolidColorBrush(Color.FromArgb(230, 10, 15, 24));
-        var borderPen = new Pen(new SolidColorBrush(color), 1.5 * Zoom);
+        var bgBrush = new SolidColorBrush(Color.FromArgb(235, 15, 23, 42));
+        var borderPen = new Pen(new SolidColorBrush(color), 1.2 * Zoom);
         var badgeRect = new Rect(bx, by, badgeW, badgeH);
 
         context.DrawRectangle(bgBrush, borderPen, badgeRect, 4, 4);
@@ -1361,7 +1393,7 @@ public class CircuitCanvas : Control
 
         var center = WorldToScreen(_probeCursorPos.Wx, _probeCursorPos.Wy);
         bool isCh1 = ToolMode == CircuitToolMode.ProbeCh1;
-        var probeColor = isCh1 ? Color.FromRgb(255, 215, 0) : Color.FromRgb(0, 240, 255);
+        var probeColor = isCh1 ? Color.FromRgb(245, 158, 11) : Color.FromRgb(6, 182, 212);
         string chLabel = isCh1 ? "PROBE CH 1" : "PROBE CH 2";
 
         // Interactive Target Acquisition: snap to pin or wire under probe cursor
@@ -1438,8 +1470,9 @@ public class CircuitCanvas : Control
         double startY = PanY % step;
         if (startY < 0) startY += step;
 
-        var minorDotBrush = new SolidColorBrush(Color.FromArgb(35, 130, 170, 220));
-        var majorDotBrush = new SolidColorBrush(Color.FromArgb(70, 0, 240, 255));
+        var tokens = FryCircuit.UI.Theming.CircuitThemeService.Instance.Tokens;
+        var minorDotBrush = tokens.CanvasDotMinorBrush;
+        var majorDotBrush = tokens.CanvasDotMajorBrush;
 
         for (double x = startX; x < width; x += step)
         {
@@ -1462,9 +1495,9 @@ public class CircuitCanvas : Control
         var origin = WorldToScreen(0, 0);
         if (origin.X >= -50 && origin.X <= width + 50 && origin.Y >= -50 && origin.Y <= height + 50)
         {
-            var originPen = new Pen(new SolidColorBrush(Color.FromArgb(90, 0, 240, 255)), 1.5);
-            context.DrawLine(originPen, new Point(origin.X - 10, origin.Y), new Point(origin.X + 10, origin.Y));
-            context.DrawLine(originPen, new Point(origin.X, origin.Y - 10), new Point(origin.X, origin.Y + 10));
+            var originPen = new Pen(new SolidColorBrush(Color.FromArgb(40, 148, 163, 184)), 1.0);
+            context.DrawLine(originPen, new Point(origin.X - 8, origin.Y), new Point(origin.X + 8, origin.Y));
+            context.DrawLine(originPen, new Point(origin.X, origin.Y - 8), new Point(origin.X, origin.Y + 8));
         }
     }
 
@@ -1588,23 +1621,24 @@ public class CircuitCanvas : Control
             bool isProbedCh2 = ProbedNodeCh2.HasValue && wire.NodeId == ProbedNodeCh2.Value;
 
             var (glowColor, coreColor) = isSelected
-                ? (Color.FromArgb(220, 0, 240, 255), Color.FromRgb(255, 255, 255))
+                ? (Color.FromArgb(80, 56, 189, 248), Color.FromRgb(56, 189, 248))
                 : isProbedCh1
-                    ? (Color.FromArgb(220, 255, 215, 0), Color.FromRgb(255, 245, 120))
+                    ? (Color.FromArgb(90, 245, 158, 11), Color.FromRgb(245, 158, 11))
                     : isProbedCh2
-                        ? (Color.FromArgb(220, 0, 240, 255), Color.FromRgb(140, 250, 255))
+                        ? (Color.FromArgb(90, 6, 182, 212), Color.FromRgb(6, 182, 212))
                         : isHovered
-                            ? (Color.FromArgb(180, 0, 240, 255), Color.FromRgb(200, 245, 255))
+                            ? (Color.FromArgb(70, 56, 189, 248), Color.FromRgb(186, 230, 253))
                             : GetVoltageColors(voltage, isGround);
 
-            double glowWidth = (isSelected || isProbedCh1 || isProbedCh2 ? 8.5 : isHovered ? 7.0 : 5.5) * Zoom;
-            double coreWidth = (isSelected || isProbedCh1 || isProbedCh2 ? 3.5 : 2.8) * Zoom;
+            bool hasAura = isSelected || isProbedCh1 || isProbedCh2 || isHovered;
+            double glowWidth = (isSelected || isProbedCh1 || isProbedCh2 ? 4.5 : 3.5) * Zoom;
+            double coreWidth = (isSelected || isProbedCh1 || isProbedCh2 ? 2.3 : 1.9) * Zoom;
 
-            var glowPen = new Pen(new SolidColorBrush(glowColor), glowWidth)
+            var glowPen = hasAura ? new Pen(new SolidColorBrush(glowColor), glowWidth)
             {
                 LineCap = PenLineCap.Round,
                 LineJoin = PenLineJoin.Round
-            };
+            } : null;
             var corePen = new Pen(new SolidColorBrush(coreColor), coreWidth)
             {
                 LineCap = PenLineCap.Round,
@@ -1623,7 +1657,7 @@ public class CircuitCanvas : Control
                 {
                     var s1 = WorldToScreen(x1, y1);
                     var s2 = WorldToScreen(x2, y2);
-                    context.DrawLine(glowPen, s1, s2);
+                    if (hasAura && glowPen != null) context.DrawLine(glowPen, s1, s2);
                     context.DrawLine(corePen, s1, s2);
                     continue;
                 }
@@ -1653,7 +1687,7 @@ public class CircuitCanvas : Control
                 {
                     var s1 = WorldToScreen(x1, y1);
                     var s2 = WorldToScreen(x2, y2);
-                    context.DrawLine(glowPen, s1, s2);
+                    if (hasAura && glowPen != null) context.DrawLine(glowPen, s1, s2);
                     context.DrawLine(corePen, s1, s2);
                 }
                 else
@@ -1673,12 +1707,12 @@ public class CircuitCanvas : Control
 
                         if (Math.Abs(hopStart.X - currScreen.X) > 1.0)
                         {
-                            context.DrawLine(glowPen, currScreen, hopStart);
+                            if (hasAura && glowPen != null) context.DrawLine(glowPen, currScreen, hopStart);
                             context.DrawLine(corePen, currScreen, hopStart);
                         }
 
                         var hopGeom = CreateHopGeometry(hopStart, hopEnd, hopR);
-                        context.DrawGeometry(null, glowPen, hopGeom);
+                        if (hasAura && glowPen != null) context.DrawGeometry(null, glowPen, hopGeom);
                         context.DrawGeometry(null, corePen, hopGeom);
 
                         currScreen = hopEnd;
@@ -1687,20 +1721,18 @@ public class CircuitCanvas : Control
                     var endScreen = WorldToScreen(x2, y2);
                     if (Math.Abs(endScreen.X - currScreen.X) > 1.0)
                     {
-                        context.DrawLine(glowPen, currScreen, endScreen);
+                        if (hasAura && glowPen != null) context.DrawLine(glowPen, currScreen, endScreen);
                         context.DrawLine(corePen, currScreen, endScreen);
                     }
                 }
             }
 
-            // Mini Digital Waveform / Pulse Activity Glyph
+            // Mini Digital Waveform / Pulse Activity Glyph (only for 555 timer digital clock outputs)
             var dFrom = Circuit.Devices.FirstOrDefault(d => d.Id == wire.FromDeviceId);
             var dTo = Circuit.Devices.FirstOrDefault(d => d.Id == wire.ToDeviceId);
             bool isClockWire = !isGround && (
                                (dFrom is Timer555Device && wire.FromPinIndex == 2)
-                            || (dTo is Timer555Device && wire.ToPinIndex == 2)
-                            || (dFrom is VoltageSourceDevice vsFrom && vsFrom.WaveformType != VoltageWaveformType.Dc && wire.FromPinIndex == 0)
-                            || (dTo is VoltageSourceDevice vsTo && vsTo.WaveformType != VoltageWaveformType.Dc && wire.ToPinIndex == 0));
+                            || (dTo is Timer555Device && wire.ToPinIndex == 2));
 
             if (isClockWire && pts.Count >= 2)
             {
@@ -1737,20 +1769,20 @@ public class CircuitCanvas : Control
 
                 if (isJuncProbedCh1 || isJuncProbedCh2)
                 {
-                    var ringCol = isJuncProbedCh1 ? Color.FromRgb(255, 215, 0) : Color.FromRgb(0, 240, 255);
-                    context.DrawEllipse(new SolidColorBrush(Color.FromArgb(90, ringCol.R, ringCol.G, ringCol.B)), null, screenPt, 9.5 * Zoom, 9.5 * Zoom);
-                    context.DrawEllipse(new SolidColorBrush(Color.FromArgb(220, 15, 18, 25)), new Pen(new SolidColorBrush(ringCol), 2.2 * Zoom), screenPt, 6.0 * Zoom, 6.0 * Zoom);
-                    context.DrawEllipse(new SolidColorBrush(ringCol), null, screenPt, 3.2 * Zoom, 3.2 * Zoom);
+                    var ringCol = isJuncProbedCh1 ? Color.FromRgb(245, 158, 11) : Color.FromRgb(6, 182, 212);
+                    context.DrawEllipse(new SolidColorBrush(Color.FromArgb(70, ringCol.R, ringCol.G, ringCol.B)), null, screenPt, 7.5 * Zoom, 7.5 * Zoom);
+                    context.DrawEllipse(new SolidColorBrush(Color.FromArgb(235, 15, 23, 42)), new Pen(new SolidColorBrush(ringCol), 1.8 * Zoom), screenPt, 5.0 * Zoom, 5.0 * Zoom);
+                    context.DrawEllipse(new SolidColorBrush(ringCol), null, screenPt, 2.8 * Zoom, 2.8 * Zoom);
                 }
                 else
                 {
-                    var (vGlow, vCore) = junctionColors.GetValueOrDefault(key, (Color.FromArgb(90, 0, 240, 255), Color.FromRgb(240, 245, 255)));
-                    var beadGlowBrush = new SolidColorBrush(Color.FromArgb(120, vGlow.R, vGlow.G, vGlow.B));
+                    var (vGlow, vCore) = junctionColors.GetValueOrDefault(key, (Color.FromArgb(40, 148, 163, 184), Color.FromRgb(148, 163, 184)));
+                    var beadGlowBrush = new SolidColorBrush(Color.FromArgb(50, vCore.R, vCore.G, vCore.B));
                     var beadCoreBrush = new SolidColorBrush(vCore);
-                    var beadRingPen = new Pen(new SolidColorBrush(Color.FromArgb(220, 15, 18, 25)), 1.5 * Zoom);
+                    var beadRingPen = new Pen(new SolidColorBrush(Color.FromArgb(235, 15, 23, 42)), 1.2 * Zoom);
 
-                    context.DrawEllipse(beadGlowBrush, null, screenPt, 5.5 * Zoom, 5.5 * Zoom);
-                    context.DrawEllipse(beadCoreBrush, beadRingPen, screenPt, 3.8 * Zoom, 3.8 * Zoom);
+                    context.DrawEllipse(beadGlowBrush, null, screenPt, 4.2 * Zoom, 4.2 * Zoom);
+                    context.DrawEllipse(beadCoreBrush, beadRingPen, screenPt, 2.8 * Zoom, 2.8 * Zoom);
                 }
             }
         }
@@ -1838,22 +1870,7 @@ public class CircuitCanvas : Control
             {
                 var renderer = DeviceRendererRegistry.GetRenderer(dev.Type);
 
-                // 1. If selected, first render glowing shape aura pass
-                if (isSelected)
-                {
-                    var glowCtx = new DeviceRenderContext
-                    {
-                        Zoom = Zoom,
-                        GridSize = GridSize,
-                        IsPlacingGhost = false,
-                        IsSelected = true,
-                        IsDragCollision = _isDragCollision && dev == _draggedDevice,
-                        IsGlowPass = true
-                    };
-                    renderer.Render(context, dev, center, GridSize * Zoom, true, glowCtx);
-                }
-
-                // 2. Render core device shape
+                // Render core device shape
                 var devCtx = new DeviceRenderContext
                 {
                     Zoom = Zoom,
@@ -1991,28 +2008,28 @@ public class CircuitCanvas : Control
         var pEnd = WorldToScreen(_wiringCursorPos.Wx, _wiringCursorPos.Wy);
 
         // Start pin halo
-        context.DrawEllipse(new SolidColorBrush(Color.FromArgb(100, 0, 240, 255)), null, pStart, 7.0 * Zoom, 7.0 * Zoom);
+        context.DrawEllipse(new SolidColorBrush(Color.FromArgb(90, 56, 189, 248)), null, pStart, 6.5 * Zoom, 6.5 * Zoom);
 
         if (_snapTargetPin != null)
         {
-            // Green snap target for valid pin connection
-            var snapPen = new Pen(new SolidColorBrush(Color.FromRgb(0, 255, 140)), 2.5 * Zoom);
-            context.DrawEllipse(new SolidColorBrush(Color.FromArgb(90, 0, 255, 140)), snapPen, pEnd, 9.0 * Zoom, 9.0 * Zoom);
-            context.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 255, 255)), null, pEnd, 3.5 * Zoom, 3.5 * Zoom);
-            DrawSnapBadge(context, pEnd, "SNAP PIN", Color.FromRgb(0, 255, 140));
+            // Emerald snap target for valid pin connection
+            var snapPen = new Pen(new SolidColorBrush(Color.FromRgb(52, 211, 153)), 2.0 * Zoom);
+            context.DrawEllipse(new SolidColorBrush(Color.FromArgb(70, 52, 211, 153)), snapPen, pEnd, 8.5 * Zoom, 8.5 * Zoom);
+            context.DrawEllipse(new SolidColorBrush(Color.FromRgb(241, 245, 249)), null, pEnd, 3.0 * Zoom, 3.0 * Zoom);
+            DrawSnapBadge(context, pEnd, "SNAP PIN", Color.FromRgb(52, 211, 153));
         }
         else if (_snapTargetWire != null)
         {
             // Amber solder bead preview for T-junction tap
-            var snapPen = new Pen(new SolidColorBrush(Color.FromRgb(255, 220, 60)), 2.5 * Zoom);
-            context.DrawEllipse(new SolidColorBrush(Color.FromArgb(90, 255, 220, 60)), snapPen, pEnd, 8.0 * Zoom, 8.0 * Zoom);
-            context.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 245, 180)), null, pEnd, 4.0 * Zoom, 4.0 * Zoom);
-            DrawSnapBadge(context, pEnd, "T-JUNCTION TAP", Color.FromRgb(255, 220, 60));
+            var snapPen = new Pen(new SolidColorBrush(Color.FromRgb(251, 191, 36)), 2.0 * Zoom);
+            context.DrawEllipse(new SolidColorBrush(Color.FromArgb(70, 251, 191, 36)), snapPen, pEnd, 7.5 * Zoom, 7.5 * Zoom);
+            context.DrawEllipse(new SolidColorBrush(Color.FromRgb(254, 243, 199)), null, pEnd, 3.5 * Zoom, 3.5 * Zoom);
+            DrawSnapBadge(context, pEnd, "T-JUNCTION TAP", Color.FromRgb(251, 191, 36));
         }
         else
         {
             // Current cursor reticle
-            context.DrawEllipse(new SolidColorBrush(Color.FromArgb(180, 0, 240, 255)), null, pEnd, 5.0 * Zoom, 5.0 * Zoom);
+            context.DrawEllipse(new SolidColorBrush(Color.FromArgb(160, 56, 189, 248)), null, pEnd, 4.5 * Zoom, 4.5 * Zoom);
         }
     }
 
@@ -2041,7 +2058,7 @@ public class CircuitCanvas : Control
         }
 
         // Snapped grid target ring & crosshair ticks
-        var ghostRingPen = new Pen(new SolidColorBrush(Color.FromArgb(140, 0, 240, 255)), 1.5)
+        var ghostRingPen = new Pen(new SolidColorBrush(Color.FromArgb(120, 56, 189, 248)), 1.2)
         {
             DashStyle = DashStyle.Dash
         };
@@ -2049,8 +2066,8 @@ public class CircuitCanvas : Control
         context.DrawEllipse(null, ghostRingPen, center, ringR, ringR);
 
         // Cyber crosshair ticks
-        var tickPen = new Pen(new SolidColorBrush(Color.FromArgb(180, 0, 240, 255)), 1.5);
-        double tickLen = 6 * Zoom;
+        var tickPen = new Pen(new SolidColorBrush(Color.FromArgb(160, 56, 189, 248)), 1.2);
+        double tickLen = 5 * Zoom;
         context.DrawLine(tickPen, new Point(center.X - ringR - tickLen, center.Y), new Point(center.X - ringR + 2, center.Y));
         context.DrawLine(tickPen, new Point(center.X + ringR - 2, center.Y), new Point(center.X + ringR + tickLen, center.Y));
         context.DrawLine(tickPen, new Point(center.X, center.Y - ringR - tickLen), new Point(center.X, center.Y - ringR + 2));
@@ -2064,13 +2081,13 @@ public class CircuitCanvas : Control
             FlowDirection.LeftToRight,
             new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold),
             9.5,
-            new SolidColorBrush(Color.FromRgb(0, 240, 255))
+            new SolidColorBrush(Color.FromRgb(56, 189, 248))
         );
         double hudW = ftHud.Width + 12;
         double hudH = ftHud.Height + 6;
         var hudRect = new Rect(center.X + ringR + 8, center.Y - hudH / 2.0, hudW, hudH);
-        context.FillRectangle(new SolidColorBrush(Color.FromArgb(220, 10, 16, 24)), hudRect, 4);
-        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(120, 0, 240, 255)), 1), hudRect, 4);
+        context.FillRectangle(new SolidColorBrush(Color.FromArgb(235, 15, 23, 42)), hudRect, 4);
+        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(100, 56, 189, 248)), 1), hudRect, 4);
         context.DrawText(ftHud, new Point(hudRect.X + 6, hudRect.Y + 3));
     }
 
@@ -2079,9 +2096,9 @@ public class CircuitCanvas : Control
         var (px, py) = pinInfo.Device.GetAbsolutePinPosition(pinInfo.PinIndex);
         var screenPt = WorldToScreen(px, py);
 
-        var haloBrush = new SolidColorBrush(Color.FromArgb(100, 0, 240, 255));
-        var ringPen = new Pen(new SolidColorBrush(Color.FromRgb(0, 240, 255)), 2.0 * Zoom);
-        context.DrawEllipse(haloBrush, ringPen, screenPt, 7.5 * Zoom, 7.5 * Zoom);
+        var haloBrush = new SolidColorBrush(Color.FromArgb(70, 56, 189, 248));
+        var ringPen = new Pen(new SolidColorBrush(Color.FromRgb(56, 189, 248)), 1.8 * Zoom);
+        context.DrawEllipse(haloBrush, ringPen, screenPt, 7.0 * Zoom, 7.0 * Zoom);
 
         if (Circuit == null) return;
         int nodeId = pinInfo.Pin.NodeId;
@@ -2099,7 +2116,7 @@ public class CircuitCanvas : Control
             FlowDirection.LeftToRight,
             new Typeface("Inter", FontStyle.Normal, FontWeight.Bold),
             10.0,
-            new SolidColorBrush(Color.FromRgb(0, 240, 255))
+            new SolidColorBrush(Color.FromRgb(56, 189, 248))
         );
         var ftInfo = new FormattedText(
             info,
@@ -2107,7 +2124,7 @@ public class CircuitCanvas : Control
             FlowDirection.LeftToRight,
             new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold),
             9.5,
-            new SolidColorBrush(Color.FromRgb(255, 255, 255))
+            new SolidColorBrush(Color.FromRgb(241, 245, 249))
         );
 
         double boxW = Math.Max(ftTitle.Width, ftInfo.Width) + 16;
@@ -2116,8 +2133,8 @@ public class CircuitCanvas : Control
         double boxY = screenPt.Y - boxH / 2.0;
 
         var tipRect = new Rect(boxX, boxY, boxW, boxH);
-        context.FillRectangle(new SolidColorBrush(Color.FromArgb(235, 12, 16, 24)), tipRect, 4);
-        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromRgb(0, 240, 255)), 1.2), tipRect, 4);
+        context.FillRectangle(new SolidColorBrush(Color.FromArgb(235, 15, 23, 42)), tipRect, 4);
+        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(100, 56, 189, 248)), 1), tipRect, 4);
         context.DrawText(ftTitle, new Point(boxX + 8, boxY + 3));
         context.DrawText(ftInfo, new Point(boxX + 8, boxY + 5 + ftTitle.Height));
     }
@@ -2135,7 +2152,7 @@ public class CircuitCanvas : Control
             FlowDirection.LeftToRight,
             new Typeface("Inter", FontStyle.Normal, FontWeight.Bold),
             9.5,
-            new SolidColorBrush(Color.FromRgb(0, 240, 255))
+            new SolidColorBrush(Color.FromRgb(56, 189, 248))
         );
 
         string coords = $"X {gx:F1}  Y {gy:F1}";
@@ -2145,7 +2162,7 @@ public class CircuitCanvas : Control
             FlowDirection.LeftToRight,
             new Typeface("Consolas,SF Mono,Menlo,monospace", FontStyle.Normal, FontWeight.SemiBold),
             10.0,
-            new SolidColorBrush(Color.FromRgb(240, 246, 255))
+            new SolidColorBrush(Color.FromRgb(241, 245, 249))
         );
 
         string gridZoom = $"50 mil • {(int)(Zoom * 100)}%";
@@ -2155,7 +2172,7 @@ public class CircuitCanvas : Control
             FlowDirection.LeftToRight,
             new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold),
             9.5,
-            new SolidColorBrush(Color.FromRgb(0, 230, 118))
+            new SolidColorBrush(Color.FromRgb(148, 163, 184))
         );
 
         string stats = $"DEV {Circuit.Devices.Count} • NODE {Circuit.Nodes.Count} • WIRE {Circuit.Wires.Count}";
@@ -2165,7 +2182,7 @@ public class CircuitCanvas : Control
             FlowDirection.LeftToRight,
             new Typeface("Inter", FontStyle.Normal, FontWeight.Medium),
             9.5,
-            new SolidColorBrush(Color.FromRgb(150, 170, 195))
+            new SolidColorBrush(Color.FromRgb(100, 116, 139))
         );
 
         double padX = 10.0;
@@ -2174,18 +2191,15 @@ public class CircuitCanvas : Control
         double totalH = 24.0;
 
         var hudRect = new Rect(12, 12, totalW, totalH);
-        // Outer glow
-        context.DrawRectangle(new SolidColorBrush(Color.FromArgb(25, 0, 240, 255)), null, 
-            new Rect(hudRect.X - 1.5, hudRect.Y - 1.5, hudRect.Width + 3, hudRect.Height + 3), 6, 6);
         // Backdrop
-        context.FillRectangle(new SolidColorBrush(Color.FromArgb(225, 10, 15, 22)), hudRect, 6);
-        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(90, 0, 240, 255)), 1), hudRect, 6);
+        context.FillRectangle(new SolidColorBrush(Color.FromArgb(235, 15, 23, 42)), hudRect, 6);
+        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(80, 51, 65, 85)), 1), hudRect, 6);
 
         double curX = hudRect.X + padX;
         context.DrawText(ftIcon, new Point(curX, hudRect.Y + (totalH - ftIcon.Height) / 2.0));
         curX += ftIcon.Width + sepW / 2.0;
 
-        var sepPen = new Pen(new SolidColorBrush(Color.FromArgb(45, 255, 255, 255)), 1);
+        var sepPen = new Pen(new SolidColorBrush(Color.FromArgb(40, 148, 163, 184)), 1);
         context.DrawLine(sepPen, new Point(curX, hudRect.Y + 5), new Point(curX, hudRect.Y + totalH - 5));
         curX += sepW / 2.0;
 
@@ -2206,8 +2220,8 @@ public class CircuitCanvas : Control
 
     private void DrawParticles(DrawingContext context)
     {
-        var particleBrush = new SolidColorBrush(Color.FromRgb(255, 235, 80));
-        var particleGlow = new SolidColorBrush(Color.FromArgb(90, 255, 220, 0));
+        var particleBrush = new SolidColorBrush(Color.FromRgb(251, 191, 36));
+        var particleGlow = new SolidColorBrush(Color.FromArgb(60, 251, 191, 36));
 
         foreach (var branch in ParticleEngine.Branches)
         {
@@ -2379,45 +2393,40 @@ public class CircuitCanvas : Control
     {
         if (isGround || Math.Abs(v) < 1e-3)
         {
-            // Ground / 0V: Cool Slate Silver-Blue (#91AFC8)
-            return (Color.FromArgb(90, 110, 140, 175), Color.FromRgb(145, 175, 200));
+            // Ground / 0V: Cool Slate Silver (#94A3B8)
+            return (Color.FromArgb(40, 148, 163, 184), Color.FromRgb(148, 163, 184));
         }
 
         if (v < -0.05)
         {
-            // Negative potential: Fuchsia Pink / Magenta (#FF40B4)
-            return (Color.FromArgb(140, 255, 64, 180), Color.FromRgb(255, 110, 210));
+            // Negative potential: Soft Lavender-Violet (#A78BFA)
+            return (Color.FromArgb(45, 167, 139, 250), Color.FromRgb(167, 139, 250));
         }
 
         // Positive potential tiers:
         if (v <= 1.2)
         {
-            // Tier 1 (0.001V - 1.2V): Emerald / Neon Green (#4AF682)
-            return (Color.FromArgb(130, 0, 230, 118), Color.FromRgb(74, 246, 130));
+            // Tier 1 (0.001V - 1.2V): Mint Emerald (#34D399)
+            return (Color.FromArgb(45, 52, 211, 153), Color.FromRgb(52, 211, 153));
         }
-        if (v <= 2.8)
+        if (v <= 3.3)
         {
-            // Tier 2 (1.2V - 2.8V): Amber Gold / Yellow (#FFC31E)
-            return (Color.FromArgb(130, 255, 195, 30), Color.FromRgb(255, 215, 64));
+            // Tier 2 (1.2V - 3.3V): Sky Blue / Cyan (#38BDF8)
+            return (Color.FromArgb(45, 56, 189, 248), Color.FromRgb(56, 189, 248));
         }
-        if (v <= 4.5)
+        if (v <= 5.5)
         {
-            // Tier 3 (2.8V - 4.5V): Warm Coral Red / Orange-Red (#FF6450)
-            return (Color.FromArgb(130, 255, 100, 80), Color.FromRgb(255, 125, 100));
+            // Tier 3 (3.3V - 5.5V): Warm Amber (#FBBF24)
+            return (Color.FromArgb(45, 251, 191, 36), Color.FromRgb(251, 191, 36));
         }
-        if (v <= 8.0)
+        if (v <= 12.0)
         {
-            // Tier 4 (4.5V - 8.0V): Sky Blue / Cyan (#44B4FF)
-            return (Color.FromArgb(130, 68, 180, 255), Color.FromRgb(100, 205, 255));
-        }
-        if (v <= 16.0)
-        {
-            // Tier 5 (8.0V - 16.0V): Royal Violet / Indigo (#AA6EFF)
-            return (Color.FromArgb(130, 170, 110, 255), Color.FromRgb(195, 150, 255));
+            // Tier 4 (5.5V - 12.0V): Coral Orange (#FB923C)
+            return (Color.FromArgb(45, 251, 146, 60), Color.FromRgb(251, 146, 60));
         }
 
-        // Tier 6 (> 16V): Ultra Magenta (#F050FF)
-        return (Color.FromArgb(130, 240, 80, 255), Color.FromRgb(255, 130, 255));
+        // Tier 5 (> 12V): Soft Rose (#F43F5E)
+        return (Color.FromArgb(50, 244, 63, 94), Color.FromRgb(244, 63, 94));
     }
 
     public static string FormatVoltageLabel(double v)
@@ -2498,6 +2507,7 @@ public class CircuitCanvas : Control
             double dy = p1y - p0y;
 
             double current = dev.Current;
+            bool isZero = Math.Abs(current) < 1e-6;
             string text = FormatCurrentLabel(Math.Abs(current));
 
             bool isVertical = Math.Abs(dy) >= Math.Abs(dx);
@@ -2516,7 +2526,7 @@ public class CircuitCanvas : Control
                     _ => -0.56
                 };
                 var badgePos = WorldToScreen(cx + xOff, cy);
-                DrawBranchCurrentBadge(context, badgePos, new Point(0, flowDir), text);
+                DrawBranchCurrentBadge(context, badgePos, new Point(0, flowDir), text, isZero);
             }
             else
             {
@@ -2526,44 +2536,49 @@ public class CircuitCanvas : Control
                     : (current >= 0 ? dirSign : -dirSign);
 
                 var badgePos = WorldToScreen(cx, cy - 0.62);
-                DrawBranchCurrentBadge(context, badgePos, new Point(flowDir, 0), text);
+                DrawBranchCurrentBadge(context, badgePos, new Point(flowDir, 0), text, isZero);
             }
         }
     }
 
-    private void DrawBranchCurrentBadge(DrawingContext context, Point screenPt, Point dir, string text)
+    private void DrawBranchCurrentBadge(DrawingContext context, Point screenPt, Point dir, string text, bool isZero)
     {
-        var textBrush = new SolidColorBrush(Color.FromRgb(74, 246, 130)); // Vibrant Mint Green
+        var textBrush = isZero
+            ? new SolidColorBrush(Color.FromRgb(148, 163, 184))
+            : new SolidColorBrush(Color.FromRgb(52, 211, 153)); // Refined Mint/Emerald #34D399
+
         var ft = new FormattedText(
             text,
             System.Globalization.CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
-            new Typeface("Consolas,SF Mono,Menlo,monospace", FontStyle.Normal, FontWeight.Bold),
-            9.0 * Zoom,
+            new Typeface("Consolas,SF Mono,Menlo,monospace", FontStyle.Normal, FontWeight.SemiBold),
+            8.5 * Zoom,
             textBrush
         );
 
-        double arrowLen = 9.0 * Zoom;
-        double spacing = 3.0 * Zoom;
-        double padX = 4.5 * Zoom;
-        double padY = 2.0 * Zoom;
+        double arrowLen = isZero ? 0.0 : 8.0 * Zoom;
+        double spacing = isZero ? 0.0 : 3.0 * Zoom;
+        double padX = 4.0 * Zoom;
+        double padY = 1.5 * Zoom;
         double totalW = arrowLen + spacing + ft.Width + padX * 2;
         double totalH = Math.Max(arrowLen, ft.Height) + padY * 2;
 
         var badgeRect = new Rect(screenPt.X - totalW / 2.0, screenPt.Y - totalH / 2.0, totalW, totalH);
+        float r = (float)(3.5 * Zoom);
 
-        // Soft outer drop glow
-        float r = (float)(5 * Zoom);
-        context.DrawRectangle(new SolidColorBrush(Color.FromArgb(30, 74, 246, 130)), null,
-            new Rect(badgeRect.X - 1.5 * Zoom, badgeRect.Y - 1.5 * Zoom, badgeRect.Width + 3 * Zoom, badgeRect.Height + 3 * Zoom), r + 1, r + 1);
+        var bgBrush = new SolidColorBrush(Color.FromArgb(235, 15, 23, 42));
+        var borderPen = isZero
+            ? new Pen(new SolidColorBrush(Color.FromArgb(70, 51, 65, 85)), 1.0 * Zoom)
+            : new Pen(new SolidColorBrush(Color.FromArgb(80, 52, 211, 153)), 1.0 * Zoom);
 
-        var bgBrush = new SolidColorBrush(Color.FromArgb(220, 10, 15, 22));
-        var borderPen = new Pen(new SolidColorBrush(Color.FromArgb(120, 74, 246, 130)), 1.1 * Zoom);
         context.DrawRectangle(bgBrush, borderPen, badgeRect, r, r);
 
-        double arrowCenterX = badgeRect.X + padX + arrowLen / 2.0;
-        double arrowCenterY = screenPt.Y;
-        DrawDirectionArrow(context, new Point(arrowCenterX, arrowCenterY), dir, arrowLen, Color.FromRgb(74, 246, 130));
+        if (!isZero)
+        {
+            double arrowCenterX = badgeRect.X + padX + arrowLen / 2.0;
+            double arrowCenterY = screenPt.Y;
+            DrawDirectionArrow(context, new Point(arrowCenterX, arrowCenterY), dir, arrowLen, Color.FromRgb(52, 211, 153));
+        }
 
         double textX = badgeRect.X + padX + arrowLen + spacing;
         double textY = screenPt.Y - ft.Height / 2.0;
@@ -2782,25 +2797,21 @@ public class CircuitCanvas : Control
             text,
             System.Globalization.CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
-            new Typeface("Consolas,SF Mono,Menlo,monospace", FontStyle.Normal, FontWeight.Bold),
-            9.5 * Zoom,
+            new Typeface("Consolas,SF Mono,Menlo,monospace", FontStyle.Normal, FontWeight.SemiBold),
+            9.0 * Zoom,
             new SolidColorBrush(coreColor)
         );
 
-        double padX = 6.0 * Zoom;
-        double padY = 2.5 * Zoom;
+        double padX = 5.0 * Zoom;
+        double padY = 2.0 * Zoom;
         double w = ft.Width + padX * 2;
         double h = ft.Height + padY * 2;
 
         var rect = new Rect(screenPt.X - w / 2.0, screenPt.Y - h / 2.0, w, h);
+        float r = (float)(3.5 * Zoom);
 
-        // Soft outer drop glow
-        float r = (float)(5 * Zoom);
-        context.DrawRectangle(new SolidColorBrush(Color.FromArgb(35, coreColor.R, coreColor.G, coreColor.B)), null,
-            new Rect(rect.X - 1.5 * Zoom, rect.Y - 1.5 * Zoom, rect.Width + 3 * Zoom, rect.Height + 3 * Zoom), r + 1, r + 1);
-
-        var bgBrush = new SolidColorBrush(Color.FromArgb(220, 10, 15, 22));
-        var borderPen = new Pen(new SolidColorBrush(Color.FromArgb(140, coreColor.R, coreColor.G, coreColor.B)), 1.1 * Zoom);
+        var bgBrush = new SolidColorBrush(Color.FromArgb(235, 15, 23, 42));
+        var borderPen = new Pen(new SolidColorBrush(Color.FromArgb(60, 51, 65, 85)), 1.0 * Zoom);
         context.DrawRectangle(bgBrush, borderPen, rect, r, r);
 
         context.DrawText(ft, new Point(rect.X + padX, rect.Y + padY));
