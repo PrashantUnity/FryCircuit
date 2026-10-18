@@ -1,0 +1,783 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:FryCircuit.UI.ViewModels"
+        xmlns:controls="using:FryCircuit.UI.Controls"
+        x:Class="FryCircuit.UI.Views.CircuitStudioView"
+        x:DataType="vm:MainWindowViewModel"
+        Background="#0F1219">
+
+    <UserControl.Resources>
+        <!-- Cyber Slider Thumb Theme -->
+        <ControlTheme x:Key="CyberSliderThumbTheme" TargetType="Thumb">
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Grid Width="22" Height="22">
+                        <!-- Radiant outer aura glow -->
+                        <Ellipse Width="22" Height="22" 
+                                 Fill="{Binding $parent[Slider].Foreground}" 
+                                 Opacity="0.22"/>
+                        <!-- Precision dark metallic rim -->
+                        <Ellipse Width="15" Height="15" 
+                                 Fill="#0B131E" 
+                                 Stroke="{Binding $parent[Slider].Foreground}" 
+                                 StrokeThickness="2"/>
+                        <!-- Illuminated center LED core -->
+                        <Ellipse Width="5" Height="5" 
+                                 Fill="{Binding $parent[Slider].Foreground}"/>
+                    </Grid>
+                </ControlTemplate>
+            </Setter>
+        </ControlTheme>
+
+        <!-- Cyber Slider Decrease Track Theme -->
+        <ControlTheme x:Key="CyberSliderDecreaseButtonTheme" TargetType="RepeatButton">
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Height="5" CornerRadius="2.5"
+                            Background="{Binding $parent[Slider].Foreground}"
+                            VerticalAlignment="Center"/>
+                </ControlTemplate>
+            </Setter>
+        </ControlTheme>
+
+        <!-- Cyber Slider Increase Track Theme -->
+        <ControlTheme x:Key="CyberSliderIncreaseButtonTheme" TargetType="RepeatButton">
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Height="5" CornerRadius="2.5"
+                            Background="{Binding $parent[Slider].Background}"
+                            BorderBrush="#25354A" BorderThickness="1"
+                            VerticalAlignment="Center"/>
+                </ControlTemplate>
+            </Setter>
+        </ControlTheme>
+
+        <!-- Cyber Slider Master Control Theme -->
+        <ControlTheme x:Key="CyberSliderTheme" TargetType="Slider">
+            <Setter Property="Background" Value="#151E2B"/>
+            <Setter Property="Foreground" Value="#00F0FF"/>
+            <Setter Property="MinHeight" Value="24"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="Transparent" VerticalAlignment="Center">
+                        <Grid Name="SliderContainer" VerticalAlignment="Center" Height="24">
+                            <Track Name="PART_Track"
+                                   Minimum="{TemplateBinding Minimum}"
+                                   Maximum="{TemplateBinding Maximum}"
+                                   Value="{TemplateBinding Value, Mode=TwoWay}"
+                                   IsDirectionReversed="{TemplateBinding IsDirectionReversed}"
+                                   Orientation="{TemplateBinding Orientation}">
+                                <Track.DecreaseButton>
+                                    <RepeatButton Name="PART_DecreaseButton"
+                                                  Theme="{StaticResource CyberSliderDecreaseButtonTheme}"
+                                                  Focusable="False"/>
+                                </Track.DecreaseButton>
+                                <Track.IncreaseButton>
+                                    <RepeatButton Name="PART_IncreaseButton"
+                                                  Theme="{StaticResource CyberSliderIncreaseButtonTheme}"
+                                                  Focusable="False"/>
+                                </Track.IncreaseButton>
+                                <Thumb Name="thumb"
+                                       Width="22" Height="22"
+                                       Margin="0" Padding="0"
+                                       Theme="{StaticResource CyberSliderThumbTheme}"/>
+                            </Track>
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </ControlTheme>
+
+        <!-- Apply CyberSliderTheme as the default theme for all Slider controls in this Window -->
+        <ControlTheme x:Key="{x:Type Slider}" TargetType="Slider" BasedOn="{StaticResource CyberSliderTheme}"/>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <!-- Standard Toolbar Button -->
+        <Style Selector="Button.toolbtn">
+            <Setter Property="Background" Value="#171D28"/>
+            <Setter Property="Foreground" Value="#D8E2F0"/>
+            <Setter Property="BorderBrush" Value="#252E3E"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="7,4"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.15"/>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.toolbtn:pointerover">
+            <Setter Property="Background" Value="#232C3E"/>
+            <Setter Property="BorderBrush" Value="#00E676"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+        </Style>
+
+        <!-- Mode Tool Button -->
+        <Style Selector="Button.modebtn">
+            <Setter Property="Background" Value="#171D28"/>
+            <Setter Property="Foreground" Value="#BAC7D8"/>
+            <Setter Property="BorderBrush" Value="#252E3E"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="7,4"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="11"/>
+        </Style>
+        <Style Selector="Button.modebtn:pointerover">
+            <Setter Property="Background" Value="#232C3E"/>
+            <Setter Property="BorderBrush" Value="#00F0FF"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+        </Style>
+
+        <!-- Mode Tool Button Active State -->
+        <Style Selector="Button.modebtn.active">
+            <Setter Property="Background" Value="#0E3D2C"/>
+            <Setter Property="Foreground" Value="#00E676"/>
+            <Setter Property="BorderBrush" Value="#00E676"/>
+        </Style>
+
+        <!-- Palette Button -->
+        <Style Selector="Button.palette">
+            <Setter Property="Background" Value="#141923"/>
+            <Setter Property="Foreground" Value="#BAC7D8"/>
+            <Setter Property="BorderBrush" Value="#222A3A"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="5"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+        </Style>
+        <Style Selector="Button.palette:pointerover">
+            <Setter Property="Background" Value="#1E2638"/>
+            <Setter Property="BorderBrush" Value="#00E676"/>
+            <Setter Property="Foreground" Value="#00F0FF"/>
+        </Style>
+
+        <!-- Preset Quick Chip -->
+        <Style Selector="Button.chip">
+            <Setter Property="Background" Value="#1A202E"/>
+            <Setter Property="Foreground" Value="#8C9BB0"/>
+            <Setter Property="BorderBrush" Value="#283244"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="Button.chip:pointerover">
+            <Setter Property="Background" Value="#263146"/>
+            <Setter Property="BorderBrush" Value="#00E676"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+        </Style>
+
+        <!-- Category Tab Buttons -->
+        <Style Selector="Button.categoryTab">
+            <Setter Property="Background" Value="#10141D"/>
+            <Setter Property="Foreground" Value="#7E8F9F"/>
+            <Setter Property="BorderBrush" Value="#1F2837"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="5"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="Button.categoryTab:pointerover">
+            <Setter Property="Background" Value="#1E2738"/>
+            <Setter Property="BorderBrush" Value="#00F0FF"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+        </Style>
+
+        <!-- Universal Compact Wrapped ToolTip Style -->
+        <Style Selector="ToolTip">
+            <Setter Property="Background" Value="#131B27"/>
+            <Setter Property="Foreground" Value="#E2E8F0"/>
+            <Setter Property="BorderBrush" Value="#00E676"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="MaxWidth" Value="280"/>
+        </Style>
+        <Style Selector="ToolTip TextBlock">
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+
+        <!-- Custom Dark ScrollBar Styling -->
+        <Style Selector="ScrollBar:vertical">
+            <Setter Property="Width" Value="6"/>
+        </Style>
+        <Style Selector="ScrollBar:vertical /template/ Thumb">
+            <Setter Property="Background" Value="#252E3E"/>
+            <Setter Property="CornerRadius" Value="3"/>
+        </Style>
+        <Style Selector="ScrollBar:vertical /template/ Thumb:pointerover">
+            <Setter Property="Background" Value="#00F0FF"/>
+        </Style>
+
+        <!-- Slider Hover and Active States -->
+        <Style Selector="Slider:pointerover">
+            <Setter Property="Foreground" Value="#5CFAFF"/>
+        </Style>
+        <Style Selector="Slider:pressed">
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+        </Style>
+
+        <!-- Green Accent Variant (For Simulation Speed & Timers) -->
+        <Style Selector="Slider.green">
+            <Setter Property="Foreground" Value="#00E676"/>
+        </Style>
+        <Style Selector="Slider.green:pointerover">
+            <Setter Property="Foreground" Value="#69F0AE"/>
+        </Style>
+        <Style Selector="Slider.green:pressed">
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+        <!-- Top Header & Main Tool Controls -->
+        <Border Grid.Row="0" Background="#121620" BorderBrush="#1C2332" BorderThickness="0,0,0,1" Padding="12,8">
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                
+                <!-- App Title & Logo -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,10,0">
+                    <Border Background="#00E676" CornerRadius="7" Width="26" Height="26">
+                        <TextBlock Text="⚡" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="FryCircuit" FontSize="16" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                    <Border Background="#1C2332" CornerRadius="4" Padding="4,2" VerticalAlignment="Center">
+                        <TextBlock Text="CAD v2.0" FontSize="10" FontWeight="SemiBold" Foreground="#00F0FF"/>
+                    </Border>
+                </StackPanel>
+
+                <!-- Tool Mode Selector -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
+                    <Button Classes="modebtn" Classes.active="{Binding IsSelectMode}" Content="↖ Select" Command="{Binding SetToolModeCommand}" CommandParameter="select"/>
+                    <Button Classes="modebtn" Classes.active="{Binding IsWireMode}" Content="⚡ Wire" Command="{Binding SetToolModeCommand}" CommandParameter="wire"/>
+                    <Button Classes="modebtn" Classes.active="{Binding IsCutMode}" Content="✂ Cut" Command="{Binding SetToolModeCommand}" CommandParameter="cut"/>
+                    <Button Classes="modebtn" Content="↺ Rotate" Command="{Binding RotateSelectedCommand}"/>
+                    <Button Classes="modebtn" Content="🗑 Delete" Command="{Binding DeleteSelectedCommand}"/>
+
+                    <Separator Background="#242E40" Width="1" Height="18" Margin="3,0"/>
+
+                    <Button Classes="modebtn" Content="↩ Undo" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" ToolTip.Tip="{Binding UndoLabel}"/>
+                    <Button Classes="modebtn" Content="↪ Redo" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" ToolTip.Tip="{Binding RedoLabel}"/>
+
+                    <Separator Background="#242E40" Width="1" Height="18" Margin="3,0"/>
+
+                    <!-- Live Circuit Visual Overlays -->
+                    <ToggleButton Classes="modebtn" IsChecked="{Binding ShowCurrentAnnotations, Mode=TwoWay}"
+                                  ToolTip.Tip="Toggle Live Branch Currents (Animated direction arrows &amp; values)">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Text="⚡" FontSize="11" Foreground="#00E676"/>
+                            <TextBlock Text="Currents" FontSize="11" FontWeight="SemiBold"/>
+                        </StackPanel>
+                    </ToggleButton>
+                    <ToggleButton Classes="modebtn" IsChecked="{Binding ShowVoltageAnnotations, Mode=TwoWay}"
+                                  ToolTip.Tip="Toggle Live Node Voltages (Junction &amp; rail badges)">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Text="⏚" FontSize="11" Foreground="#FFD700"/>
+                            <TextBlock Text="Voltages" FontSize="11" FontWeight="SemiBold"/>
+                        </StackPanel>
+                    </ToggleButton>
+                </StackPanel>
+
+                <!-- Right: Simulation Controls & Preset Selection -->
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="3" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <!-- Simulation Controls -->
+                    <Button Classes="toolbtn" Command="{Binding ToggleSimulationCommand}">
+                        <TextBlock Text="{Binding PlayPauseButtonText}" FontWeight="Bold"/>
+                    </Button>
+                    <Button Classes="toolbtn" Content="⏭ Step" Command="{Binding StepSimulationCommand}" />
+                    <Button Classes="toolbtn" Content="↺ Reset" Command="{Binding ResetSimulationCommand}" />
+                    <Button Classes="toolbtn" Content="⛶ Fit" Command="{Binding ZoomToFitCommand}" />
+                    <Button Classes="toolbtn" Content="📋 SPICE" Command="{Binding ToggleSpiceDrawerCommand}" ToolTip.Tip="Inspect &amp; export Berkeley SPICE / LTspice / WRSPICE netlist" />
+                    <Button Classes="toolbtn" Content="📊 BOM" Command="{Binding ToggleBomDrawerCommand}" ToolTip.Tip="Generate and view manufacturing Bill of Materials" />
+
+                    <!-- Simulation Speed Slider -->
+                    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" Margin="3,0,3,0">
+                        <TextBlock Text="Speed:" Foreground="#8C9BB0" FontSize="11" VerticalAlignment="Center"/>
+                        <Slider Classes="cyberSlider green" Width="68" Minimum="0.1" Maximum="4.0" Value="{Binding SimulationSpeed}" VerticalAlignment="Center"/>
+                        <Border Background="#0E1A16" BorderBrush="#1B3828" BorderThickness="1" CornerRadius="4" Padding="4,1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding SimulationSpeed, StringFormat='{}{0:F1}x'}" Foreground="#00E676" FontWeight="Bold" FontSize="10" FontFamily="Consolas,SF Mono,Menlo,monospace" VerticalAlignment="Center"/>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Presets Selection -->
+                    <TextBlock Text="Preset:" Foreground="#8C9BB0" FontSize="11" VerticalAlignment="Center"/>
+                    <ComboBox ItemsSource="{Binding AvailablePresets}" 
+                              SelectedItem="{Binding SelectedPreset}"
+                              Width="305" Background="#171D28" Foreground="#D8E2F0" BorderBrush="#252E3E" CornerRadius="6" FontSize="11"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Component Palette Toolbar (Click to Place on Canvas) -->
+        <Border Grid.Row="1" Background="#141822" BorderBrush="#1C2332" BorderThickness="0,0,0,1" Padding="10,4">
+            <Grid ColumnDefinitions="Auto,Auto,*">
+                <!-- Category Filter Tabs -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <Button Classes="categoryTab" Content="All" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="All"/>
+                    <Button Classes="categoryTab" Content="Passives" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Passives"/>
+                    <Button Classes="categoryTab" Content="Sources" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Sources"/>
+                    <Button Classes="categoryTab" Content="Semiconductors" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Semiconductors"/>
+                    <Button Classes="categoryTab" Content="Quantum &amp; RF" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Quantum &amp; RF"/>
+                    <Button Classes="categoryTab" Content="Logic &amp; ICs" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Logic &amp; ICs"/>
+                    <Button Classes="categoryTab" Content="Meters" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Meters &amp; Switches"/>
+                </StackPanel>
+
+                <Separator Grid.Column="1" Background="#242E40" Width="1" Height="20" Margin="8,0"/>
+
+                <!-- Category Filtered Palette Buttons -->
+                <ScrollViewer Grid.Column="2" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
+                    <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        
+                        <!-- Passives -->
+                        <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsPassivesVisible}">
+                            <Button Classes="palette" Content="⤹ Resistor" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="resistor"/>
+                            <Button Classes="palette" Content="⫝ Capacitor" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="capacitor"/>
+                            <Button Classes="palette" Content="ᛘ Inductor" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="inductor"/>
+                            <Button Classes="palette" Content="🎛 Potentiometer" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="potentiometer"/>
+                            <Separator Background="#242E40" Width="1" Height="16" Margin="4,0"/>
+                        </StackPanel>
+
+                        <!-- Sources & Ground -->
+                        <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsSourcesVisible}">
+                            <Button Classes="palette" Content="⚡ DC Voltage" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="vsource"/>
+                            <Button Classes="palette" Content="∿ AC Sine" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="vsrcsine"/>
+                            <Button Classes="palette" Content="⤤ DC Current" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="csource"/>
+                            <Button Classes="palette" Content="🔋 LiPo Battery" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="battery" ToolTip.Tip="Lithium-Ion / LiPo Electrochemical Cell with Temperature Derating &amp; SOC"/>
+                            <Button Classes="palette" Content="⏚ Ground" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="ground"/>
+                            <Separator Background="#242E40" Width="1" Height="16" Margin="4,0"/>
+                        </StackPanel>
+
+                        <!-- Semiconductors & Diodes -->
+                        <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsSemiconductorsVisible}">
+                            <Button Classes="palette" Content="▷| Diode" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="diode"/>
+                            <Button Classes="palette" Content="▷| Zener" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="zener"/>
+                            <Button Classes="palette" Content="💡 LED" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="led"/>
+                            <Button Classes="palette" Content="⎶ NPN BJT" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="npn"/>
+                            <Button Classes="palette" Content="⎶ NMOS FET" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="nmos"/>
+                            <Button Classes="palette" Content="▷ Op-Amp" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="opamp"/>
+                            <Separator Background="#242E40" Width="1" Height="16" Margin="4,0"/>
+                        </StackPanel>
+
+                        <!-- Quantum, RF & Aerospace Devices -->
+                        <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsQuantumVisible}">
+                            <Button Classes="palette" Content="⚛ Josephson JJ" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="josephson" ToolTip.Tip="Superconducting Josephson Junction (RCSJ Qubit Model)"/>
+                            <Button Classes="palette" Content="🧲 DC SQUID" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="squid" ToolTip.Tip="Superconducting Quantum Interference Device (Dual-JJ Magnetometer with Magnetic Flux Tuning)"/>
+                            <Button Classes="palette" Content="▷| Tunnel Diode" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="tunneldiode" ToolTip.Tip="Esaki Tunnel Diode with Quantum Band-to-Band Tunneling &amp; NDR"/>
+                            <Button Classes="palette" Content="〰 T-Line" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="tline" ToolTip.Tip="High-Frequency Bergeron Wave Distributed Transmission Line"/>
+                            <Button Classes="palette" Content="☄ Cosmic Pulse" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="cosmicipulse" ToolTip.Tip="Aerospace Radiation Heavy-Ion Strike SEU Double-Exponential Charge Injection"/>
+                            <Button Classes="palette" Content="🧭 Hall Sensor" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="hallsensor" ToolTip.Tip="4-Terminal Magnetic Hall Effect Transducer for Drone Motor Commutation"/>
+                            <Button Classes="palette" Content="🏷 Net Label" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="netlabel" ToolTip.Tip="EDA Net Label / Global Rail Marker"/>
+                            <Separator Background="#242E40" Width="1" Height="16" Margin="4,0"/>
+                        </StackPanel>
+
+                        <!-- Logic Gates & ICs -->
+                        <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsLogicVisible}">
+                            <Button Classes="palette" Content="&amp; AND Gate" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="and"/>
+                            <Button Classes="palette" Content="≥1 OR Gate" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="or"/>
+                            <Button Classes="palette" Content="! NOT Gate" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="not"/>
+                            <Button Classes="palette" Content="&amp;̄ NAND Gate" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="nand"/>
+                            <Button Classes="palette" Content="≥̄1 NOR Gate" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="nor"/>
+                            <Button Classes="palette" Content="=1 XOR Gate" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="xor"/>
+                            <Button Classes="palette" Content="⏱ 555 Timer" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="timer555"/>
+                            <Button Classes="palette" Content="🔠 7-Seg Display" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="seg7" ToolTip.Tip="7-Segment LED Numeric &amp; Hex Display"/>
+                            <Button Classes="palette" Content="🧮 7448 Decoder" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="bcd7seg" ToolTip.Tip="BCD-to-7-Segment Active-High Decoder Driver IC"/>
+                            <Button Classes="palette" Content="🔢 74193 Counter" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="counter4" ToolTip.Tip="4-Bit Synchronous Up/Down Binary Counter IC"/>
+                            <Separator Background="#242E40" Width="1" Height="16" Margin="4,0"/>
+                        </StackPanel>
+
+                        <!-- Controls, Meters, Lamp -->
+                        <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsMetersVisible}">
+                            <Button Classes="palette" Content="⏻ Switch" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="spst"/>
+                            <Button Classes="palette" Content="💡 Lamp" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="lamp"/>
+                            <Button Classes="palette" Content="[V] Voltmeter" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="voltmeter"/>
+                            <Button Classes="palette" Content="[A] Ammeter" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="amperemeter"/>
+                            <Button Classes="palette" Content="[Ω] Ohmmeter" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="ohmmeter"/>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- Main Workspace: Canvas + Inspector Sidebar + Dual Oscilloscope -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,315">
+
+            <!-- Left / Center: Schematic Canvas + Oscilloscope -->
+            <Grid Grid.Column="0" RowDefinitions="*,170">
+                <!-- Circuit Schematic Canvas -->
+                <controls:CircuitCanvas x:Name="CanvasControl" Grid.Row="0" 
+                                        Circuit="{Binding CurrentCircuit}"
+                                        SelectedDevice="{Binding SelectedDevice, Mode=TwoWay}"
+                                        SelectedWire="{Binding SelectedWire, Mode=TwoWay}"
+                                        ToolMode="{Binding ActiveToolMode, Mode=TwoWay}"
+                                        ShowCurrentAnnotations="{Binding ShowCurrentAnnotations}"
+                                        ShowVoltageAnnotations="{Binding ShowVoltageAnnotations}"/>
+
+                <!-- Oscilloscope Bottom Panel with Probing Controls -->
+                <Border Grid.Row="1" Background="#0C0E14" BorderBrush="#1C2332" BorderThickness="0,1,0,0">
+                    <Grid RowDefinitions="Auto,*">
+                        <!-- Oscilloscope Probe Control Bar -->
+                        <Border Grid.Row="0" Background="#10141D" BorderBrush="#1C2332" BorderThickness="0,0,0,1" Padding="10,4">
+                            <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                    <TextBlock Text="OSCILLOSCOPE PROBES:" FontSize="10" FontWeight="Bold" Foreground="#6C7D93" VerticalAlignment="Center"/>
+                                    <Button Classes="chip" Command="{Binding StartProbingCommand}" CommandParameter="1" ToolTip.Tip="Click then click any terminal on schematic to attach CH1">
+                                        <StackPanel Orientation="Horizontal" Spacing="5">
+                                            <Ellipse Width="6" Height="6" Fill="#FFD700"/>
+                                            <TextBlock Text="{Binding ProbedCh1Label}" FontSize="10" Foreground="#FFD700" FontWeight="Bold"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Classes="chip" Command="{Binding StartProbingCommand}" CommandParameter="2" ToolTip.Tip="Click then click any terminal on schematic to attach CH2">
+                                        <StackPanel Orientation="Horizontal" Spacing="5">
+                                            <Ellipse Width="6" Height="6" Fill="#00F0FF"/>
+                                            <TextBlock Text="{Binding ProbedCh2Label}" FontSize="10" Foreground="#00F0FF" FontWeight="Bold"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Classes="chip" Content="Reset Probes" Command="{Binding ClearProbesCommand}" ToolTip.Tip="Reset to automatic signal probing"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="3" Text="Interactive Signal Probing • 60 FPS" FontSize="10" Foreground="#4A5B70" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <controls:OscilloscopeControl Grid.Row="1" x:Name="Oscilloscope" />
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- Right Sidebar: Live Electrical Inspector & Tuning Controls -->
+            <Border Grid.Column="1" Background="#121620" BorderBrush="#1C2332" BorderThickness="1,0,0,0" Padding="12,12,6,12">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="CIRCUIT INSPECTOR" FontWeight="Bold" FontSize="11" Foreground="#6C7D93" LetterSpacing="1"/>
+
+                        <!-- Selected Component Card -->
+                        <Border Background="#161B26" BorderBrush="#222B3B" BorderThickness="1" CornerRadius="8" Padding="10">
+                            <StackPanel Spacing="8">
+                                
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="{Binding SelectedDevice.Type, FallbackValue='No Selection', StringFormat='Component: {0}'}" 
+                                                   FontWeight="Bold" FontSize="13" Foreground="#00F0FF"/>
+                                        <TextBlock Text="{Binding SelectedDevice.Id, StringFormat='ID: #{0}', FallbackValue='Click device or pin on canvas'}" 
+                                                   FontSize="11" Foreground="#7A8B9E"/>
+                                    </StackPanel>
+
+                                    <!-- Quick Rotate / Delete Buttons -->
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" IsVisible="{Binding HasSelectedDevice}">
+                                        <Button Classes="chip" Content="↺" ToolTip.Tip="Rotate 90°" Command="{Binding RotateSelectedCommand}"/>
+                                        <Button Classes="chip" Content="🗑" ToolTip.Tip="Delete" Command="{Binding DeleteSelectedCommand}"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <Separator Background="#222B3B" Height="1"/>
+
+                                <!-- Instantaneous Electrical Values (Single Row 3-Column Telemetry Badges) -->
+                                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="5" Margin="0,2,0,4" IsVisible="{Binding HasSelectedDevice}">
+                                    <Border Grid.Column="0" Background="#141C28" BorderBrush="#202C3D" BorderThickness="1" CornerRadius="6" Padding="5,4">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="Current (I)" FontSize="9" FontWeight="Medium" Foreground="#7A8B9E"/>
+                                            <TextBlock Text="{Binding SelectedDevice.FormattedCurrent, FallbackValue='0.00 A'}" 
+                                                       FontWeight="Bold" FontSize="10" Foreground="#00E676"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       ToolTip.Tip="{Binding SelectedDevice.FormattedCurrent}"
+                                                       FontFamily="Consolas,SF Mono,Menlo,monospace"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="1" Background="#141C28" BorderBrush="#202C3D" BorderThickness="1" CornerRadius="6" Padding="5,4">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="Voltage (ΔV)" FontSize="9" FontWeight="Medium" Foreground="#7A8B9E"/>
+                                            <TextBlock Text="{Binding SelectedDevice.FormattedVoltage, FallbackValue='0.00 V'}" 
+                                                       FontWeight="Bold" FontSize="10" Foreground="#FFD700"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       ToolTip.Tip="{Binding SelectedDevice.FormattedVoltage}"
+                                                       FontFamily="Consolas,SF Mono,Menlo,monospace"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="2" Background="#141C28" BorderBrush="#202C3D" BorderThickness="1" CornerRadius="6" Padding="5,4">
+                                        <StackPanel Spacing="2">
+                                            <TextBlock Text="Power (P)" FontSize="9" FontWeight="Medium" Foreground="#7A8B9E"/>
+                                            <TextBlock Text="{Binding SelectedDevice.FormattedPower, FallbackValue='0.00 W'}" 
+                                                       FontWeight="Bold" FontSize="10" Foreground="#00F0FF"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       ToolTip.Tip="{Binding SelectedDevice.FormattedPower}"
+                                                       FontFamily="Consolas,SF Mono,Menlo,monospace"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <!-- Rotary Dial Adjuster -->
+                                <Border Margin="0,2,0,0" IsVisible="{Binding HasSelectedDevice}">
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="Primary Tuning Knob" FontSize="10" FontWeight="SemiBold" Foreground="#8C9BB0" HorizontalAlignment="Center"/>
+                                        <controls:RotaryKnobControl Height="102" Width="102" HorizontalAlignment="Center"
+                                                                    Value="{Binding InspectorValue, Mode=TwoWay}"
+                                                                    Minimum="{Binding InspectorMin}"
+                                                                    Maximum="{Binding InspectorMax}"
+                                                                    Unit="{Binding InspectorUnit}"
+                                                                    Label="{Binding InspectorLabel}"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Multi-Parameter Live Tuning Grid -->
+                                <StackPanel Spacing="4" IsVisible="{Binding HasSelectedDevice}">
+                                    <TextBlock Text="DEVICE PARAMETERS:" FontSize="10" FontWeight="Bold" Foreground="#6C7D93" LetterSpacing="0.5"/>
+                                    <ItemsControl ItemsSource="{Binding DeviceParameters}">
+                                        <ItemsControl.ItemTemplate>
+                                             <DataTemplate x:DataType="vm:DeviceParameterViewModel">
+                                                 <Border Background="#131B27" BorderBrush="#202D3E" BorderThickness="1" CornerRadius="6" Padding="8,5" Margin="0,2">
+                                                     <StackPanel Spacing="3">
+                                                         <Grid ColumnDefinitions="*,Auto">
+                                                             <TextBlock Grid.Column="0" Text="{Binding DisplayLabel}" FontSize="10" FontWeight="SemiBold" Foreground="#B0C2D8" VerticalAlignment="Center"/>
+                                                             <TextBox Grid.Column="1" Text="{Binding EditText, Mode=TwoWay}"
+                                                                      FontSize="10" FontWeight="Bold" Foreground="#00F0FF" FontFamily="Consolas,SF Mono,Menlo,monospace"
+                                                                      Background="#0E141E" BorderBrush="#223348" CornerRadius="4" Padding="5,2" Height="22" MinWidth="75"
+                                                                      TextAlignment="Right" VerticalAlignment="Center"/>
+                                                         </Grid>
+                                                         <Slider Classes="cyberSlider" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}" Value="{Binding Value, Mode=TwoWay}"
+                                                                 Margin="0,2,0,0" VerticalAlignment="Center"/>
+                                                     </StackPanel>
+                                                 </Border>
+                                             </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+
+                                <!-- Quick Value Preset Chips (Contextual) -->
+                                <StackPanel Spacing="4" IsVisible="{Binding IsResistorSelected}">
+                                    <TextBlock Text="Resistor Presets:" FontSize="10" Foreground="#6C7D93"/>
+                                    <WrapPanel Orientation="Horizontal">
+                                        <Button Classes="chip" Content="100Ω" Command="{Binding SetInspectorPresetCommand}" CommandParameter="100" Margin="1,2"/>
+                                        <Button Classes="chip" Content="1kΩ" Command="{Binding SetInspectorPresetCommand}" CommandParameter="1000" Margin="1,2"/>
+                                        <Button Classes="chip" Content="4.7kΩ" Command="{Binding SetInspectorPresetCommand}" CommandParameter="4700" Margin="1,2"/>
+                                        <Button Classes="chip" Content="10kΩ" Command="{Binding SetInspectorPresetCommand}" CommandParameter="10000" Margin="1,2"/>
+                                        <Button Classes="chip" Content="100kΩ" Command="{Binding SetInspectorPresetCommand}" CommandParameter="100000" Margin="1,2"/>
+                                        <Button Classes="chip" Content="1MΩ" Command="{Binding SetInspectorPresetCommand}" CommandParameter="1000000" Margin="1,2"/>
+                                    </WrapPanel>
+                                </StackPanel>
+
+                                <StackPanel Spacing="4" IsVisible="{Binding IsCapacitorSelected}">
+                                    <TextBlock Text="Capacitor Presets:" FontSize="10" Foreground="#6C7D93"/>
+                                    <WrapPanel Orientation="Horizontal">
+                                        <Button Classes="chip" Content="100pF" Command="{Binding SetInspectorPresetCommand}" CommandParameter="0.0000000001" Margin="1,2"/>
+                                        <Button Classes="chip" Content="1nF" Command="{Binding SetInspectorPresetCommand}" CommandParameter="0.000000001" Margin="1,2"/>
+                                        <Button Classes="chip" Content="10nF" Command="{Binding SetInspectorPresetCommand}" CommandParameter="0.00000001" Margin="1,2"/>
+                                        <Button Classes="chip" Content="100nF" Command="{Binding SetInspectorPresetCommand}" CommandParameter="0.0000001" Margin="1,2"/>
+                                        <Button Classes="chip" Content="1µF" Command="{Binding SetInspectorPresetCommand}" CommandParameter="0.000001" Margin="1,2"/>
+                                        <Button Classes="chip" Content="10µF" Command="{Binding SetInspectorPresetCommand}" CommandParameter="0.00001" Margin="1,2"/>
+                                    </WrapPanel>
+                                </StackPanel>
+
+                                <StackPanel Spacing="4" IsVisible="{Binding IsInductorSelected}">
+                                    <TextBlock Text="Inductor Presets:" FontSize="10" Foreground="#6C7D93"/>
+                                    <WrapPanel Orientation="Horizontal">
+                                        <Button Classes="chip" Content="1µH" Command="{Binding SetInspectorPresetCommand}" CommandParameter="0.000001" Margin="1,2"/>
+                                        <Button Classes="chip" Content="10µH" Command="{Binding SetInspectorPresetCommand}" CommandParameter="0.00001" Margin="1,2"/>
+                                        <Button Classes="chip" Content="100µH" Command="{Binding SetInspectorPresetCommand}" CommandParameter="0.0001" Margin="1,2"/>
+                                        <Button Classes="chip" Content="1mH" Command="{Binding SetInspectorPresetCommand}" CommandParameter="0.001" Margin="1,2"/>
+                                        <Button Classes="chip" Content="10mH" Command="{Binding SetInspectorPresetCommand}" CommandParameter="0.01" Margin="1,2"/>
+                                    </WrapPanel>
+                                </StackPanel>
+
+                                <StackPanel Spacing="4" IsVisible="{Binding IsVoltageSourceSelected}">
+                                    <TextBlock Text="Voltage Presets:" FontSize="10" Foreground="#6C7D93"/>
+                                    <WrapPanel Orientation="Horizontal">
+                                        <Button Classes="chip" Content="1.2V" Command="{Binding SetInspectorPresetCommand}" CommandParameter="1.2" Margin="1,2"/>
+                                        <Button Classes="chip" Content="3.3V" Command="{Binding SetInspectorPresetCommand}" CommandParameter="3.3" Margin="1,2"/>
+                                        <Button Classes="chip" Content="5V" Command="{Binding SetInspectorPresetCommand}" CommandParameter="5" Margin="1,2"/>
+                                        <Button Classes="chip" Content="9V" Command="{Binding SetInspectorPresetCommand}" CommandParameter="9" Margin="1,2"/>
+                                        <Button Classes="chip" Content="12V" Command="{Binding SetInspectorPresetCommand}" CommandParameter="12" Margin="1,2"/>
+                                        <Button Classes="chip" Content="24V" Command="{Binding SetInspectorPresetCommand}" CommandParameter="24" Margin="1,2"/>
+                                    </WrapPanel>
+                                </StackPanel>
+
+                                <StackPanel Spacing="4" IsVisible="{Binding IsCurrentSourceSelected}">
+                                    <TextBlock Text="Current Presets:" FontSize="10" Foreground="#6C7D93"/>
+                                    <WrapPanel Orientation="Horizontal">
+                                        <Button Classes="chip" Content="10µA" Command="{Binding SetInspectorPresetCommand}" CommandParameter="0.00001" Margin="1,2"/>
+                                        <Button Classes="chip" Content="100µA" Command="{Binding SetInspectorPresetCommand}" CommandParameter="0.0001" Margin="1,2"/>
+                                        <Button Classes="chip" Content="1mA" Command="{Binding SetInspectorPresetCommand}" CommandParameter="0.001" Margin="1,2"/>
+                                        <Button Classes="chip" Content="10mA" Command="{Binding SetInspectorPresetCommand}" CommandParameter="0.01" Margin="1,2"/>
+                                        <Button Classes="chip" Content="100mA" Command="{Binding SetInspectorPresetCommand}" CommandParameter="0.1" Margin="1,2"/>
+                                        <Button Classes="chip" Content="1A" Command="{Binding SetInspectorPresetCommand}" CommandParameter="1.0" Margin="1,2"/>
+                                    </WrapPanel>
+                                </StackPanel>
+
+                                <!-- Waveform Selector (for Voltage Sources) -->
+                                <StackPanel Spacing="4" IsVisible="{Binding IsVoltageSourceSelected}">
+                                    <TextBlock Text="Waveform:" FontSize="10" Foreground="#6C7D93"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <Button Classes="chip" Content="DC" Command="{Binding SetWaveformCommand}" CommandParameter="dc"/>
+                                        <Button Classes="chip" Content="Sine" Command="{Binding SetWaveformCommand}" CommandParameter="sine"/>
+                                        <Button Classes="chip" Content="Pulse" Command="{Binding SetWaveformCommand}" CommandParameter="pulse"/>
+                                        <Button Classes="chip" Content="Triangle" Command="{Binding SetWaveformCommand}" CommandParameter="triangle"/>
+                                    </StackPanel>
+                                </StackPanel>
+
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Selected Wire Card -->
+                        <Border Background="#161B26" BorderBrush="#222B3B" BorderThickness="1" CornerRadius="8" Padding="12"
+                                IsVisible="{Binding HasSelectedWire}">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="SELECTED WIRE TRACE" FontWeight="Bold" FontSize="11" Foreground="#6C7D93" LetterSpacing="1"/>
+
+                                <Grid ColumnDefinitions="*,*">
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="{Binding SelectedWireNodeId, StringFormat='Net Node: #{0}'}" 
+                                                   FontWeight="Bold" FontSize="13" Foreground="#00F0FF"/>
+                                        <TextBlock Text="Ground Rail (0 V)" IsVisible="{Binding IsSelectedWireGround}" FontSize="10" Foreground="#91AFC8"/>
+                                    </StackPanel>
+                                    <Border Grid.Column="1" Background="#141C28" BorderBrush="#202C3D" BorderThickness="1" CornerRadius="6" Padding="6,4">
+                                        <StackPanel Spacing="1">
+                                            <TextBlock Text="Potential (V)" FontSize="9" FontWeight="Medium" Foreground="#7A8B9E"/>
+                                            <TextBlock Text="{Binding FormattedSelectedWireVoltage}" 
+                                                       FontWeight="Bold" FontSize="12" Foreground="#FFD700"
+                                                       FontFamily="Consolas,SF Mono,Menlo,monospace"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <Separator Background="#222B3B" Height="1"/>
+
+                                <TextBlock Text="Quick Oscilloscope Probing:" FontSize="10" Foreground="#8C9BB0"/>
+                                <Grid ColumnDefinitions="*,*" ColumnSpacing="6">
+                                    <Button Grid.Column="0" Content="Probe CH1" Command="{Binding ProbeSelectedWireCh1Command}" Classes="chip" HorizontalAlignment="Stretch" Foreground="#FFD700"/>
+                                    <Button Grid.Column="1" Content="Probe CH2" Command="{Binding ProbeSelectedWireCh2Command}" Classes="chip" HorizontalAlignment="Stretch" Foreground="#00F0FF"/>
+                                </Grid>
+
+                                <Button Content="✂ Cut Wire Trace (Del)" Command="{Binding DeleteSelectedCommand}" Classes="toolbtn" HorizontalAlignment="Stretch"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Live Physics & Thermal Metrics Card -->
+                        <Border Background="#161B26" BorderBrush="#222B3B" BorderThickness="1" CornerRadius="8" Padding="12"
+                                IsVisible="{Binding !HasSelectedDevice}">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="ENVIRONMENTAL PHYSICS" FontWeight="Bold" FontSize="11" Foreground="#00F0FF" LetterSpacing="0.5"/>
+
+                                <!-- Operating Environment Selector -->
+                                <StackPanel Spacing="3">
+                                    <TextBlock Text="Operating Environment:" FontSize="10" Foreground="#8C9BB0"/>
+                                    <ComboBox ItemsSource="{Binding TemperaturePresets}" 
+                                              SelectedItem="{Binding SelectedTemperaturePreset}"
+                                              HorizontalAlignment="Stretch" Background="#121620" Foreground="#00F0FF" BorderBrush="#252E3E" CornerRadius="5" FontSize="11"/>
+                                </StackPanel>
+
+                                <Grid ColumnDefinitions="*,*">
+                                    <StackPanel Grid.Column="0" Spacing="2">
+                                        <TextBlock Text="Ambient Temp (T)" FontSize="10" Foreground="#7A8B9E"/>
+                                        <TextBlock Text="{Binding OperatingTemperatureKelvin, StringFormat='{}{0:F2} K'}" FontWeight="SemiBold" FontSize="12" Foreground="#BAC7D8"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Spacing="2">
+                                        <TextBlock Text="Thermal Voltage (Vt)" FontSize="10" Foreground="#7A8B9E"/>
+                                        <TextBlock Text="{Binding ThermalVoltageLabel}" FontWeight="SemiBold" FontSize="12" Foreground="#00E676"/>
+                                    </StackPanel>
+                                </Grid>
+                                <Separator Background="#222B3B" Height="1"/>
+                                <TextBlock Text="Integration: MNA Trapezoidal / Gear-2" FontSize="10" Foreground="#6C7D93"/>
+                                <TextBlock Text="Convergence: Newton-Raphson &lt; 1 µV" FontSize="10" Foreground="#6C7D93"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Interactive Circuit Building Shortcuts & Tips -->
+                        <Border Background="#141822" BorderBrush="#1C2332" BorderThickness="1" CornerRadius="8" Padding="10"
+                                IsVisible="{Binding !HasSelectedDevice}">
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Quick Shortcuts &amp; Builder Guide" FontWeight="SemiBold" FontSize="11" Foreground="#8C9BB0"/>
+                                <TextBlock Text="• Click Pin ➔ Click Pin to wire" FontSize="11" Foreground="#5A6D85"/>
+                                <TextBlock Text="• Drag devices with 60fps grid snap" FontSize="11" Foreground="#5A6D85"/>
+                                <TextBlock Text="• Click switches to toggle open/closed" FontSize="11" Foreground="#5A6D85"/>
+                                <TextBlock Text="• R = Rotate selected component" FontSize="11" Foreground="#5A6D85"/>
+                                <TextBlock Text="• Del = Delete component or wire" FontSize="11" Foreground="#5A6D85"/>
+                                <TextBlock Text="• W = Wire Mode | V = Select Mode" FontSize="11" Foreground="#5A6D85"/>
+                                <TextBlock Text="• X = Cut Mode | F = Fit to screen" FontSize="11" Foreground="#5A6D85"/>
+                                <TextBlock Text="• Esc = Cancel wire or placement" FontSize="11" Foreground="#5A6D85"/>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- SPICE Netlist Modal Drawer -->
+            <Border Grid.Column="0" Grid.ColumnSpan="2" Background="#E0080B10" IsVisible="{Binding IsSpiceDrawerOpen}" ZIndex="100">
+                <Border Background="#141822" BorderBrush="#00F0FF" BorderThickness="1" CornerRadius="10" 
+                        Width="840" Height="520" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="16">
+                    <Grid RowDefinitions="Auto,*,Auto">
+                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="📋" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Text="SPICE Simulation Deck (Berkeley SPICE 3f5 / LTspice / WRSPICE)" FontWeight="Bold" FontSize="14" Foreground="#00F0FF" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" Classes="chip" Content="✕ Close" Command="{Binding ToggleSpiceDrawerCommand}"/>
+                        </Grid>
+
+                        <TextBox Grid.Row="1" Text="{Binding SpiceNetlistText, Mode=TwoWay}"
+                                 FontFamily="Consolas,Cascadia Code,Courier New,monospace" FontSize="12"
+                                 Foreground="#A6E22E" Background="#0C0E14" BorderBrush="#252E3E"
+                                 AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap"/>
+
+                        <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Margin="0,12,0,0">
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                                <Button Classes="toolbtn" Content="↻ Re-export from Circuit" Command="{Binding GenerateSpiceNetlistCommand}"/>
+                                <Button Classes="toolbtn" Content="📥 Import Deck to Canvas" Command="{Binding ImportSpiceDeckCommand}"/>
+                            </StackPanel>
+                            <TextBlock Grid.Column="2" Text="Compatible with LTspice, ngspice &amp; WRSPICE" FontSize="11" Foreground="#5A6D85" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Border>
+
+            <!-- Bill of Materials (BOM) Modal Drawer -->
+            <Border Grid.Column="0" Grid.ColumnSpan="2" Background="#E0080B10" IsVisible="{Binding IsBomDrawerOpen}" ZIndex="100">
+                <Border Background="#141822" BorderBrush="#00E676" BorderThickness="1" CornerRadius="10" 
+                        Width="1060" Height="550" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="16">
+                    <Grid RowDefinitions="Auto,*,Auto">
+                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="📊" FontSize="16" VerticalAlignment="Center"/>
+                                <TextBlock Text="Manufacturing Bill of Materials (BOM) • Mil-Spec &amp; Aerospace Class" FontWeight="Bold" FontSize="14" Foreground="#00E676" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" Classes="chip" Content="✕ Close" Command="{Binding ToggleBomDrawerCommand}"/>
+                        </Grid>
+
+                        <TextBox Grid.Row="1" Text="{Binding BomText, Mode=TwoWay}"
+                                 FontFamily="Consolas,Cascadia Code,Courier New,monospace" FontSize="11.5"
+                                 Foreground="#E2E8F0" Background="#0C0E14" BorderBrush="#252E3E"
+                                 AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap" IsReadOnly="True"/>
+
+                        <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Margin="0,12,0,0">
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                                <Button Classes="toolbtn" Content="↻ Re-generate BOM" Command="{Binding GenerateBomCommand}"/>
+                            </StackPanel>
+                            <TextBlock Grid.Column="2" Text="Industry Standard Reference Designators &amp; SMD Packaging" FontSize="11" Foreground="#5A6D85" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Border>
+        </Grid>
+
+        <!-- Bottom Status Bar -->
+        <Border Grid.Row="3" Background="#0A0D12" BorderBrush="#181F2C" BorderThickness="0,1,0,0" Padding="12,5">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                    <Ellipse Width="8" Height="8" Fill="#00E676" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="#BAC7D8" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Grid.Column="2" Text="FryCircuit Engine v2.0 • MNA Solver • 60 FPS • Industry Standard Architecture" FontSize="11" Foreground="#4A5B70" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+    </Grid>
+
+</UserControl>

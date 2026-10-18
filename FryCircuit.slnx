@@ -1,10 +1,13 @@
 <Solution>
+  <Project Path="CircuitPlugin.csproj" />
+  <Project Path="Runner/CircuitPlugin.Runner.csproj" />
   <Folder Name="/src/">
     <Project Path="src/FryCircuit.Core/FryCircuit.Core.csproj" />
     <Project Path="src/FryCircuit.Desktop/FryCircuit.Desktop.csproj" />
     <Project Path="src/FryCircuit.UI/FryCircuit.UI.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/CircuitPlugin.Tests/CircuitPlugin.Tests.csproj" />
     <Project Path="tests/FryCircuit.Core.Tests/FryCircuit.Core.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">

@@ -1,0 +1,178 @@
+name: Release & Publish
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 1.0.0; leave blank to infer from tag or csproj)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Dry run — build, test & pack only; skip GitHub Release'
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  # ── 0. Determine Clean SemVer ──────────────────────────────────────────────
+  determine-version:
+    name: Determine Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Resolve version from tag / input / csproj
+        id: version
+        shell: bash
+        run: |
+          RAW_VER=""
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            RAW_VER="${{ github.event.inputs.version }}"
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            RAW_VER="${GITHUB_REF_NAME}"
+          fi
+
+          CLEAN_VER=$(echo "$RAW_VER" | sed -E 's/^[vV]//')
+          echo "version=${CLEAN_VER}" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: ${CLEAN_VER:-'(using csproj defaults)'}"
+
+  # ── 1. Gate: Full Test Suite on all platforms ──────────────────────────────
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore FryCircuit.slnx
+
+      - name: Build
+        run: dotnet build FryCircuit.slnx -c Release --no-restore
+
+      - name: Run Tests
+        run: dotnet test FryCircuit.slnx -c Release --no-build --verbosity normal
+
+  # ── 2. Headless Snapshots ──────────────────────────────────────────────────
+  snapshots:
+    name: Headless UI Snapshots (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Run UiSnapshots
+        run: dotnet run --project tools/UiSnapshots
+
+  # ── 3. Build & Pack .fryplugin and Standalone Runner ────────────────────────
+  build-and-pack:
+    name: Build, Pack & Stage Artifacts
+    needs: [determine-version, test, snapshots]
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.determine-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore FryCircuit.slnx
+
+      - name: Build CircuitPlugin Release (.fryplugin packaging)
+        run: |
+          VER_ARG=""
+          [ -n "$VERSION" ] && VER_ARG="-p:Version=$VERSION -p:AssemblyVersion=$VERSION -p:FileVersion=$VERSION"
+          dotnet build CircuitPlugin.csproj -c Release --no-restore $VER_ARG
+
+      - name: Build Standalone Runner
+        run: |
+          VER_ARG=""
+          [ -n "$VERSION" ] && VER_ARG="-p:Version=$VERSION"
+          dotnet build Runner/CircuitPlugin.Runner.csproj -c Release --no-restore $VER_ARG
+
+      - name: Stage Artifacts
+        run: |
+          mkdir -p ./artifacts
+          FRYPLUGIN=$(find . -name "Circuit.fryplugin" | head -1)
+          echo "Found package: $FRYPLUGIN"
+          cp "$FRYPLUGIN" ./artifacts/Circuit.fryplugin
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: ./artifacts/Circuit.fryplugin
+          if-no-files-found: error
+
+  # ── 4. Create / Update GitHub Release ───────────────────────────────────────
+  github-release:
+    name: Create GitHub Release
+    needs: [determine-version, build-and-pack]
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.dry_run && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch') }}
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      VERSION: ${{ needs.determine-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-artifacts
+          path: artifacts
+
+      - name: Create or update GitHub Release
+        shell: bash
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME}"
+          if [[ "${GITHUB_REF}" != refs/tags/* ]]; then
+            TAG_NAME="v${VERSION}"
+          fi
+
+          ASSETS=()
+          for f in artifacts/Circuit.fryplugin; do
+            [ -f "$f" ] && ASSETS+=("$f")
+          done
+
+          echo "Tag: $TAG_NAME"
+          echo "Assets:"
+          printf '  - %s\n' "${ASSETS[@]}"
+
+          if gh release view "$TAG_NAME" > /dev/null 2>&1; then
+            echo "Release $TAG_NAME already exists — uploading/replacing assets..."
+            gh release upload "$TAG_NAME" "${ASSETS[@]}" --clobber
+          else
+            echo "Creating release $TAG_NAME..."
+            gh release create "$TAG_NAME" "${ASSETS[@]}" \
+              --title "FryCircuit Studio $TAG_NAME" \
+              --generate-notes \
+              --prerelease=${{ contains(github.ref_name, '-') }}
+          fi

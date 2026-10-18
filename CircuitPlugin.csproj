@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>13</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);NU1901;NU1902;NU1903;NU1904</NoWarn>
+    <AssemblyName>CircuitPlugin</AssemblyName>
+    <PackageId>FryWorld.Plugin.Circuit</PackageId>
+    <RootNamespace>FryCircuit.Plugin</RootNamespace>
+    <Version>1.0.0</Version>
+    <!-- FryWorld.Sdk packages the plugin on Release builds; keep the file name the store catalog links to. -->
+    <FryPluginPackageName>Circuit</FryPluginPackageName>
+    <Company>Code Fry Dev</Company>
+    <Description>Interactive analog and digital circuit schematic CAD and real-time MNA simulation studio for FryWorld</Description>
+    <DefaultItemExcludes>$(DefaultItemExcludes);src/**;Runner/**;tools/**;tests/**;snapshots/**</DefaultItemExcludes>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="src/FryCircuit.Core/FryCircuit.Core.csproj" />
+    <ProjectReference Include="src/FryCircuit.UI/FryCircuit.UI.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FryWorld.Sdk" Version="0.2.0" />
+    <PackageReference Include="Avalonia" Version="12.1.2" PrivateAssets="all" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" PrivateAssets="all" />
+    <PackageReference Include="Material.Icons.Avalonia" Version="3.0.2" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="plugin.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);NU1901;NU1902;NU1903;NU1904</NoWarn>
+    <Authors>PrashantUnity; Code Fry Dev</Authors>
+    <Company>Code Fry Dev</Company>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/PrashantUnity/FryCircuit</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/PrashantUnity/FryCircuit</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+</Project>

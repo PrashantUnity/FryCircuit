@@ -10,12 +10,17 @@ using FryCircuit.Core.IO;
 using FryCircuit.Core.Models;
 using FryCircuit.Core.Simulation;
 using FryCircuit.UI.Controls;
+using FryWorld.Sdk.Plugins;
 
 namespace FryCircuit.UI.ViewModels;
 
-public partial class MainWindowViewModel : ObservableObject
+public partial class MainWindowViewModel : ObservableObject, IDisposable
 {
     private readonly DispatcherTimer _timer;
+    private readonly FryWorld.Sdk.Plugins.IFryPluginContext? _pluginContext;
+    private readonly EventHandler? _historyHandler;
+    private readonly Action<string>? _settingsHandler;
+    private bool _disposed;
     private MnaSolver? _solver;
     private CircuitCanvas? _canvas;
     private OscilloscopeControl? _oscilloscope;
@@ -213,15 +218,18 @@ public partial class MainWindowViewModel : ObservableObject
         StatusText = $"Physics Engine: {value} (T = {OperatingTemperatureKelvin:F2} K, {ThermalVoltageLabel})";
     }
 
-    public MainWindowViewModel()
+    public MainWindowViewModel(FryWorld.Sdk.Plugins.IFryPluginContext? context = null)
     {
-        History.HistoryChanged += (s, e) =>
+        _pluginContext = context;
+
+        _historyHandler = (s, e) =>
         {
             CanUndo = History.CanUndo;
             CanRedo = History.CanRedo;
             UndoLabel = History.NextUndoDescription != null ? $"Undo {History.NextUndoDescription}" : "Undo (Ctrl+Z)";
             RedoLabel = History.NextRedoDescription != null ? $"Redo {History.NextRedoDescription}" : "Redo (Ctrl+Y)";
         };
+        History.HistoryChanged += _historyHandler;
 
         _timer = new DispatcherTimer
         {
@@ -230,7 +238,68 @@ public partial class MainWindowViewModel : ObservableObject
         _timer.Tick += OnSimulationTick;
 
         LoadAvailablePresets();
-        LoadDefaultCircuit();
+
+        string initialPreset = "Half-Wave Rectifier";
+
+        if (_pluginContext != null)
+        {
+            try
+            {
+                var settings = _pluginContext.GetPluginSettings();
+                var preset = settings.Get<string>("DefaultPreset");
+                if (!string.IsNullOrEmpty(preset) && AvailablePresets.Contains(preset))
+                {
+                    initialPreset = preset;
+                }
+
+                SimulationSpeed = settings.Get<double>("SimulationSpeed");
+                if (SimulationSpeed <= 0) SimulationSpeed = 1.0;
+
+                ShowCurrentAnnotations = settings.Get<bool>("ShowCurrentAnnotations");
+                ShowVoltageAnnotations = settings.Get<bool>("ShowVoltageAnnotations");
+
+                var temp = settings.Get<string>("OperatingTemperature");
+                if (!string.IsNullOrEmpty(temp) && TemperaturePresets.Contains(temp))
+                {
+                    SelectedTemperaturePreset = temp;
+                }
+
+                _settingsHandler = key =>
+                {
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                    {
+                        if (key == "SimulationSpeed")
+                        {
+                            var spd = settings.Get<double>("SimulationSpeed");
+                            if (spd > 0) SimulationSpeed = spd;
+                        }
+                        else if (key == "ShowCurrentAnnotations")
+                        {
+                            ShowCurrentAnnotations = settings.Get<bool>("ShowCurrentAnnotations");
+                        }
+                        else if (key == "ShowVoltageAnnotations")
+                        {
+                            ShowVoltageAnnotations = settings.Get<bool>("ShowVoltageAnnotations");
+                        }
+                        else if (key == "OperatingTemperature")
+                        {
+                            var tmp = settings.Get<string>("OperatingTemperature");
+                            if (!string.IsNullOrEmpty(tmp) && TemperaturePresets.Contains(tmp))
+                            {
+                                SelectedTemperaturePreset = tmp;
+                            }
+                        }
+                    });
+                };
+                settings.Changed += _settingsHandler;
+            }
+            catch
+            {
+                // Settings store not available or mocked
+            }
+        }
+
+        LoadPreset(initialPreset);
         _timer.Start();
     }
 
@@ -791,5 +860,34 @@ public partial class MainWindowViewModel : ObservableObject
         {
             AvailablePresets.Add(name);
         }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        _timer.Stop();
+        _timer.Tick -= OnSimulationTick;
+
+        if (_historyHandler != null)
+        {
+            History.HistoryChanged -= _historyHandler;
+        }
+
+        if (_pluginContext != null && _settingsHandler != null)
+        {
+            try
+            {
+                _pluginContext.GetPluginSettings().Changed -= _settingsHandler;
+            }
+            catch
+            {
+                // Ignored
+            }
+        }
+
+        _canvas = null;
+        _oscilloscope = null;
     }
 }

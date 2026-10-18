@@ -1,0 +1,70 @@
+{
+  "$schema": "https://raw.githubusercontent.com/codefrydev/FryWorld/main/src/FryWorld.Sdk/plugin.schema.json",
+  "id": "com.fryworld.circuit",
+  "name": "Circuit Studio",
+  "version": "1.0.0",
+  "author": "Code Fry Dev",
+  "description": "Interactive SPICE-grade analog & digital schematic CAD studio and real-time MNA circuit simulator.",
+  "releaseNotes": "Initial release of FryCircuit Studio plugin for FryWorld. Features 60 FPS real-time MNA transient solver, animated electron current particles, live node voltage badges, oscilloscope with dual-channel time-domain & FFT spectrum analysis, quantum Josephson junctions, Berkeley SPICE netlist export/import, and aerospace manufacturing BOM.",
+  "entryPoint": "CircuitPlugin.dll",
+  "entryType": "FryCircuit.Plugin.CircuitPlugin",
+  "icon": "LightningBolt",
+  "iconColor": "#00F0FF",
+  "category": "Engineering & Simulation",
+  "repositoryUrl": "https://github.com/PrashantUnity/FryCircuit",
+  "isCollectible": true,
+  "dependencies": [],
+  "settingsSchema": {
+    "DefaultPreset": {
+      "type": "select",
+      "label": "Default Circuit Preset",
+      "description": "The initial circuit demo loaded when the studio opens.",
+      "options": [
+        "Half-Wave Rectifier",
+        "Resistor Voltage Divider",
+        "RC Step Response",
+        "LED with Current Limiter",
+        "Inverting Op-Amp",
+        "555 Timer Oscillator",
+        "Transmon Qubit (Quantum JJ)",
+        "Aerospace 3-Phase Drone Inverter"
+      ],
+      "default": "Half-Wave Rectifier"
+    },
+    "SimulationSpeed": {
+      "type": "double",
+      "label": "Simulation Speed Multiplier",
+      "description": "Default simulation time-step multiplier (0.1x to 4.0x).",
+      "min": 0.1,
+      "max": 4.0,
+      "step": 0.1,
+      "default": 1.0
+    },
+    "ShowCurrentAnnotations": {
+      "type": "boolean",
+      "label": "Show Current Annotations",
+      "description": "Display live animated current flow arrows and branch current readings on wires.",
+      "default": true
+    },
+    "ShowVoltageAnnotations": {
+      "type": "boolean",
+      "label": "Show Voltage Annotations",
+      "description": "Display live node voltage badges at component pins and junctions.",
+      "default": true
+    },
+    "OperatingTemperature": {
+      "type": "select",
+      "label": "Operating Temperature Preset",
+      "description": "Thermal physics model for semiconductor diodes, BJTs, and quantum junctions.",
+      "options": [
+        "Quantum (15 mK)",
+        "Cryogenic (4.2 K)",
+        "Liquid N2 (77 K)",
+        "Space Shadow (150 K)",
+        "Room Temp (25 °C)",
+        "Aerospace (+125 °C)"
+      ],
+      "default": "Room Temp (25 °C)"
+    }
+  }
+}
