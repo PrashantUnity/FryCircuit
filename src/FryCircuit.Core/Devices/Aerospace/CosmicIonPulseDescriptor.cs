@@ -25,7 +25,7 @@ public class CosmicIonPulseDescriptor : DeviceDescriptorBase
     public override string FormatLabel(Device device)
     {
         return device is CosmicIonPulseDevice ion
-            ? $"{FormatEngineering(ion.CollectedCharge, "C")} ({FormatEngineering(ion.FallTimeSeconds, "s")})"
+            ? FormatEngineering(ion.CollectedCharge, "C")
             : string.Empty;
     }
 

@@ -1337,34 +1337,34 @@ public static class CircuitPresets
 
         // 5. Diagnostic LEDs along top rail
         // Green LED + 99.1 Ω (carries 21.5 mA)
-        var rLedG = new ResistorDevice(9, x: 13, y: 4, resistance: 99.1);
+        var rLedG = new ResistorDevice(9, x: 13, y: 2.2, resistance: 99.1);
         rLedG.Pins[0].NodeId = 1;
         rLedG.Pins[1].NodeId = 7;
         circuit.AddDevice(rLedG);
 
-        var ledG = new LedDevice(10, x: 14.5, y: 4, wavelength: 530.0);
+        var ledG = new LedDevice(10, x: 14.5, y: 2.2, wavelength: 530.0);
         ledG.Pins[0].NodeId = 7;
         ledG.Pins[1].NodeId = 0;
         circuit.AddDevice(ledG);
 
         // Amber LED + 100 Ω (carries 1.37 µA)
-        var rLedA = new ResistorDevice(11, x: 16.5, y: 4, resistance: 100.0);
+        var rLedA = new ResistorDevice(11, x: 16.5, y: 2.2, resistance: 100.0);
         rLedA.Pins[0].NodeId = 1;
         rLedA.Pins[1].NodeId = 8;
         circuit.AddDevice(rLedA);
 
-        var ledA = new LedDevice(12, x: 18, y: 4, wavelength: 585.0);
+        var ledA = new LedDevice(12, x: 18, y: 2.2, wavelength: 585.0);
         ledA.Pins[0].NodeId = 8;
         ledA.Pins[1].NodeId = 0;
         circuit.AddDevice(ledA);
 
         // Red LED + 100 Ω (carries 39.3 mA)
-        var rLedR = new ResistorDevice(13, x: 20, y: 4, resistance: 100.0);
+        var rLedR = new ResistorDevice(13, x: 20, y: 2.2, resistance: 100.0);
         rLedR.Pins[0].NodeId = 1;
         rLedR.Pins[1].NodeId = 9;
         circuit.AddDevice(rLedR);
 
-        var ledR = new LedDevice(14, x: 21.5, y: 4, wavelength: 650.0);
+        var ledR = new LedDevice(14, x: 21.5, y: 2.2, wavelength: 650.0);
         ledR.Pins[0].NodeId = 9;
         ledR.Pins[1].NodeId = 0;
         circuit.AddDevice(ledR);

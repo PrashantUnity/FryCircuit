@@ -158,7 +158,7 @@ public class LedDescriptor : DeviceDescriptorBase
     {
         if (device is LedDevice led)
         {
-            return led.Wavelength <= 0.0 ? "LED (White)" : $"LED ({led.ColorName})";
+            return led.Wavelength <= 0.0 ? "White" : led.ColorName;
         }
         return "LED";
     }

@@ -1364,6 +1364,44 @@ public class CircuitCanvas : Control
         var probeColor = isCh1 ? Color.FromRgb(255, 215, 0) : Color.FromRgb(0, 240, 255);
         string chLabel = isCh1 ? "PROBE CH 1" : "PROBE CH 2";
 
+        // Interactive Target Acquisition: snap to pin or wire under probe cursor
+        int targetNode = -1;
+        double targetV = 0.0;
+        Point? snapPt = null;
+        var pTest = Circuit?.FindPinAt(_probeCursorPos.Wx, _probeCursorPos.Wy, tolerance: 0.6);
+        if (pTest != null)
+        {
+            targetNode = pTest.Value.Pin.NodeId;
+            var (px, py) = pTest.Value.Device.GetAbsolutePinPosition(pTest.Value.PinIndex);
+            snapPt = WorldToScreen(px, py);
+        }
+        else
+        {
+            var wTest = FindWireAt(_probeCursorPos.Wx, _probeCursorPos.Wy, tolerance: 0.5);
+            if (wTest != null)
+            {
+                targetNode = wTest.NodeId;
+            }
+        }
+
+        if (targetNode >= 0 && Circuit?.Nodes.TryGetValue(targetNode, out var n) == true)
+        {
+            targetV = n.Voltage;
+            chLabel = $"{chLabel} [N{targetNode}: {FormatVoltageLabel(targetV)}]";
+        }
+
+        if (snapPt.HasValue)
+        {
+            // Locked Target Ring
+            var lockPt = snapPt.Value;
+            var lockPen = new Pen(new SolidColorBrush(probeColor), 2.2 * Zoom);
+            context.DrawEllipse(new SolidColorBrush(Color.FromArgb(60, probeColor.R, probeColor.G, probeColor.B)), lockPen, lockPt, 10 * Zoom, 10 * Zoom);
+            context.DrawLine(lockPen, new Point(lockPt.X - 14 * Zoom, lockPt.Y), new Point(lockPt.X - 6 * Zoom, lockPt.Y));
+            context.DrawLine(lockPen, new Point(lockPt.X + 6 * Zoom, lockPt.Y), new Point(lockPt.X + 14 * Zoom, lockPt.Y));
+            context.DrawLine(lockPen, new Point(lockPt.X, lockPt.Y - 14 * Zoom), new Point(lockPt.X, lockPt.Y - 6 * Zoom));
+            context.DrawLine(lockPen, new Point(lockPt.X, lockPt.Y + 6 * Zoom), new Point(lockPt.X, lockPt.Y + 14 * Zoom));
+        }
+
         var ringPen = new Pen(new SolidColorBrush(probeColor), 2.0)
         {
             DashStyle = DashStyle.Dash
@@ -1658,10 +1696,11 @@ public class CircuitCanvas : Control
             // Mini Digital Waveform / Pulse Activity Glyph
             var dFrom = Circuit.Devices.FirstOrDefault(d => d.Id == wire.FromDeviceId);
             var dTo = Circuit.Devices.FirstOrDefault(d => d.Id == wire.ToDeviceId);
-            bool isClockWire = (dFrom is Timer555Device && wire.FromPinIndex == 2)
+            bool isClockWire = !isGround && (
+                               (dFrom is Timer555Device && wire.FromPinIndex == 2)
                             || (dTo is Timer555Device && wire.ToPinIndex == 2)
-                            || (dFrom is VoltageSourceDevice vsFrom && vsFrom.WaveformType != VoltageWaveformType.Dc)
-                            || (dTo is VoltageSourceDevice vsTo && vsTo.WaveformType != VoltageWaveformType.Dc);
+                            || (dFrom is VoltageSourceDevice vsFrom && vsFrom.WaveformType != VoltageWaveformType.Dc && wire.FromPinIndex == 0)
+                            || (dTo is VoltageSourceDevice vsTo && vsTo.WaveformType != VoltageWaveformType.Dc && wire.ToPinIndex == 0));
 
             if (isClockWire && pts.Count >= 2)
             {
@@ -1831,13 +1870,19 @@ public class CircuitCanvas : Control
             string label = GetDeviceLabel(dev);
             if (!string.IsNullOrEmpty(label))
             {
+                Color labelTextColor = Color.FromRgb(220, 235, 255);
+                if (dev is LedDevice ledDev)
+                {
+                    try { labelTextColor = Color.Parse(ledDev.ColorHex); } catch { }
+                }
+
                 var ft = new FormattedText(
                     label,
                     System.Globalization.CultureInfo.InvariantCulture,
                     FlowDirection.LeftToRight,
                     new Typeface("Inter", FontStyle.Normal, FontWeight.Bold),
                     Math.Max(10, 11 * Zoom),
-                    new SolidColorBrush(Color.FromRgb(220, 235, 255))
+                    new SolidColorBrush(labelTextColor)
                 );
 
                 double labelX;
@@ -1856,17 +1901,23 @@ public class CircuitCanvas : Control
 
                 if (isVerticalTwoPin)
                 {
-                    // For vertical 2-terminal devices (resistors, caps, inductors, vsource, squid),
-                    // position badge cleanly to the right to avoid overlapping bottom pin and rail wires.
-                    // For LEDs, emission arrows are drawn on the right, so position label to the left.
-                    if (dev.Type == "led")
+                    // Physical half-width from center to avoid pushing label too far to the right
+                    double physicalHalfW = dev.Type switch
                     {
-                        labelX = center.X - devW / 2.0 - ft.Width - 6 * Zoom;
-                    }
-                    else
-                    {
-                        labelX = center.X + devW / 2.0 + 6 * Zoom;
-                    }
+                        "resistor" => 0.35 * GridSize * Zoom,
+                        "capacitor" => 0.52 * GridSize * Zoom,
+                        "inductor" => 0.38 * GridSize * Zoom,
+                        "diode" or "zener" or "tunneldiode" => 0.42 * GridSize * Zoom,
+                        "led" => 0.95 * GridSize * Zoom,
+                        "vsource" or "isource" => 0.55 * GridSize * Zoom,
+                        "battery" => 0.52 * GridSize * Zoom,
+                        "lamp" => 0.48 * GridSize * Zoom,
+                        "spst" => 0.38 * GridSize * Zoom,
+                        "josephson" => 0.45 * GridSize * Zoom,
+                        "cosmicipulse" => 0.52 * GridSize * Zoom,
+                        _ => devW / 2.0
+                    };
+                    labelX = center.X + physicalHalfW + 5 * Zoom;
                     labelY = center.Y - ft.Height / 2.0;
                 }
                 else if (dev.Type == "potentiometer")
@@ -1899,7 +1950,7 @@ public class CircuitCanvas : Control
                 }
 
                 var badgeRect = new Rect(labelX - 4 * Zoom, labelY - 2 * Zoom, ft.Width + 8 * Zoom, ft.Height + 4 * Zoom);
-                context.DrawRectangle(new SolidColorBrush(Color.FromArgb(215, 14, 18, 26)), null, badgeRect, 4, 4);
+                context.DrawRectangle(new SolidColorBrush(Color.FromArgb(220, 12, 16, 24)), new Pen(new SolidColorBrush(Color.FromArgb(50, 100, 150, 200)), 0.8), badgeRect, 4, 4);
                 context.DrawText(ft, new Point(labelX, labelY));
             }
         }
@@ -1989,12 +2040,38 @@ public class CircuitCanvas : Control
             renderer.Render(context, ghostDev, center, GridSize * Zoom, false, renderCtx);
         }
 
-        // Snapped grid target ring
+        // Snapped grid target ring & crosshair ticks
         var ghostRingPen = new Pen(new SolidColorBrush(Color.FromArgb(140, 0, 240, 255)), 1.5)
         {
             DashStyle = DashStyle.Dash
         };
-        context.DrawEllipse(null, ghostRingPen, center, GridSize * Zoom * 0.9, GridSize * Zoom * 0.9);
+        double ringR = GridSize * Zoom * 0.9;
+        context.DrawEllipse(null, ghostRingPen, center, ringR, ringR);
+
+        // Cyber crosshair ticks
+        var tickPen = new Pen(new SolidColorBrush(Color.FromArgb(180, 0, 240, 255)), 1.5);
+        double tickLen = 6 * Zoom;
+        context.DrawLine(tickPen, new Point(center.X - ringR - tickLen, center.Y), new Point(center.X - ringR + 2, center.Y));
+        context.DrawLine(tickPen, new Point(center.X + ringR - 2, center.Y), new Point(center.X + ringR + tickLen, center.Y));
+        context.DrawLine(tickPen, new Point(center.X, center.Y - ringR - tickLen), new Point(center.X, center.Y - ringR + 2));
+        context.DrawLine(tickPen, new Point(center.X, center.Y + ringR - 2), new Point(center.X, center.Y + ringR + tickLen));
+
+        // Placement HUD Tooltip: (X, Y) • [Space: Rotate]
+        string hudText = $"X: {_placementCursorPos.Wx:F0}  Y: {_placementCursorPos.Wy:F0}  [R: {(int)_placementRotation}°]  •  Space: Rotate";
+        var ftHud = new FormattedText(
+            hudText,
+            System.Globalization.CultureInfo.InvariantCulture,
+            FlowDirection.LeftToRight,
+            new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold),
+            9.5,
+            new SolidColorBrush(Color.FromRgb(0, 240, 255))
+        );
+        double hudW = ftHud.Width + 12;
+        double hudH = ftHud.Height + 6;
+        var hudRect = new Rect(center.X + ringR + 8, center.Y - hudH / 2.0, hudW, hudH);
+        context.FillRectangle(new SolidColorBrush(Color.FromArgb(220, 10, 16, 24)), hudRect, 4);
+        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(120, 0, 240, 255)), 1), hudRect, 4);
+        context.DrawText(ftHud, new Point(hudRect.X + 6, hudRect.Y + 3));
     }
 
     private void DrawPinHoverReticle(DrawingContext context, (Device Device, Pin Pin, int PinIndex) pinInfo)
@@ -2049,24 +2126,82 @@ public class CircuitCanvas : Control
     {
         if (Circuit == null) return;
 
-        // Top-left HUD badge: Grid coordinates, zoom, component counts
         double gx = Math.Round(_lastCursorWorldPos.Wx * 10.0) / 10.0;
         double gy = Math.Round(_lastCursorWorldPos.Wy * 10.0) / 10.0;
-        string hudText = $"X: {gx:F1}  Y: {gy:F1} | GRID: 50 mil | ZOOM: {(int)(Zoom * 100)}% | DEV: {Circuit.Devices.Count} | NODES: {Circuit.Nodes.Count} | WIRES: {Circuit.Wires.Count}";
 
-        var ft = new FormattedText(
-            hudText,
+        var ftIcon = new FormattedText(
+            "⚡ CAD",
             System.Globalization.CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
-            new Typeface("Consolas,Cascadia Code,Courier New,monospace", FontStyle.Normal, FontWeight.Medium),
-            10.0,
-            new SolidColorBrush(Color.FromArgb(210, 140, 160, 185))
+            new Typeface("Inter", FontStyle.Normal, FontWeight.Bold),
+            9.5,
+            new SolidColorBrush(Color.FromRgb(0, 240, 255))
         );
 
-        var hudRect = new Rect(12, 12, ft.Width + 14, ft.Height + 6);
-        context.FillRectangle(new SolidColorBrush(Color.FromArgb(190, 10, 14, 20)), hudRect, 4);
-        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(80, 0, 240, 255)), 1), hudRect, 4);
-        context.DrawText(ft, new Point(19, 15));
+        string coords = $"X {gx:F1}  Y {gy:F1}";
+        var ftCoords = new FormattedText(
+            coords,
+            System.Globalization.CultureInfo.InvariantCulture,
+            FlowDirection.LeftToRight,
+            new Typeface("Consolas,SF Mono,Menlo,monospace", FontStyle.Normal, FontWeight.SemiBold),
+            10.0,
+            new SolidColorBrush(Color.FromRgb(240, 246, 255))
+        );
+
+        string gridZoom = $"50 mil • {(int)(Zoom * 100)}%";
+        var ftGrid = new FormattedText(
+            gridZoom,
+            System.Globalization.CultureInfo.InvariantCulture,
+            FlowDirection.LeftToRight,
+            new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold),
+            9.5,
+            new SolidColorBrush(Color.FromRgb(0, 230, 118))
+        );
+
+        string stats = $"DEV {Circuit.Devices.Count} • NODE {Circuit.Nodes.Count} • WIRE {Circuit.Wires.Count}";
+        var ftStats = new FormattedText(
+            stats,
+            System.Globalization.CultureInfo.InvariantCulture,
+            FlowDirection.LeftToRight,
+            new Typeface("Inter", FontStyle.Normal, FontWeight.Medium),
+            9.5,
+            new SolidColorBrush(Color.FromRgb(150, 170, 195))
+        );
+
+        double padX = 10.0;
+        double sepW = 12.0;
+        double totalW = padX * 2 + ftIcon.Width + sepW + ftCoords.Width + sepW + ftGrid.Width + sepW + ftStats.Width;
+        double totalH = 24.0;
+
+        var hudRect = new Rect(12, 12, totalW, totalH);
+        // Outer glow
+        context.DrawRectangle(new SolidColorBrush(Color.FromArgb(25, 0, 240, 255)), null, 
+            new Rect(hudRect.X - 1.5, hudRect.Y - 1.5, hudRect.Width + 3, hudRect.Height + 3), 6, 6);
+        // Backdrop
+        context.FillRectangle(new SolidColorBrush(Color.FromArgb(225, 10, 15, 22)), hudRect, 6);
+        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(90, 0, 240, 255)), 1), hudRect, 6);
+
+        double curX = hudRect.X + padX;
+        context.DrawText(ftIcon, new Point(curX, hudRect.Y + (totalH - ftIcon.Height) / 2.0));
+        curX += ftIcon.Width + sepW / 2.0;
+
+        var sepPen = new Pen(new SolidColorBrush(Color.FromArgb(45, 255, 255, 255)), 1);
+        context.DrawLine(sepPen, new Point(curX, hudRect.Y + 5), new Point(curX, hudRect.Y + totalH - 5));
+        curX += sepW / 2.0;
+
+        context.DrawText(ftCoords, new Point(curX, hudRect.Y + (totalH - ftCoords.Height) / 2.0));
+        curX += ftCoords.Width + sepW / 2.0;
+
+        context.DrawLine(sepPen, new Point(curX, hudRect.Y + 5), new Point(curX, hudRect.Y + totalH - 5));
+        curX += sepW / 2.0;
+
+        context.DrawText(ftGrid, new Point(curX, hudRect.Y + (totalH - ftGrid.Height) / 2.0));
+        curX += ftGrid.Width + sepW / 2.0;
+
+        context.DrawLine(sepPen, new Point(curX, hudRect.Y + 5), new Point(curX, hudRect.Y + totalH - 5));
+        curX += sepW / 2.0;
+
+        context.DrawText(ftStats, new Point(curX, hudRect.Y + (totalH - ftStats.Height) / 2.0));
     }
 
     private void DrawParticles(DrawingContext context)
@@ -2289,7 +2424,7 @@ public class CircuitCanvas : Control
     {
         if (double.IsNaN(v) || double.IsInfinity(v)) return "0 V";
         double abs = Math.Abs(v);
-        if (abs < 0.005) return "0 V";
+        if (abs < 1e-6) return "0 V";
         if (abs >= 1000.0) return $"{v / 1000.0:G3} kV";
         if (abs >= 10.0) return $"{v:F1} V";
         if (abs >= 0.995)
@@ -2299,8 +2434,14 @@ public class CircuitCanvas : Control
                 return $"{Math.Round(rounded):F0} V";
             return $"{rounded:F2} V";
         }
-        if (abs >= 0.01) return $"{v * 1000.0:F0} mV";
-        return $"{v * 1000.0:F1} mV";
+        if (abs >= 1e-3)
+        {
+            double mV = v * 1000.0;
+            if (Math.Abs(mV) >= 10.0)
+                return $"{mV:F0} mV";
+            return $"{mV:F2} mV";
+        }
+        return $"{v * 1e6:F1} µV";
     }
 
     public static string FormatCurrentLabel(double i)
@@ -2345,7 +2486,7 @@ public class CircuitCanvas : Control
 
         foreach (var dev in Circuit.Devices)
         {
-            if (dev.Type == "ground" || dev.Pins.Count < 2) continue;
+            if (dev.Type == "ground" || dev.Type == "netlabel" || dev is LogicGateDevice || dev.Type is "voltmeter" or "ammeter" or "ohmmeter" || dev.Pins.Count != 2) continue;
 
             var (p0x, p0y) = dev.GetAbsolutePinPosition(0);
             var (p1x, p1y) = dev.GetAbsolutePinPosition(1);
@@ -2368,7 +2509,13 @@ public class CircuitCanvas : Control
                     ? (current >= 0 ? -dirSign : dirSign)
                     : (current >= 0 ? dirSign : -dirSign);
 
-                var badgePos = WorldToScreen(cx - 0.95, cy);
+                double xOff = dev.Type switch
+                {
+                    "capacitor" => -0.66,
+                    "vsource" or "isource" => -0.66,
+                    _ => -0.56
+                };
+                var badgePos = WorldToScreen(cx + xOff, cy);
                 DrawBranchCurrentBadge(context, badgePos, new Point(0, flowDir), text);
             }
             else
@@ -2378,7 +2525,7 @@ public class CircuitCanvas : Control
                     ? (current >= 0 ? -dirSign : dirSign)
                     : (current >= 0 ? dirSign : -dirSign);
 
-                var badgePos = WorldToScreen(cx, cy - 0.85);
+                var badgePos = WorldToScreen(cx, cy - 0.62);
                 DrawBranchCurrentBadge(context, badgePos, new Point(flowDir, 0), text);
             }
         }
@@ -2391,23 +2538,27 @@ public class CircuitCanvas : Control
             text,
             System.Globalization.CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
-            new Typeface("Inter", FontStyle.Normal, FontWeight.Bold),
-            9.5 * Zoom,
+            new Typeface("Consolas,SF Mono,Menlo,monospace", FontStyle.Normal, FontWeight.Bold),
+            9.0 * Zoom,
             textBrush
         );
 
-        double arrowLen = 11.0 * Zoom;
-        double spacing = 4.0 * Zoom;
-        double padX = 5.0 * Zoom;
-        double padY = 3.0 * Zoom;
+        double arrowLen = 9.0 * Zoom;
+        double spacing = 3.0 * Zoom;
+        double padX = 4.5 * Zoom;
+        double padY = 2.0 * Zoom;
         double totalW = arrowLen + spacing + ft.Width + padX * 2;
         double totalH = Math.Max(arrowLen, ft.Height) + padY * 2;
 
         var badgeRect = new Rect(screenPt.X - totalW / 2.0, screenPt.Y - totalH / 2.0, totalW, totalH);
 
-        var bgBrush = new SolidColorBrush(Color.FromArgb(205, 12, 16, 24));
-        var borderPen = new Pen(new SolidColorBrush(Color.FromArgb(90, 74, 246, 130)), 1.0 * Zoom);
-        float r = (float)(4 * Zoom);
+        // Soft outer drop glow
+        float r = (float)(5 * Zoom);
+        context.DrawRectangle(new SolidColorBrush(Color.FromArgb(30, 74, 246, 130)), null,
+            new Rect(badgeRect.X - 1.5 * Zoom, badgeRect.Y - 1.5 * Zoom, badgeRect.Width + 3 * Zoom, badgeRect.Height + 3 * Zoom), r + 1, r + 1);
+
+        var bgBrush = new SolidColorBrush(Color.FromArgb(220, 10, 15, 22));
+        var borderPen = new Pen(new SolidColorBrush(Color.FromArgb(120, 74, 246, 130)), 1.1 * Zoom);
         context.DrawRectangle(bgBrush, borderPen, badgeRect, r, r);
 
         double arrowCenterX = badgeRect.X + padX + arrowLen / 2.0;
@@ -2467,23 +2618,55 @@ public class CircuitCanvas : Control
         {
             if (dirSet.Count >= 3 && _lastJunctionNodeIds.TryGetValue(key, out int nodeId))
             {
-                annotatedNodes.Add(nodeId);
                 Circuit.Nodes.TryGetValue(nodeId, out var node);
-                double v = node?.Voltage ?? 0.0;
                 bool isGnd = node?.IsGround == true;
+
+                // If ground node already has an explicit ground symbol on the circuit, skip solder junction 0V badge
+                if (isGnd && Circuit.Devices.Any(d => d.Type == "ground" && d.Pins.Any(p => p.NodeId == nodeId)))
+                {
+                    annotatedNodes.Add(nodeId);
+                    continue;
+                }
+
+                // Deduplicate: avoid placing multiple identical badges for the same electrical node
+                if (annotatedNodes.Contains(nodeId))
+                {
+                    continue;
+                }
+
+                double v = node?.Voltage ?? 0.0;
 
                 // Pick an open candidate direction that does not have an incident wire
                 double offX = 0;
                 double offY = 0;
-                if (!dirSet.Contains((0, -1))) offY = -0.65;      // Top is open
+                if (!dirSet.Contains((0, -1)))
+                {
+                    offY = -0.65;      // Top is open
+                    if (dirSet.Contains((-1, 0))) offX = 0.55;
+                }
                 else if (!dirSet.Contains((1, 0))) offX = 0.85;   // Right is open
                 else if (!dirSet.Contains((-1, 0))) offX = -0.85; // Left is open
-                else if (!dirSet.Contains((0, 1))) offY = 0.65;   // Bottom is open
+                else if (!dirSet.Contains((0, 1)))
+                {
+                    offY = 0.65;   // Bottom is open
+                    if (dirSet.Contains((-1, 0))) offX = 0.55;
+                }
                 else offY = -0.65;
 
                 var screenPos = WorldToScreen(key.X + offX, key.Y + offY);
+
+                // Check collision against already placed voltage labels
+                if (placedRects.Any(r => Math.Abs(r.Center.X - screenPos.X) < 42 * Zoom && Math.Abs(r.Center.Y - screenPos.Y) < 24 * Zoom))
+                {
+                    continue;
+                }
+
                 var rect = DrawNodeVoltageBadge(context, screenPos, v, isGnd);
-                if (rect.HasValue) placedRects.Add(rect.Value);
+                if (rect.HasValue)
+                {
+                    placedRects.Add(rect.Value);
+                    annotatedNodes.Add(nodeId);
+                }
             }
         }
 
@@ -2491,27 +2674,92 @@ public class CircuitCanvas : Control
         foreach (var (nodeId, node) in Circuit.Nodes)
         {
             if (annotatedNodes.Contains(nodeId)) continue;
-
-            var connectedPins = new List<Point>();
-            foreach (var dev in Circuit.Devices)
+            if (node.IsGround && Circuit.Devices.Any(d => d.Type == "ground" && d.Pins.Any(p => p.NodeId == nodeId)))
             {
-                for (int p = 0; p < dev.Pins.Count; p++)
+                annotatedNodes.Add(nodeId);
+                continue;
+            }
+
+            Point? bestCandidate = null;
+            double bestLen = 0.0;
+
+            // Strategy A: Find longest wire segment belonging to this electrical node
+            foreach (var wire in Circuit.Wires)
+            {
+                if (wire.NodeId != nodeId) continue;
+
+                var pts = wire.PathPoints;
+                if (pts == null || pts.Count < 2)
                 {
-                    if (dev.Pins[p].NodeId == nodeId)
+                    // Fall back to pin endpoints if PathPoints not populated
+                    var d1 = Circuit.Devices.FirstOrDefault(d => d.Id == wire.FromDeviceId);
+                    var d2 = Circuit.Devices.FirstOrDefault(d => d.Id == wire.ToDeviceId);
+                    if (d1 != null && d2 != null)
                     {
-                        var (px, py) = dev.GetAbsolutePinPosition(p);
-                        connectedPins.Add(new Point(px, py));
+                        var (p1x, p1y) = d1.GetAbsolutePinPosition(wire.FromPinIndex);
+                        var (p2x, p2y) = d2.GetAbsolutePinPosition(wire.ToPinIndex);
+                        pts = new List<(double X, double Y)> { (p1x, p1y), (p2x, p2y) };
+                    }
+                }
+
+                if (pts == null || pts.Count < 2) continue;
+
+                for (int i = 0; i < pts.Count - 1; i++)
+                {
+                    var pA = pts[i];
+                    var pB = pts[i + 1];
+                    double dx = pB.X - pA.X;
+                    double dy = pB.Y - pA.Y;
+                    double len = Math.Sqrt(dx * dx + dy * dy);
+
+                    bool isHoriz = Math.Abs(dx) >= Math.Abs(dy);
+                    double effectiveLen = isHoriz ? len * 1.25 : len;
+                    if (effectiveLen > bestLen && len >= 1.0)
+                    {
+                        bestLen = effectiveLen;
+                        double mx = (pA.X + pB.X) / 2.0;
+                        double my = (pA.Y + pB.Y) / 2.0;
+
+                        if (isHoriz)
+                        {
+                            // Horizontal segment: place badge cleanly above the wire
+                            bestCandidate = new Point(mx, my - 0.65);
+                        }
+                        else
+                        {
+                            // Vertical segment: place badge cleanly to the right of the wire
+                            bestCandidate = new Point(mx + 0.75, my);
+                        }
                     }
                 }
             }
 
-            if (connectedPins.Count >= 2)
+            // Strategy B: Fallback to connected pins average if no wires found
+            if (!bestCandidate.HasValue)
             {
-                double midX = connectedPins.Average(p => p.X);
-                double midY = connectedPins.Average(p => p.Y);
+                var connectedPins = new List<Point>();
+                foreach (var dev in Circuit.Devices)
+                {
+                    for (int p = 0; p < dev.Pins.Count; p++)
+                    {
+                        if (dev.Pins[p].NodeId == nodeId)
+                        {
+                            var (px, py) = dev.GetAbsolutePinPosition(p);
+                            connectedPins.Add(new Point(px, py));
+                        }
+                    }
+                }
 
-                var screenPos = WorldToScreen(midX + 0.8, midY);
-                bool collides = placedRects.Any(r => Math.Abs(r.Center.X - screenPos.X) < 30 * Zoom && Math.Abs(r.Center.Y - screenPos.Y) < 18 * Zoom);
+                if (connectedPins.Count >= 2)
+                {
+                    bestCandidate = new Point(connectedPins.Average(p => p.X) + 0.6, connectedPins.Average(p => p.Y) - 0.5);
+                }
+            }
+
+            if (bestCandidate.HasValue)
+            {
+                var screenPos = WorldToScreen(bestCandidate.Value.X, bestCandidate.Value.Y);
+                bool collides = placedRects.Any(r => Math.Abs(r.Center.X - screenPos.X) < 42 * Zoom && Math.Abs(r.Center.Y - screenPos.Y) < 24 * Zoom);
                 if (!collides)
                 {
                     var rect = DrawNodeVoltageBadge(context, screenPos, node.Voltage, node.IsGround);
@@ -2534,21 +2782,25 @@ public class CircuitCanvas : Control
             text,
             System.Globalization.CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
-            new Typeface("Inter", FontStyle.Normal, FontWeight.Bold),
+            new Typeface("Consolas,SF Mono,Menlo,monospace", FontStyle.Normal, FontWeight.Bold),
             9.5 * Zoom,
             new SolidColorBrush(coreColor)
         );
 
-        double padX = 5.0 * Zoom;
+        double padX = 6.0 * Zoom;
         double padY = 2.5 * Zoom;
         double w = ft.Width + padX * 2;
         double h = ft.Height + padY * 2;
 
         var rect = new Rect(screenPt.X - w / 2.0, screenPt.Y - h / 2.0, w, h);
 
-        var bgBrush = new SolidColorBrush(Color.FromArgb(215, 12, 16, 24));
-        var borderPen = new Pen(new SolidColorBrush(Color.FromArgb(120, coreColor.R, coreColor.G, coreColor.B)), 1.0 * Zoom);
-        float r = (float)(4 * Zoom);
+        // Soft outer drop glow
+        float r = (float)(5 * Zoom);
+        context.DrawRectangle(new SolidColorBrush(Color.FromArgb(35, coreColor.R, coreColor.G, coreColor.B)), null,
+            new Rect(rect.X - 1.5 * Zoom, rect.Y - 1.5 * Zoom, rect.Width + 3 * Zoom, rect.Height + 3 * Zoom), r + 1, r + 1);
+
+        var bgBrush = new SolidColorBrush(Color.FromArgb(220, 10, 15, 22));
+        var borderPen = new Pen(new SolidColorBrush(Color.FromArgb(140, coreColor.R, coreColor.G, coreColor.B)), 1.1 * Zoom);
         context.DrawRectangle(bgBrush, borderPen, rect, r, r);
 
         context.DrawText(ft, new Point(rect.X + padX, rect.Y + padY));

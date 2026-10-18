@@ -34,5 +34,5 @@ public class BcdTo7SegmentDescriptor : DeviceDescriptorBase
         return dev;
     }
 
-    public override string FormatLabel(Device device) => "7448";
+    public override string FormatLabel(Device device) => string.Empty;
 }

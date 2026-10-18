@@ -151,8 +151,8 @@ public class RotaryKnobControl : Control
         double size = Math.Min(w, h);
         if (size <= 10) return;
 
-        var center = new Point(w / 2.0, (h / 2.0) - 5);
-        double radius = (size / 2.0) - 15;
+        var center = new Point(w / 2.0, (h / 2.0) - 6);
+        double radius = (size / 2.0) - 16;
 
         // Calculate angle for value: 135 deg to 405 deg (270 deg sweep)
         bool isLog = Minimum > 0 && (Maximum / Minimum) > 20.0;
@@ -175,20 +175,39 @@ public class RotaryKnobControl : Control
         double currentAngle = startAngle + sweepAngle;
         double rad = currentAngle * Math.PI / 180.0;
 
-        // 1. Knurled calibration ticks around perimeter
-        var notchPen = new Pen(new SolidColorBrush(Color.FromArgb(90, 100, 130, 160)), 1);
+        // 1. Outer Bezel Glow & Metallic Housing Rim
+        context.DrawEllipse(new SolidColorBrush(Color.FromArgb(20, 0, 240, 255)), null, center, radius + 11, radius + 11);
+        var bezelBrush = new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative),
+            GradientStops =
+            {
+                new GradientStop(Color.FromRgb(28, 38, 54), 0.0),
+                new GradientStop(Color.FromRgb(14, 18, 26), 1.0)
+            }
+        };
+        var bezelBorder = new Pen(new SolidColorBrush(Color.FromRgb(40, 54, 75)), 1.2);
+        context.DrawEllipse(bezelBrush, bezelBorder, center, radius + 9, radius + 9);
+
+        // 2. Knurled calibration ticks around perimeter (Major & Minor)
         for (int i = 0; i <= 18; i++)
         {
             double notchAngle = (135.0 + i * (270.0 / 18.0)) * Math.PI / 180.0;
+            bool isMajor = (i % 3 == 0);
             double r1 = radius + 3;
-            double r2 = radius + 6;
+            double r2 = isMajor ? (radius + 8) : (radius + 5.5);
+            var tickColor = isMajor 
+                ? (notchAngle <= rad ? Color.FromRgb(0, 240, 255) : Color.FromArgb(160, 120, 150, 180))
+                : Color.FromArgb(80, 80, 110, 140);
+            var notchPen = new Pen(new SolidColorBrush(tickColor), isMajor ? 1.4 : 1.0);
             context.DrawLine(notchPen, 
                 new Point(center.X + r1 * Math.Cos(notchAngle), center.Y + r1 * Math.Sin(notchAngle)),
                 new Point(center.X + r2 * Math.Cos(notchAngle), center.Y + r2 * Math.Sin(notchAngle)));
         }
 
-        // 2. Outer track background arc
-        var trackPen = new Pen(new SolidColorBrush(Color.FromRgb(26, 34, 46)), 5)
+        // 3. Outer track background arc (Deep slot groove)
+        var trackPen = new Pen(new SolidColorBrush(Color.FromRgb(18, 24, 34)), 6)
         {
             LineCap = PenLineCap.Round
         };
@@ -203,10 +222,14 @@ public class RotaryKnobControl : Control
         }
         context.DrawGeometry(null, trackPen, trackGeom);
 
-        // 3. Glowing active progress arc
+        // 4. Glowing active progress arc (Dual-pass neon glow)
         if (sweepAngle > 2.0)
         {
-            var activeArcPen = new Pen(new SolidColorBrush(Color.FromRgb(0, 230, 118)), 5)
+            var glowArcPen = new Pen(new SolidColorBrush(Color.FromArgb(50, 0, 240, 255)), 9)
+            {
+                LineCap = PenLineCap.Round
+            };
+            var activeArcPen = new Pen(new SolidColorBrush(Color.FromRgb(0, 230, 118)), 4.5)
             {
                 LineCap = PenLineCap.Round
             };
@@ -218,53 +241,79 @@ public class RotaryKnobControl : Control
                 ctx.ArcTo(new Point(center.X + radius * Math.Cos(rad), center.Y + radius * Math.Sin(rad)),
                     new Size(radius, radius), 0.0, sweepAngle > 180.0, SweepDirection.Clockwise);
             }
+            context.DrawGeometry(null, glowArcPen, activeArcGeom);
             context.DrawGeometry(null, activeArcPen, activeArcGeom);
         }
 
-        // 4. Knob inner metallic body
+        // 5. Knob inner metallic body (brushed rotary cylinder)
         var knobBrush = new LinearGradientBrush
         {
-            StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
-            EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative),
+            StartPoint = new RelativePoint(0.1, 0.1, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(0.9, 0.9, RelativeUnit.Relative),
             GradientStops =
             {
-                new GradientStop(Color.FromRgb(42, 52, 70), 0.0),
-                new GradientStop(Color.FromRgb(20, 25, 34), 1.0)
+                new GradientStop(Color.FromRgb(46, 58, 78), 0.0),
+                new GradientStop(Color.FromRgb(24, 30, 42), 0.5),
+                new GradientStop(Color.FromRgb(16, 21, 30), 1.0)
             }
         };
-        var knobBorder = new Pen(new SolidColorBrush(Color.FromRgb(65, 80, 105)), 1.5);
+        var knobBorder = new Pen(new SolidColorBrush(Color.FromRgb(70, 90, 120)), 1.5);
         context.DrawEllipse(knobBrush, knobBorder, center, radius - 6, radius - 6);
 
-        // 5. Active indicator dot on knob perimeter
-        double indX = center.X + (radius - 11) * Math.Cos(rad);
-        double indY = center.Y + (radius - 11) * Math.Sin(rad);
-        var activeBrush = new SolidColorBrush(Color.FromRgb(0, 255, 136));
-        context.DrawEllipse(activeBrush, null, new Point(indX, indY), 3.5, 3.5);
+        // Precision concentric chamfer ring
+        var chamferPen = new Pen(new SolidColorBrush(Color.FromArgb(40, 0, 240, 255)), 1);
+        context.DrawEllipse(null, chamferPen, center, radius - 11, radius - 11);
 
-        // 6. Formatted value string in center
+        // 6. Illuminated Radial Indicator Pointer Notch
+        double needleInnerR = radius - 15;
+        double needleOuterR = radius - 7;
+        var needlePenGlow = new Pen(new SolidColorBrush(Color.FromArgb(100, 0, 240, 255)), 4)
+        {
+            LineCap = PenLineCap.Round
+        };
+        var needlePenCore = new Pen(new SolidColorBrush(Color.FromRgb(0, 255, 136)), 2.2)
+        {
+            LineCap = PenLineCap.Round
+        };
+        var ptInner = new Point(center.X + needleInnerR * Math.Cos(rad), center.Y + needleInnerR * Math.Sin(rad));
+        var ptOuter = new Point(center.X + needleOuterR * Math.Cos(rad), center.Y + needleOuterR * Math.Sin(rad));
+        context.DrawLine(needlePenGlow, ptInner, ptOuter);
+        context.DrawLine(needlePenCore, ptInner, ptOuter);
+
+        // Glowing indicator pip at the needle tip
+        context.DrawEllipse(new SolidColorBrush(Color.FromArgb(140, 0, 255, 136)), null, ptOuter, 3.8, 3.8);
+        context.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 255, 255)), null, ptOuter, 1.8, 1.8);
+
+        // 7. Formatted value string in center (High-tech digital HUD pill)
         string formattedValue = FormatValue(Value, Unit);
         var valueText = new FormattedText(
             formattedValue,
             System.Globalization.CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
-            new Typeface("Inter", FontStyle.Normal, FontWeight.Bold),
-            12.5,
+            new Typeface("Consolas,SF Mono,Menlo,monospace", FontStyle.Normal, FontWeight.Bold),
+            11.5,
             Brushes.White
         );
+
+        double pillW = Math.Max(valueText.Width + 10, 48);
+        double pillH = valueText.Height + 5;
+        var pillRect = new Rect(center.X - pillW / 2.0, center.Y - pillH / 2.0, pillW, pillH);
+        context.FillRectangle(new SolidColorBrush(Color.FromArgb(220, 11, 15, 22)), pillRect, 4);
+        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(80, 0, 240, 255)), 1), pillRect, 4);
         context.DrawText(valueText, new Point(center.X - valueText.Width / 2.0, center.Y - valueText.Height / 2.0));
 
-        // Label below
+        // 8. Label below
         if (!string.IsNullOrWhiteSpace(Label))
         {
             var labelText = new FormattedText(
-                Label,
+                Label.ToUpperInvariant(),
                 System.Globalization.CultureInfo.InvariantCulture,
                 FlowDirection.LeftToRight,
                 new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold),
-                10,
-                new SolidColorBrush(Color.FromRgb(140, 155, 175))
+                9.0,
+                new SolidColorBrush(Color.FromRgb(135, 155, 180))
             );
-            context.DrawText(labelText, new Point(center.X - labelText.Width / 2.0, center.Y + radius + 3));
+            context.DrawText(labelText, new Point(center.X - labelText.Width / 2.0, center.Y + radius + 4));
         }
     }
 

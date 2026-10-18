@@ -49,6 +49,36 @@ public static class Program
             return;
         }
 
+        if (args.Length > 0 && args[0].Equals("spice", StringComparison.OrdinalIgnoreCase))
+        {
+            CaptureWindow("Superconducting DC SQUID Magnetometer", outDir, isFft: false, showCursors: false, openSpiceDrawer: true, filenameOverride: "spice_netlist_modal.png");
+            Console.WriteLine("SPICE snapshot captured successfully!");
+            return;
+        }
+
+        if (args.Length > 0 && args[0].Equals("bom", StringComparison.OrdinalIgnoreCase))
+        {
+            CaptureWindow("Aerospace 3-Phase Drone Inverter", outDir, isFft: false, showCursors: false, openBomDrawer: true, filenameOverride: "manufacturing_bom_modal.png");
+            Console.WriteLine("BOM snapshot captured successfully!");
+            return;
+        }
+
+        if (args.Length > 0 && args[0].Equals("preset", StringComparison.OrdinalIgnoreCase) && args.Length > 1)
+        {
+            string pName = args[1];
+            CaptureWindow(pName, outDir, isFft: false, showCursors: true);
+            Console.WriteLine($"Preset '{pName}' captured successfully!");
+            return;
+        }
+
+        if (args.Length > 0 && args[0].Equals("fft", StringComparison.OrdinalIgnoreCase))
+        {
+            string pName = args.Length > 1 ? args[1] : "Tunnel Diode Microwave Oscillator";
+            CaptureWindow(pName, outDir, isFft: true, showCursors: false, filenameOverride: "fft_spectrum_analyzer.png");
+            Console.WriteLine($"FFT snapshot for '{pName}' captured successfully!");
+            return;
+        }
+
         string[] presetsToCapture = new[]
         {
             "Half-Wave Rectifier",

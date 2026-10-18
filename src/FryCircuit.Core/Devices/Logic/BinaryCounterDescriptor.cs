@@ -32,7 +32,7 @@ public class BinaryCounterDescriptor : DeviceDescriptorBase
         return dev;
     }
 
-    public override string FormatLabel(Device device) => "74193";
+    public override string FormatLabel(Device device) => string.Empty;
 
     public override DeviceParameterSpec? PrimaryParameter => new(
         "CounterValue",

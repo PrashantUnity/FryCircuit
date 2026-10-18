@@ -23,7 +23,7 @@ public class BjtDescriptor : DeviceDescriptorBase
         return bjt;
     }
 
-    public override string FormatLabel(Device device) => device.Type.ToUpperInvariant();
+    public override string FormatLabel(Device device) => string.Empty;
 
     public override DeviceParameterSpec? PrimaryParameter => new(
         "BetaF",
@@ -85,7 +85,7 @@ public class PnpBjtDescriptor : DeviceDescriptorBase
         return bjt;
     }
 
-    public override string FormatLabel(Device device) => "PNP";
+    public override string FormatLabel(Device device) => string.Empty;
 
     public override DeviceParameterSpec? PrimaryParameter => new(
         "BetaF",
@@ -136,7 +136,7 @@ public class MosfetDescriptor : DeviceDescriptorBase
         return mos;
     }
 
-    public override string FormatLabel(Device device) => device.Type.ToUpperInvariant();
+    public override string FormatLabel(Device device) => string.Empty;
 
     public override DeviceParameterSpec? PrimaryParameter => new(
         "Vth",
@@ -220,7 +220,7 @@ public class PmosDescriptor : DeviceDescriptorBase
         return mos;
     }
 
-    public override string FormatLabel(Device device) => "PMOS";
+    public override string FormatLabel(Device device) => string.Empty;
 
     public override DeviceParameterSpec? PrimaryParameter => new(
         "Vth",

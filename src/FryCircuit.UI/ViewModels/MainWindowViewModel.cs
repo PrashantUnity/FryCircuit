@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
 using System.IO;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
@@ -285,44 +287,51 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _selectedPaletteCategory = "All";
 
+    public bool IsAllSelected => SelectedPaletteCategory == "All";
     public bool IsPassivesVisible => SelectedPaletteCategory == "All" || SelectedPaletteCategory == "Passives";
+    public bool IsPassivesSelected => SelectedPaletteCategory == "Passives";
     public bool IsSourcesVisible => SelectedPaletteCategory == "All" || SelectedPaletteCategory == "Sources";
+    public bool IsSourcesSelected => SelectedPaletteCategory == "Sources";
     public bool IsSemiconductorsVisible => SelectedPaletteCategory == "All" || SelectedPaletteCategory == "Semiconductors";
+    public bool IsSemiconductorsSelected => SelectedPaletteCategory == "Semiconductors";
     public bool IsQuantumVisible => SelectedPaletteCategory == "All" || SelectedPaletteCategory == "Quantum & RF";
+    public bool IsQuantumSelected => SelectedPaletteCategory == "Quantum & RF";
     public bool IsLogicVisible => SelectedPaletteCategory == "All" || SelectedPaletteCategory == "Logic & ICs";
+    public bool IsLogicSelected => SelectedPaletteCategory == "Logic & ICs";
     public bool IsMetersVisible => SelectedPaletteCategory == "All" || SelectedPaletteCategory == "Meters & Switches";
+    public bool IsMetersSelected => SelectedPaletteCategory == "Meters & Switches";
 
     public IReadOnlyList<PaletteItemViewModel> AllPaletteItems { get; } = new List<PaletteItemViewModel>
     {
         // Passives
-        new() { Code = "resistor", Name = "Resistor", Symbol = "⤹", Category = "Passives", Hotkey = "R", ToolTip = "Passive linear 2-terminal resistor" },
-        new() { Code = "capacitor", Name = "Capacitor", Symbol = "⫝", Category = "Passives", Hotkey = "C", ToolTip = "Passive dual-plate energy storage capacitor" },
-        new() { Code = "inductor", Name = "Inductor", Symbol = "ᛘ", Category = "Passives", Hotkey = "L", ToolTip = "Passive magnetic flux coil inductor" },
-        new() { Code = "potentiometer", Name = "Potentiometer", Symbol = "🎛", Category = "Passives", Hotkey = "P", ToolTip = "3-terminal variable voltage divider" },
+        new() { Code = "resistor", Name = "Resistor", Symbol = "R", Category = "Passives", Hotkey = "R", ToolTip = "Passive linear 2-terminal resistor" },
+        new() { Code = "capacitor", Name = "Capacitor", Symbol = "C", Category = "Passives", Hotkey = "C", ToolTip = "Passive dual-plate energy storage capacitor" },
+        new() { Code = "inductor", Name = "Inductor", Symbol = "L", Category = "Passives", Hotkey = "L", ToolTip = "Passive magnetic flux coil inductor" },
+        new() { Code = "potentiometer", Name = "Potentiometer", Symbol = "POT", Category = "Passives", Hotkey = "P", ToolTip = "3-terminal variable voltage divider" },
 
         // Sources & Ground
-        new() { Code = "vsource", Name = "DC Voltage", Symbol = "⚡", Category = "Sources", Hotkey = "V", ToolTip = "Constant DC voltage power source" },
+        new() { Code = "vsource", Name = "DC Voltage", Symbol = "V", Category = "Sources", Hotkey = "V", ToolTip = "Constant DC voltage power source" },
         new() { Code = "vsrcsine", Name = "AC Sine Source", Symbol = "∿", Category = "Sources", Hotkey = "S", ToolTip = "Sinusoidal AC alternating voltage generator" },
-        new() { Code = "csource", Name = "DC Current", Symbol = "⤤", Category = "Sources", Hotkey = "I", ToolTip = "Constant ideal current generator" },
-        new() { Code = "battery", Name = "LiPo Battery", Symbol = "🔋", Category = "Sources", Hotkey = "BAT", ToolTip = "Lithium-Ion / LiPo Electrochemical Cell with Temperature Derating & SOC" },
+        new() { Code = "csource", Name = "DC Current", Symbol = "I", Category = "Sources", Hotkey = "I", ToolTip = "Constant ideal current generator" },
+        new() { Code = "battery", Name = "LiPo Battery", Symbol = "BAT", Category = "Sources", Hotkey = "BAT", ToolTip = "Lithium-Ion / LiPo Electrochemical Cell with Temperature Derating & SOC" },
         new() { Code = "ground", Name = "Ground (0V)", Symbol = "⏚", Category = "Sources", Hotkey = "G", ToolTip = "Earth ground 0V reference rail" },
 
         // Semiconductors
         new() { Code = "diode", Name = "Diode", Symbol = "▷|", Category = "Semiconductors", Hotkey = "D", ToolTip = "P-N junction rectifier diode" },
         new() { Code = "zener", Name = "Zener Diode", Symbol = "▷|", Category = "Semiconductors", Hotkey = "Z", ToolTip = "Reverse breakdown voltage regulator diode" },
-        new() { Code = "led", Name = "LED", Symbol = "💡", Category = "Semiconductors", Hotkey = "LED", ToolTip = "Optoelectronic light-emitting diode with photon emission" },
-        new() { Code = "npn", Name = "NPN BJT", Symbol = "⎶", Category = "Semiconductors", Hotkey = "Q", ToolTip = "Bipolar junction transistor (Ebers-Moll model)" },
-        new() { Code = "nmos", Name = "NMOS FET", Symbol = "⎶", Category = "Semiconductors", Hotkey = "M", ToolTip = "N-Channel MOSFET (Shichman-Hodges model)" },
+        new() { Code = "led", Name = "LED", Symbol = "LED", Category = "Semiconductors", Hotkey = "LED", ToolTip = "Optoelectronic light-emitting diode with photon emission" },
+        new() { Code = "npn", Name = "NPN BJT", Symbol = "BJT", Category = "Semiconductors", Hotkey = "Q", ToolTip = "Bipolar junction transistor (Ebers-Moll model)" },
+        new() { Code = "nmos", Name = "NMOS FET", Symbol = "FET", Category = "Semiconductors", Hotkey = "M", ToolTip = "N-Channel MOSFET (Shichman-Hodges model)" },
         new() { Code = "opamp", Name = "Op-Amp", Symbol = "▷", Category = "Semiconductors", Hotkey = "OA", ToolTip = "Operational amplifier (Differential input, single output)" },
 
         // Quantum, RF & Aerospace
-        new() { Code = "josephson", Name = "Josephson JJ", Symbol = "⚛", Category = "Quantum & RF", Hotkey = "JJ", ToolTip = "Superconducting Josephson Junction (RCSJ Qubit Model)" },
-        new() { Code = "squid", Name = "DC SQUID", Symbol = "🧲", Category = "Quantum & RF", Hotkey = "SQ", ToolTip = "Superconducting Quantum Interference Device (Dual-JJ Magnetometer with Magnetic Flux Tuning)" },
-        new() { Code = "tunneldiode", Name = "Tunnel Diode", Symbol = "▷|", Category = "Quantum & RF", Hotkey = "TD", ToolTip = "Esaki Tunnel Diode with Quantum Band-to-Band Tunneling & NDR" },
-        new() { Code = "tline", Name = "T-Line", Symbol = "〰", Category = "Quantum & RF", Hotkey = "TL", ToolTip = "High-Frequency Bergeron Wave Distributed Transmission Line" },
-        new() { Code = "cosmicipulse", Name = "Cosmic Pulse", Symbol = "☄", Category = "Quantum & RF", Hotkey = "CP", ToolTip = "Aerospace Radiation Heavy-Ion Strike SEU Double-Exponential Charge Injection" },
-        new() { Code = "hallsensor", Name = "Hall Sensor", Symbol = "🧭", Category = "Quantum & RF", Hotkey = "HS", ToolTip = "4-Terminal Magnetic Hall Effect Transducer for Drone Motor Commutation" },
-        new() { Code = "netlabel", Name = "Net Label", Symbol = "🏷", Category = "Quantum & RF", Hotkey = "NET", ToolTip = "EDA Net Label / Global Rail Marker" },
+        new() { Code = "josephson", Name = "Josephson JJ", Symbol = "JJ", Category = "Quantum & RF", Hotkey = "JJ", ToolTip = "Superconducting Josephson Junction (RCSJ Qubit Model)" },
+        new() { Code = "squid", Name = "DC SQUID", Symbol = "SQ", Category = "Quantum & RF", Hotkey = "SQ", ToolTip = "Superconducting Quantum Interference Device (Dual-JJ Magnetometer with Magnetic Flux Tuning)" },
+        new() { Code = "tunneldiode", Name = "Tunnel Diode", Symbol = "TD", Category = "Quantum & RF", Hotkey = "TD", ToolTip = "Esaki Tunnel Diode with Quantum Band-to-Band Tunneling & NDR" },
+        new() { Code = "tline", Name = "T-Line", Symbol = "TL", Category = "Quantum & RF", Hotkey = "TL", ToolTip = "High-Frequency Bergeron Wave Distributed Transmission Line" },
+        new() { Code = "cosmicipulse", Name = "Cosmic Pulse", Symbol = "SEU", Category = "Quantum & RF", Hotkey = "CP", ToolTip = "Aerospace Radiation Heavy-Ion Strike SEU Double-Exponential Charge Injection" },
+        new() { Code = "hallsensor", Name = "Hall Sensor", Symbol = "HALL", Category = "Quantum & RF", Hotkey = "HS", ToolTip = "4-Terminal Magnetic Hall Effect Transducer for Drone Motor Commutation" },
+        new() { Code = "netlabel", Name = "Net Label", Symbol = "NET", Category = "Quantum & RF", Hotkey = "NET", ToolTip = "EDA Net Label / Global Rail Marker" },
 
         // Logic & ICs
         new() { Code = "and", Name = "AND Gate", Symbol = "&", Category = "Logic & ICs", Hotkey = "AND", ToolTip = "Dual-input Boolean AND logic gate" },
@@ -331,14 +340,14 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         new() { Code = "nand", Name = "NAND Gate", Symbol = "&̄", Category = "Logic & ICs", Hotkey = "NAND", ToolTip = "Dual-input Boolean NAND logic gate" },
         new() { Code = "nor", Name = "NOR Gate", Symbol = "≥̄1", Category = "Logic & ICs", Hotkey = "NOR", ToolTip = "Dual-input Boolean NOR logic gate" },
         new() { Code = "xor", Name = "XOR Gate", Symbol = "=1", Category = "Logic & ICs", Hotkey = "XOR", ToolTip = "Dual-input Boolean XOR logic gate" },
-        new() { Code = "timer555", Name = "555 Timer", Symbol = "⏱", Category = "Logic & ICs", Hotkey = "555", ToolTip = "Precision analog/digital timing circuit IC" },
-        new() { Code = "seg7", Name = "7-Seg Display", Symbol = "🔠", Category = "Logic & ICs", Hotkey = "7SEG", ToolTip = "7-Segment LED Numeric & Hex Display" },
-        new() { Code = "bcd7seg", Name = "7448 Decoder", Symbol = "🧮", Category = "Logic & ICs", Hotkey = "7448", ToolTip = "BCD-to-7-Segment Active-High Decoder Driver IC" },
-        new() { Code = "counter4", Name = "74193 Counter", Symbol = "🔢", Category = "Logic & ICs", Hotkey = "74193", ToolTip = "4-Bit Synchronous Up/Down Binary Counter IC" },
+        new() { Code = "timer555", Name = "555 Timer", Symbol = "555", Category = "Logic & ICs", Hotkey = "555", ToolTip = "Precision analog/digital timing circuit IC" },
+        new() { Code = "seg7", Name = "7-Seg Display", Symbol = "7SEG", Category = "Logic & ICs", Hotkey = "7SEG", ToolTip = "7-Segment LED Numeric & Hex Display" },
+        new() { Code = "bcd7seg", Name = "7448 Decoder", Symbol = "7448", Category = "Logic & ICs", Hotkey = "7448", ToolTip = "BCD-to-7-Segment Active-High Decoder Driver IC" },
+        new() { Code = "counter4", Name = "74193 Counter", Symbol = "74193", Category = "Logic & ICs", Hotkey = "74193", ToolTip = "4-Bit Synchronous Up/Down Binary Counter IC" },
 
         // Meters & Controls
-        new() { Code = "spst", Name = "SPST Switch", Symbol = "⏻", Category = "Meters & Switches", Hotkey = "SW", ToolTip = "Single-pole single-throw toggle switch (click to toggle)" },
-        new() { Code = "lamp", Name = "Lamp", Symbol = "💡", Category = "Meters & Switches", Hotkey = "LAMP", ToolTip = "Thermal tungsten filament dynamic load indicator" },
+        new() { Code = "spst", Name = "SPST Switch", Symbol = "SW", Category = "Meters & Switches", Hotkey = "SW", ToolTip = "Single-pole single-throw toggle switch (click to toggle)" },
+        new() { Code = "lamp", Name = "Lamp", Symbol = "LAMP", Category = "Meters & Switches", Hotkey = "LAMP", ToolTip = "Thermal tungsten filament dynamic load indicator" },
         new() { Code = "voltmeter", Name = "Voltmeter", Symbol = "[V]", Category = "Meters & Switches", Hotkey = "VM", ToolTip = "High-impedance potential difference meter" },
         new() { Code = "amperemeter", Name = "Ammeter", Symbol = "[A]", Category = "Meters & Switches", Hotkey = "AM", ToolTip = "Series low-resistance branch current meter" },
         new() { Code = "ohmmeter", Name = "Ohmmeter", Symbol = "[Ω]", Category = "Meters & Switches", Hotkey = "OHM", ToolTip = "Active 2-terminal resistance measurement probe" }
@@ -377,12 +386,19 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         SelectedPaletteCategory = category;
         UpdateFilteredPaletteItems();
+        OnPropertyChanged(nameof(IsAllSelected));
         OnPropertyChanged(nameof(IsPassivesVisible));
+        OnPropertyChanged(nameof(IsPassivesSelected));
         OnPropertyChanged(nameof(IsSourcesVisible));
+        OnPropertyChanged(nameof(IsSourcesSelected));
         OnPropertyChanged(nameof(IsSemiconductorsVisible));
+        OnPropertyChanged(nameof(IsSemiconductorsSelected));
         OnPropertyChanged(nameof(IsQuantumVisible));
+        OnPropertyChanged(nameof(IsQuantumSelected));
         OnPropertyChanged(nameof(IsLogicVisible));
+        OnPropertyChanged(nameof(IsLogicSelected));
         OnPropertyChanged(nameof(IsMetersVisible));
+        OnPropertyChanged(nameof(IsMetersSelected));
     }
 
     [ObservableProperty]
@@ -551,6 +567,33 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public string SelectedLedColorName => SelectedLed?.ColorName ?? "Red";
     public double SelectedLedForwardVoltage => SelectedLed?.ForwardVoltage ?? 1.8;
     public bool ShowPrimaryKnob => HasSelectedDevice && !IsLedSelected;
+
+    public bool IsRedSelected => string.Equals(SelectedLedColorName, "Red", StringComparison.OrdinalIgnoreCase);
+    public bool IsOrangeSelected => string.Equals(SelectedLedColorName, "Orange", StringComparison.OrdinalIgnoreCase);
+    public bool IsYellowSelected => string.Equals(SelectedLedColorName, "Yellow", StringComparison.OrdinalIgnoreCase);
+    public bool IsGreenSelected => string.Equals(SelectedLedColorName, "Green", StringComparison.OrdinalIgnoreCase);
+    public bool IsCyanSelected => string.Equals(SelectedLedColorName, "Cyan", StringComparison.OrdinalIgnoreCase);
+    public bool IsBlueSelected => string.Equals(SelectedLedColorName, "Blue", StringComparison.OrdinalIgnoreCase);
+    public bool IsVioletSelected => string.Equals(SelectedLedColorName, "Violet", StringComparison.OrdinalIgnoreCase);
+    public bool IsWhiteSelected => string.Equals(SelectedLedColorName, "White", StringComparison.OrdinalIgnoreCase);
+
+    private void NotifyLedPropertiesChanged()
+    {
+        OnPropertyChanged(nameof(SelectedLed));
+        OnPropertyChanged(nameof(SelectedLedColorHex));
+        OnPropertyChanged(nameof(SelectedLedColorBrush));
+        OnPropertyChanged(nameof(SelectedLedColorName));
+        OnPropertyChanged(nameof(SelectedLedForwardVoltage));
+        OnPropertyChanged(nameof(IsRedSelected));
+        OnPropertyChanged(nameof(IsOrangeSelected));
+        OnPropertyChanged(nameof(IsYellowSelected));
+        OnPropertyChanged(nameof(IsGreenSelected));
+        OnPropertyChanged(nameof(IsCyanSelected));
+        OnPropertyChanged(nameof(IsBlueSelected));
+        OnPropertyChanged(nameof(IsVioletSelected));
+        OnPropertyChanged(nameof(IsWhiteSelected));
+    }
+
     public IBrush SelectedLedColorBrush
     {
         get
@@ -578,6 +621,26 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         new("White", "#FFFFFF", 0.0, "White (3.2V)")
     };
 
+    public string SelectedDeviceDisplayName
+    {
+        get
+        {
+            if (SelectedDevice == null) return "No Selection";
+            var desc = DeviceRegistry.GetDescriptor(SelectedDevice);
+            return desc != null ? desc.DisplayName : SelectedDevice.Type.ToUpperInvariant();
+        }
+    }
+
+    public string SelectedDeviceCategoryName
+    {
+        get
+        {
+            if (SelectedDevice == null) return string.Empty;
+            var desc = DeviceRegistry.GetDescriptor(SelectedDevice);
+            return desc != null ? desc.Category : string.Empty;
+        }
+    }
+
     partial void OnSelectedDeviceChanged(Device? value)
     {
         HasSelectedDevice = value != null;
@@ -587,6 +650,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             HasSelectedWire = false;
         }
 
+        OnPropertyChanged(nameof(SelectedDeviceDisplayName));
+        OnPropertyChanged(nameof(SelectedDeviceCategoryName));
         OnPropertyChanged(nameof(ShowPrimaryKnob));
         OnPropertyChanged(nameof(IsVoltageSourceSelected));
         OnPropertyChanged(nameof(IsCurrentSourceSelected));
@@ -594,11 +659,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsCapacitorSelected));
         OnPropertyChanged(nameof(IsInductorSelected));
         OnPropertyChanged(nameof(IsLedSelected));
-        OnPropertyChanged(nameof(SelectedLed));
-        OnPropertyChanged(nameof(SelectedLedColorHex));
-        OnPropertyChanged(nameof(SelectedLedColorBrush));
-        OnPropertyChanged(nameof(SelectedLedColorName));
-        OnPropertyChanged(nameof(SelectedLedForwardVoltage));
+        NotifyLedPropertiesChanged();
 
         DeviceParameters.Clear();
 
@@ -617,11 +678,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                 }
                 if (value is LedDevice)
                 {
-                    OnPropertyChanged(nameof(SelectedLed));
-                    OnPropertyChanged(nameof(SelectedLedColorHex));
-                    OnPropertyChanged(nameof(SelectedLedColorBrush));
-                    OnPropertyChanged(nameof(SelectedLedColorName));
-                    OnPropertyChanged(nameof(SelectedLedForwardVoltage));
+                    NotifyLedPropertiesChanged();
                 }
             }));
         }
@@ -709,11 +766,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
         if (SelectedDevice is LedDevice)
         {
-            OnPropertyChanged(nameof(SelectedLed));
-            OnPropertyChanged(nameof(SelectedLedColorHex));
-            OnPropertyChanged(nameof(SelectedLedColorBrush));
-            OnPropertyChanged(nameof(SelectedLedColorName));
-            OnPropertyChanged(nameof(SelectedLedForwardVoltage));
+            NotifyLedPropertiesChanged();
         }
 
         _canvas?.InvalidateVisual();
@@ -967,11 +1020,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         var pVm = DeviceParameters.FirstOrDefault(p => p.ParameterName == "Wavelength");
         pVm?.RefreshFromDevice();
 
-        OnPropertyChanged(nameof(SelectedLed));
-        OnPropertyChanged(nameof(SelectedLedColorHex));
-        OnPropertyChanged(nameof(SelectedLedColorBrush));
-        OnPropertyChanged(nameof(SelectedLedColorName));
-        OnPropertyChanged(nameof(SelectedLedForwardVoltage));
+        NotifyLedPropertiesChanged();
 
         _canvas?.InvalidateVisual();
         StatusText = $"Set LED color to {led.ColorName} ({led.Wavelength:F0} nm, Vf ≈ {led.ForwardVoltage:F1} V)";
@@ -1272,6 +1321,27 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
+    public async Task CopySpiceToClipboard()
+    {
+        if (string.IsNullOrEmpty(SpiceNetlistText)) return;
+        try
+        {
+            if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                var topLevel = desktop.MainWindow;
+                if (topLevel?.Clipboard != null)
+                {
+                    await topLevel.Clipboard.SetTextAsync(SpiceNetlistText);
+                    StatusText = "SPICE deck copied to clipboard!";
+                    return;
+                }
+            }
+        }
+        catch { }
+        StatusText = "SPICE deck ready to copy.";
+    }
+
+    [RelayCommand]
     public void ImportSpiceDeck()
     {
         if (string.IsNullOrWhiteSpace(SpiceNetlistText)) return;
@@ -1310,6 +1380,27 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         if (CurrentCircuit == null) return;
         BomText = BomEngine.GenerateMarkdownBom(CurrentCircuit, OperatingTemperatureKelvin);
         StatusText = $"Generated Bill of Materials ({CurrentCircuit.Devices.Count} components)";
+    }
+
+    [RelayCommand]
+    public async Task CopyBomToClipboard()
+    {
+        if (string.IsNullOrEmpty(BomText)) return;
+        try
+        {
+            if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                var topLevel = desktop.MainWindow;
+                if (topLevel?.Clipboard != null)
+                {
+                    await topLevel.Clipboard.SetTextAsync(BomText);
+                    StatusText = "Bill of Materials (BOM) copied to clipboard!";
+                    return;
+                }
+            }
+        }
+        catch { }
+        StatusText = "BOM ready to copy.";
     }
 
     private void SetCircuit(Circuit circuit)

@@ -141,10 +141,10 @@ public class MnaSolver
                 b[auxRow] = vInstant;
             }
 
-            // Ensure diagonal stability (Gmin shunt for floating nodes: 1e-12 S)
+            // Ensure diagonal stability (Gmin shunt for floating nodes: 1e-10 S)
             for (int i = 0; i < numNodes; i++)
             {
-                g[i, i] += 1e-12;
+                g[i, i] += 1e-10;
             }
 
             // 3. Solve Linear System G * x = b

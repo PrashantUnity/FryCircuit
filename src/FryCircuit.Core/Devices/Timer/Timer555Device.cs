@@ -92,9 +92,14 @@ public class Timer555Device : Device, IDeviceSimulation
         double gDisch = LatchState ? 1e-7 : (1.0 / DischargeOnResistance);
         ctx.StampConductance(dischNode, gndNode, gDisch);
 
-        // 3. Internal 5k divider resistance across supply
-        double gDivider = 1.0 / (3.0 * DividerResistor);
-        ctx.StampConductance(vccNode, gndNode, gDivider);
+        // 3. Internal three-resistor divider (5kΩ each):
+        // Upper 5kΩ between VCC and CTRL (pin 4 / internal tap 2/3 Vcc)
+        // Lower 10kΩ between CTRL and GND (pin 0)
+        double gTop = 1.0 / DividerResistor;
+        ctx.StampConductance(vccNode, ctrlNode, gTop);
+
+        double gBot = 1.0 / (2.0 * DividerResistor);
+        ctx.StampConductance(ctrlNode, gndNode, gBot);
     }
 
     public void StampCurrentSources(MnaContext ctx) { }

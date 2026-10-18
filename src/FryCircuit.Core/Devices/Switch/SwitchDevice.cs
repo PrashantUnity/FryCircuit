@@ -44,15 +44,15 @@ public class SwitchDevice : Device, IDeviceSimulation
             if (Pins.Count >= 3)
             {
                 // When IsClosed: Common connected to Throw 1, else Common connected to Throw 2
-                double r1 = IsClosed ? 1e-4 : 1e9;
-                double r2 = IsClosed ? 1e9 : 1e-4;
+                double r1 = IsClosed ? 1e-4 : 1e12;
+                double r2 = IsClosed ? 1e12 : 1e-4;
                 ctx.StampConductance(Pins[0].NodeId, Pins[1].NodeId, 1.0 / r1);
                 ctx.StampConductance(Pins[0].NodeId, Pins[2].NodeId, 1.0 / r2);
             }
         }
         else if (Pins.Count >= 2)
         {
-            double r = IsClosed ? 1e-4 : 1e9;
+            double r = IsClosed ? 1e-4 : 1e12;
             ctx.StampConductance(Pins[0].NodeId, Pins[1].NodeId, 1.0 / r);
         }
     }

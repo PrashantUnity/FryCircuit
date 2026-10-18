@@ -97,12 +97,65 @@
     <UserControl.Styles>
         <!-- Standard Toolbar Button -->
         <Style Selector="Button.toolbtn">
-            <Setter Property="Background" Value="#171D28"/>
+            <Setter Property="Background" Value="#141924"/>
             <Setter Property="Foreground" Value="#D8E2F0"/>
-            <Setter Property="BorderBrush" Value="#252E3E"/>
+            <Setter Property="BorderBrush" Value="#222B3D"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Padding" Value="7,4"/>
+            <Setter Property="Padding" Value="6,3.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.15"/>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
+                    <BrushTransition Property="Foreground" Duration="0:0:0.15"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.toolbtn:pointerover">
+            <Setter Property="Background" Value="#1E273A"/>
+            <Setter Property="BorderBrush" Value="#00E676"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+        </Style>
+        <Style Selector="Button.toolbtn:pressed">
+            <Setter Property="Background" Value="#0F3325"/>
+            <Setter Property="BorderBrush" Value="#00E676"/>
+        </Style>
+        <Style Selector="Button.toolbtn.simplay">
+            <Setter Property="Background" Value="#0E2319"/>
+            <Setter Property="BorderBrush" Value="#00E676"/>
+            <Setter Property="Foreground" Value="#00E676"/>
+        </Style>
+        <Style Selector="Button.toolbtn.spice">
+            <Setter Property="Background" Value="#0F202D"/>
+            <Setter Property="BorderBrush" Value="#00F0FF"/>
+            <Setter Property="Foreground" Value="#00F0FF"/>
+        </Style>
+        <Style Selector="Button.toolbtn.spice:pointerover">
+            <Setter Property="Background" Value="#172F42"/>
+            <Setter Property="BorderBrush" Value="#00F0FF"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+        </Style>
+        <Style Selector="Button.toolbtn.bom">
+            <Setter Property="Background" Value="#0D2419"/>
+            <Setter Property="BorderBrush" Value="#00E676"/>
+            <Setter Property="Foreground" Value="#00E676"/>
+        </Style>
+        <Style Selector="Button.toolbtn.bom:pointerover">
+            <Setter Property="Background" Value="#143625"/>
+            <Setter Property="BorderBrush" Value="#00E676"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+        </Style>
+
+        <!-- Mode Tool Button -->
+        <Style Selector="Button.modebtn">
+            <Setter Property="Background" Value="#131722"/>
+            <Setter Property="Foreground" Value="#BAC7D8"/>
+            <Setter Property="BorderBrush" Value="#20293A"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="6,3.5"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="Transitions">
@@ -112,34 +165,64 @@
                 </Transitions>
             </Setter>
         </Style>
-        <Style Selector="Button.toolbtn:pointerover">
-            <Setter Property="Background" Value="#232C3E"/>
-            <Setter Property="BorderBrush" Value="#00E676"/>
-            <Setter Property="Foreground" Value="#FFFFFF"/>
-        </Style>
-
-        <!-- Mode Tool Button -->
-        <Style Selector="Button.modebtn">
-            <Setter Property="Background" Value="#171D28"/>
-            <Setter Property="Foreground" Value="#BAC7D8"/>
-            <Setter Property="BorderBrush" Value="#252E3E"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="6"/>
-            <Setter Property="Padding" Value="7,4"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontSize" Value="11"/>
-        </Style>
         <Style Selector="Button.modebtn:pointerover">
-            <Setter Property="Background" Value="#232C3E"/>
+            <Setter Property="Background" Value="#1C2434"/>
             <Setter Property="BorderBrush" Value="#00F0FF"/>
             <Setter Property="Foreground" Value="#FFFFFF"/>
+        </Style>
+        <Style Selector="Button.modebtn:pressed">
+            <Setter Property="Background" Value="#102C3D"/>
         </Style>
 
         <!-- Mode Tool Button Active State -->
         <Style Selector="Button.modebtn.active">
-            <Setter Property="Background" Value="#0E3D2C"/>
-            <Setter Property="Foreground" Value="#00E676"/>
+            <Setter Property="Background" Value="#0B3020"/>
+            <Setter Property="Foreground" Value="#00FF88"/>
             <Setter Property="BorderBrush" Value="#00E676"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+        <Style Selector="Button.modebtn.active /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#0B3020"/>
+            <Setter Property="Foreground" Value="#00FF88"/>
+            <Setter Property="BorderBrush" Value="#00E676"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+
+        <!-- ToggleButton Mode Button Styles -->
+        <Style Selector="ToggleButton.modebtn">
+            <Setter Property="Background" Value="#131722"/>
+            <Setter Property="Foreground" Value="#BAC7D8"/>
+            <Setter Property="BorderBrush" Value="#20293A"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="6,3.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="11"/>
+        </Style>
+        <Style Selector="ToggleButton.modebtn /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#131722"/>
+            <Setter Property="Foreground" Value="#BAC7D8"/>
+            <Setter Property="BorderBrush" Value="#20293A"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+        </Style>
+        <Style Selector="ToggleButton.modebtn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#1C2434"/>
+            <Setter Property="BorderBrush" Value="#00F0FF"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+        </Style>
+        <Style Selector="ToggleButton.modebtn:checked /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#0C2533"/>
+            <Setter Property="Foreground" Value="#00F0FF"/>
+            <Setter Property="BorderBrush" Value="#00F0FF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+        <Style Selector="ToggleButton.modebtn:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#123547"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#5CFAFF"/>
         </Style>
 
         <!-- Palette Button -->
@@ -161,36 +244,100 @@
 
         <!-- Preset Quick Chip -->
         <Style Selector="Button.chip">
-            <Setter Property="Background" Value="#1A202E"/>
+            <Setter Property="Background" Value="#161C27"/>
             <Setter Property="Foreground" Value="#8C9BB0"/>
-            <Setter Property="BorderBrush" Value="#283244"/>
+            <Setter Property="BorderBrush" Value="#222C3D"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="4"/>
-            <Setter Property="Padding" Value="6,3"/>
-            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="CornerRadius" Value="5"/>
+            <Setter Property="Padding" Value="7,3.5"/>
+            <Setter Property="FontSize" Value="10.5"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.12"/>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.12"/>
+                </Transitions>
+            </Setter>
         </Style>
         <Style Selector="Button.chip:pointerover">
-            <Setter Property="Background" Value="#263146"/>
+            <Setter Property="Background" Value="#202A3C"/>
             <Setter Property="BorderBrush" Value="#00E676"/>
             <Setter Property="Foreground" Value="#FFFFFF"/>
+        </Style>
+        <Style Selector="Button.chip.active">
+            <Setter Property="Background" Value="#17263A"/>
+            <Setter Property="BorderBrush" Value="#00F0FF"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="Foreground" Value="#00F0FF"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+        <Style Selector="Button.chip.active /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#17263A"/>
+            <Setter Property="BorderBrush" Value="#00F0FF"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="Foreground" Value="#00F0FF"/>
+        </Style>
+        <Style Selector="Button.chip.probing">
+            <Setter Property="Background" Value="#29230C"/>
+            <Setter Property="BorderBrush" Value="#FFD700"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="Foreground" Value="#FFD700"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+        <Style Selector="Button.chip.probing /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#29230C"/>
+            <Setter Property="BorderBrush" Value="#FFD700"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="Foreground" Value="#FFD700"/>
+        </Style>
+        <Style Selector="Button.chip.probing2">
+            <Setter Property="Background" Value="#0C2533"/>
+            <Setter Property="BorderBrush" Value="#00F0FF"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="Foreground" Value="#00F0FF"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+        <Style Selector="Button.chip.probing2 /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#0C2533"/>
+            <Setter Property="BorderBrush" Value="#00F0FF"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="Foreground" Value="#00F0FF"/>
         </Style>
 
         <!-- Category Tab Buttons -->
         <Style Selector="Button.categoryTab">
-            <Setter Property="Background" Value="#10141D"/>
+            <Setter Property="Background" Value="#11151E"/>
             <Setter Property="Foreground" Value="#7E8F9F"/>
-            <Setter Property="BorderBrush" Value="#1F2837"/>
+            <Setter Property="BorderBrush" Value="#1E2636"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="5"/>
-            <Setter Property="Padding" Value="8,4"/>
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Padding" Value="7,3.5"/>
+            <Setter Property="FontSize" Value="10"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.12"/>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.12"/>
+                </Transitions>
+            </Setter>
         </Style>
         <Style Selector="Button.categoryTab:pointerover">
-            <Setter Property="Background" Value="#1E2738"/>
+            <Setter Property="Background" Value="#192230"/>
             <Setter Property="BorderBrush" Value="#00F0FF"/>
             <Setter Property="Foreground" Value="#FFFFFF"/>
+        </Style>
+        <Style Selector="Button.categoryTab.active">
+            <Setter Property="Background" Value="#0D2E3D"/>
+            <Setter Property="BorderBrush" Value="#00F0FF"/>
+            <Setter Property="Foreground" Value="#00F0FF"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+        <Style Selector="Button.categoryTab.active /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#0D2E3D"/>
+            <Setter Property="BorderBrush" Value="#00F0FF"/>
+            <Setter Property="Foreground" Value="#00F0FF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontWeight" Value="Bold"/>
         </Style>
 
         <!-- Universal Compact Wrapped ToolTip Style -->
@@ -241,9 +388,9 @@
 
         <!-- Library Component Card Button -->
         <Style Selector="Button.libbtn">
-            <Setter Property="Background" Value="#151A24"/>
+            <Setter Property="Background" Value="#131722"/>
             <Setter Property="Foreground" Value="#D5E0EE"/>
-            <Setter Property="BorderBrush" Value="#222B3B"/>
+            <Setter Property="BorderBrush" Value="#1C2436"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="6"/>
             <Setter Property="Padding" Value="7,5"/>
@@ -258,10 +405,14 @@
             </Setter>
         </Style>
         <Style Selector="Button.libbtn:pointerover">
-            <Setter Property="Background" Value="#1E2738"/>
+            <Setter Property="Background" Value="#1B2436"/>
             <Setter Property="BorderBrush" Value="#00F0FF"/>
         </Style>
-        <Style Selector="Button.libbtn:pressed">
+        <Style Selector="Button.libbtn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#1B2436"/>
+            <Setter Property="BorderBrush" Value="#00F0FF"/>
+        </Style>
+        <Style Selector="Button.libbtn:pressed /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="#0F3342"/>
             <Setter Property="BorderBrush" Value="#00F0FF"/>
         </Style>
@@ -293,26 +444,42 @@
     <Grid RowDefinitions="Auto,*,Auto">
 
         <!-- Top Header & Main Tool Controls -->
-        <Border Grid.Row="0" Background="#121620" BorderBrush="#1C2332" BorderThickness="0,0,0,1" Padding="10,6">
+        <Border Grid.Row="0" BorderBrush="#1C273C" BorderThickness="0,0,0,1" Padding="10,6">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#151A26" Offset="0.0"/>
+                    <GradientStop Color="#0D111A" Offset="1.0"/>
+                </LinearGradientBrush>
+            </Border.Background>
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                 <Grid ColumnDefinitions="Auto,Auto,*,Auto">
                     
                     <!-- App Title & Logo -->
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,10,0">
-                        <Border Background="#00E676" CornerRadius="7" Width="24" Height="24">
-                            <TextBlock Text="⚡" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="7" VerticalAlignment="Center" Margin="0,0,12,0">
+                        <Border CornerRadius="8" Width="26" Height="26" BoxShadow="0 0 10 #4000E676">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#00FF88" Offset="0.0"/>
+                                    <GradientStop Color="#00B0FF" Offset="1.0"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <TextBlock Text="⚡" FontSize="14" Foreground="#0A1118" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold"/>
                         </Border>
-                        <TextBlock Text="FryCircuit" FontSize="15" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
-                        <Border Background="#1C2332" CornerRadius="4" Padding="3,1" VerticalAlignment="Center">
-                            <TextBlock Text="CAD" FontSize="9" FontWeight="SemiBold" Foreground="#00F0FF"/>
-                        </Border>
+                        <StackPanel VerticalAlignment="Center" Spacing="-1">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="FryCircuit" FontSize="14.5" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                                <Border Background="#102538" BorderBrush="#00F0FF" BorderThickness="1" CornerRadius="4" Padding="4,1" VerticalAlignment="Center">
+                                    <TextBlock Text="CAD" FontSize="8.5" FontWeight="Bold" Foreground="#00F0FF"/>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
 
                         <!-- File Status Badge / Name -->
-                        <Border Background="#151B26" BorderBrush="#242E40" BorderThickness="1" CornerRadius="4" Padding="6,2" VerticalAlignment="Center" Margin="4,0,0,0">
+                        <Border Background="#111622" BorderBrush="#1E283C" BorderThickness="1" CornerRadius="5" Padding="6,2.5" VerticalAlignment="Center" Margin="2,0,0,0">
                             <StackPanel Orientation="Horizontal" Spacing="4">
                                 <TextBlock Text="📄" FontSize="10" VerticalAlignment="Center"/>
-                                <TextBlock Text="{Binding CurrentFileName}" FontSize="11" FontWeight="SemiBold" Foreground="#D0DBE8" VerticalAlignment="Center"/>
-                                <TextBlock Text="*" FontSize="12" FontWeight="Bold" Foreground="#00F0FF" IsVisible="{Binding IsDirty}" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding CurrentFileName}" MaxWidth="110" TextTrimming="CharacterEllipsis" FontSize="10.5" FontWeight="SemiBold" Foreground="#D0DBE8" VerticalAlignment="Center"/>
+                                <Border Width="5" Height="5" CornerRadius="2.5" Background="#00F0FF" IsVisible="{Binding IsDirty}" VerticalAlignment="Center" Margin="1,0,0,0" BoxShadow="0 0 5 #00F0FF"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -335,93 +502,107 @@
                         <!-- Toggle Left Library Panel -->
                         <ToggleButton Classes="modebtn" IsChecked="{Binding IsLeftPanelOpen, Mode=TwoWay}"
                                       ToolTip.Tip="Toggle Component Library Panel (◀ / ▶)">
-                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                <TextBlock Text="◨" FontSize="11" Foreground="#00F0FF"/>
-                                <TextBlock Text="Library" FontSize="11" FontWeight="SemiBold"/>
+                            <StackPanel Orientation="Horizontal" Spacing="3">
+                                <TextBlock Text="◨" FontSize="10.5" Foreground="#00F0FF"/>
+                                <TextBlock Text="Lib" FontSize="10.5" FontWeight="SemiBold"/>
                             </StackPanel>
                         </ToggleButton>
 
                         <!-- Toggle Oscilloscope Bottom Panel -->
                         <ToggleButton Classes="modebtn" IsChecked="{Binding IsOscilloscopeOpen, Mode=TwoWay}"
                                       ToolTip.Tip="Toggle Oscilloscope Signal Panel (∿)">
-                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                <TextBlock Text="∿" FontSize="11" Foreground="#00E676"/>
-                                <TextBlock Text="Scope" FontSize="11" FontWeight="SemiBold"/>
+                            <StackPanel Orientation="Horizontal" Spacing="3">
+                                <TextBlock Text="∿" FontSize="10.5" Foreground="#00E676"/>
+                                <TextBlock Text="Scope" FontSize="10.5" FontWeight="SemiBold"/>
                             </StackPanel>
                         </ToggleButton>
 
                         <!-- Toggle Inspector Right Panel -->
                         <ToggleButton Classes="modebtn" IsChecked="{Binding IsInspectorOpen, Mode=TwoWay}"
                                       ToolTip.Tip="Toggle Circuit Inspector Panel (◧)">
-                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                <TextBlock Text="◧" FontSize="11" Foreground="#FFD700"/>
-                                <TextBlock Text="Inspector" FontSize="11" FontWeight="SemiBold"/>
+                            <StackPanel Orientation="Horizontal" Spacing="3">
+                                <TextBlock Text="◧" FontSize="10.5" Foreground="#FFD700"/>
+                                <TextBlock Text="Props" FontSize="10.5" FontWeight="SemiBold"/>
                             </StackPanel>
                         </ToggleButton>
 
-                        <Separator Background="#242E40" Width="1" Height="18" Margin="3,0"/>
+                        <Separator Background="#242E40" Width="1" Height="16" Margin="2,0"/>
 
-                        <Button Classes="modebtn" Classes.active="{Binding IsSelectMode}" Content="↖ Select" Command="{Binding SetToolModeCommand}" CommandParameter="select"/>
-                        <Button Classes="modebtn" Classes.active="{Binding IsWireMode}" Content="⚡ Wire" Command="{Binding SetToolModeCommand}" CommandParameter="wire"/>
-                        <Button Classes="modebtn" Classes.active="{Binding IsCutMode}" Content="✂ Cut" Command="{Binding SetToolModeCommand}" CommandParameter="cut"/>
-                        <Button Classes="modebtn" Content="↺" ToolTip.Tip="Rotate 90° Clockwise" Command="{Binding RotateSelectedCommand}"/>
+                        <!-- Primary CAD Mode Segmented Bar -->
+                        <Border Background="#0C1018" BorderBrush="#1C2536" BorderThickness="1" CornerRadius="6" Padding="2" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="2">
+                                <Button Classes="modebtn" Classes.active="{Binding IsSelectMode}" Content="↖ Select" Command="{Binding SetToolModeCommand}" CommandParameter="select" ToolTip.Tip="Selection &amp; Drag Mode (V)"/>
+                                <Button Classes="modebtn" Classes.active="{Binding IsWireMode}" Content="⚡ Wire" Command="{Binding SetToolModeCommand}" CommandParameter="wire" ToolTip.Tip="Schematic Wiring Mode (W)"/>
+                                <Button Classes="modebtn" Classes.active="{Binding IsCutMode}" Content="✂ Cut" Command="{Binding SetToolModeCommand}" CommandParameter="cut" ToolTip.Tip="Wire Cutting Tool (X)"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Button Classes="modebtn" Content="↻" ToolTip.Tip="Rotate 90° Clockwise (R)" Command="{Binding RotateSelectedCommand}"/>
                         <Button Classes="modebtn" Content="🗑" ToolTip.Tip="Delete Selected (Del)" Command="{Binding DeleteSelectedCommand}"/>
 
-                        <Separator Background="#242E40" Width="1" Height="18" Margin="2,0"/>
+                        <Separator Background="#242E40" Width="1" Height="16" Margin="2,0"/>
 
                         <Button Classes="modebtn" Content="↩" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" ToolTip.Tip="{Binding UndoLabel}"/>
                         <Button Classes="modebtn" Content="↪" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" ToolTip.Tip="{Binding RedoLabel}"/>
 
-                        <Separator Background="#242E40" Width="1" Height="18" Margin="2,0"/>
+                        <Separator Background="#242E40" Width="1" Height="16" Margin="2,0"/>
 
                         <!-- Live Circuit Visual Overlays -->
                         <ToggleButton Classes="modebtn" IsChecked="{Binding ShowCurrentAnnotations, Mode=TwoWay}"
                                       ToolTip.Tip="Toggle Live Branch Currents (Animated direction arrows &amp; values)">
-                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                <TextBlock Text="⚡" FontSize="11" Foreground="#00E676"/>
-                                <TextBlock Text="Currents" FontSize="11" FontWeight="SemiBold"/>
+                            <StackPanel Orientation="Horizontal" Spacing="3">
+                                <TextBlock Text="⚡" FontSize="10.5" Foreground="#00E676"/>
+                                <TextBlock Text="I" FontSize="10.5" FontWeight="Bold"/>
                             </StackPanel>
                         </ToggleButton>
                         <ToggleButton Classes="modebtn" IsChecked="{Binding ShowVoltageAnnotations, Mode=TwoWay}"
                                       ToolTip.Tip="Toggle Live Node Voltages (Junction &amp; rail badges)">
-                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                <TextBlock Text="⏚" FontSize="11" Foreground="#FFD700"/>
-                                <TextBlock Text="Voltages" FontSize="11" FontWeight="SemiBold"/>
+                            <StackPanel Orientation="Horizontal" Spacing="3">
+                                <TextBlock Text="⏚" FontSize="10.5" Foreground="#FFD700"/>
+                                <TextBlock Text="V" FontSize="10.5" FontWeight="Bold"/>
                             </StackPanel>
                         </ToggleButton>
                     </StackPanel>
 
                     <!-- Right: Simulation Controls & Preset Selection -->
-                    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="3" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="4,0,2,0">
                         <!-- Simulation Controls -->
-                        <Button Classes="toolbtn" Command="{Binding ToggleSimulationCommand}">
+                        <Button Classes="toolbtn" Classes.simplay="{Binding IsSimulating}" Command="{Binding ToggleSimulationCommand}">
                             <TextBlock Text="{Binding PlayPauseButtonText}" FontWeight="Bold"/>
                         </Button>
                         <Button Classes="toolbtn" Content="⏭" ToolTip.Tip="Single Step (0.25 ms)" Command="{Binding StepSimulationCommand}" />
                         <Button Classes="toolbtn" Content="↺" ToolTip.Tip="Reset Simulation Time" Command="{Binding ResetSimulationCommand}" />
                         <Button Classes="toolbtn" Content="⛶" ToolTip.Tip="Zoom to Fit Canvas" Command="{Binding ZoomToFitCommand}" />
-                        <Button Classes="toolbtn" Content="SPICE" Command="{Binding ToggleSpiceDrawerCommand}" ToolTip.Tip="Inspect &amp; export Berkeley SPICE / LTspice / WRSPICE netlist" />
-                        <Button Classes="toolbtn" Content="BOM" Command="{Binding ToggleBomDrawerCommand}" ToolTip.Tip="Generate and view manufacturing Bill of Materials" />
+                        <Button Classes="toolbtn spice" Command="{Binding ToggleSpiceDrawerCommand}" ToolTip.Tip="Inspect &amp; export Berkeley SPICE / LTspice / WRSPICE netlist">
+                            <StackPanel Orientation="Horizontal" Spacing="3">
+                                <TextBlock Text="⚡" FontSize="9.5" Foreground="#00F0FF"/>
+                                <TextBlock Text="SPICE" FontSize="10.5" FontWeight="Bold" Foreground="#00F0FF"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="toolbtn bom" Command="{Binding ToggleBomDrawerCommand}" ToolTip.Tip="Generate and view manufacturing Bill of Materials">
+                            <StackPanel Orientation="Horizontal" Spacing="3">
+                                <TextBlock Text="📊" FontSize="9.5" Foreground="#00E676"/>
+                                <TextBlock Text="BOM" FontSize="10.5" FontWeight="Bold" Foreground="#00E676"/>
+                            </StackPanel>
+                        </Button>
 
                         <!-- Simulation Speed Slider -->
-                        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Margin="2,0,2,0">
-                            <TextBlock Text="Speed:" Foreground="#8C9BB0" FontSize="11" VerticalAlignment="Center"/>
-                            <Slider Classes="cyberSlider green" Width="52" Minimum="0.1" Maximum="4.0" Value="{Binding SimulationSpeed}" VerticalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center" Margin="2,0,2,0">
+                            <Slider Classes="cyberSlider green" Width="38" Minimum="0.1" Maximum="4.0" Value="{Binding SimulationSpeed}" VerticalAlignment="Center"/>
                             <Border Background="#0E1A16" BorderBrush="#1B3828" BorderThickness="1" CornerRadius="4" Padding="3,1" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding SimulationSpeed, StringFormat='{}{0:F1}x'}" Foreground="#00E676" FontWeight="Bold" FontSize="10" FontFamily="Consolas,SF Mono,Menlo,monospace" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding SimulationSpeed, StringFormat='{}{0:F1}x'}" Foreground="#00E676" FontWeight="Bold" FontSize="9.5" FontFamily="Consolas,SF Mono,Menlo,monospace" VerticalAlignment="Center"/>
                             </Border>
                         </StackPanel>
 
                         <!-- Presets Selection -->
-                        <TextBlock Text="Preset:" Foreground="#8C9BB0" FontSize="11" VerticalAlignment="Center" Margin="2,0,0,0"/>
                         <ComboBox ItemsSource="{Binding AvailablePresets}" 
                                   SelectedItem="{Binding SelectedPreset}"
                                   Width="175" MaxDropDownHeight="360"
-                                  Background="#171D28" Foreground="#D8E2F0" BorderBrush="#252E3E" CornerRadius="6" FontSize="11"
+                                  Background="#151A24" Foreground="#D8E2F0" BorderBrush="#222B3D" CornerRadius="6" FontSize="10"
                                   ToolTip.Tip="{Binding SelectedPreset}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding}" FontSize="11"/>
+                                    <TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding}" FontSize="10"/>
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
@@ -439,10 +620,10 @@
             </Grid.ColumnDefinitions>
 
             <!-- Left Sidebar: Collapsible Component & Device Library -->
-            <Border Grid.Column="0" Background="#121620" BorderBrush="#1C2332" BorderThickness="0,0,1,0">
+            <Border Grid.Column="0" Background="#11151E" BorderBrush="#1A2232" BorderThickness="0,0,1,0">
                 <Grid>
-                    <!-- Expanded Panel View (Width: 235px) -->
-                    <Border Width="235" IsVisible="{Binding IsLeftPanelOpen}">
+                    <!-- Expanded Panel View (Width: 246px) -->
+                    <Border Width="246" IsVisible="{Binding IsLeftPanelOpen}">
                         <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="8,8,6,8">
                             
                             <!-- Panel Header with Title and Collapse Button -->
@@ -460,7 +641,7 @@
                             </Grid>
 
                             <!-- Real-time Filter Search Box -->
-                            <Border Grid.Row="1" Background="#0C0E14" BorderBrush="#252E3E" BorderThickness="1" CornerRadius="6" Padding="6,4" Margin="2,0,2,8">
+                            <Border Grid.Row="1" Background="#0C0E14" BorderBrush="#222B3C" BorderThickness="1" CornerRadius="6" Padding="7,4" Margin="2,0,2,8">
                                 <Grid ColumnDefinitions="Auto,*">
                                     <TextBlock Grid.Column="0" Text="🔍" FontSize="10" Foreground="#6C7D93" VerticalAlignment="Center" Margin="0,0,6,0"/>
                                     <TextBox Grid.Column="1" Text="{Binding ComponentSearchQuery, Mode=TwoWay}"
@@ -470,18 +651,16 @@
                                 </Grid>
                             </Border>
 
-                            <!-- Category Chips Horizontal Bar -->
-                            <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,0,0,8">
-                                <StackPanel Orientation="Horizontal" Spacing="3">
-                                    <Button Classes="chip" Content="All" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="All"/>
-                                    <Button Classes="chip" Content="Passives" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Passives"/>
-                                    <Button Classes="chip" Content="Sources" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Sources"/>
-                                    <Button Classes="chip" Content="Semis" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Semiconductors"/>
-                                    <Button Classes="chip" Content="Quantum" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Quantum &amp; RF"/>
-                                    <Button Classes="chip" Content="Logic" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Logic &amp; ICs"/>
-                                    <Button Classes="chip" Content="Meters" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Meters &amp; Switches"/>
-                                </StackPanel>
-                            </ScrollViewer>
+                            <!-- Category Chips Filter (2-Row Wrapped Badges with Active Glowing States) -->
+                            <WrapPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
+                                <Button Classes="categoryTab" Classes.active="{Binding IsAllSelected}" Content="All" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="All" Margin="1,2"/>
+                                <Button Classes="categoryTab" Classes.active="{Binding IsPassivesSelected}" Content="Passives" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Passives" Margin="1,2"/>
+                                <Button Classes="categoryTab" Classes.active="{Binding IsSourcesSelected}" Content="Sources" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Sources" Margin="1,2"/>
+                                <Button Classes="categoryTab" Classes.active="{Binding IsSemiconductorsSelected}" Content="Semis" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Semiconductors" Margin="1,2"/>
+                                <Button Classes="categoryTab" Classes.active="{Binding IsQuantumSelected}" Content="Quantum" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Quantum &amp; RF" Margin="1,2"/>
+                                <Button Classes="categoryTab" Classes.active="{Binding IsLogicSelected}" Content="Logic" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Logic &amp; ICs" Margin="1,2"/>
+                                <Button Classes="categoryTab" Classes.active="{Binding IsMetersSelected}" Content="Meters" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Meters &amp; Switches" Margin="1,2"/>
+                            </WrapPanel>
 
                             <!-- Scrollable List of Component Cards -->
                             <ScrollViewer Grid.Row="3" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
@@ -489,19 +668,19 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:PaletteItemViewModel">
                                             <Button Classes="libbtn" Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).StartPlacingDeviceCommand}" CommandParameter="{Binding Code}" ToolTip.Tip="{Binding ToolTip}">
-                                                <Grid ColumnDefinitions="28,*,Auto">
-                                                    <!-- Symbol Badge -->
-                                                    <Border Grid.Column="0" Background="#161C27" BorderBrush="#222D3E" BorderThickness="1" CornerRadius="5" Width="26" Height="26" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding Symbol}" FontSize="12" Foreground="#00F0FF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <Grid ColumnDefinitions="30,*,Auto">
+                                                    <!-- Illuminated Monogram Emblem with Domain Glow -->
+                                                    <Border Grid.Column="0" Background="{Binding AccentBackground}" BorderBrush="{Binding AccentBorder}" BorderThickness="1.2" CornerRadius="6" Width="28" Height="28" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Symbol}" FontSize="10" FontWeight="Bold" FontFamily="Consolas,SF Mono,Menlo,monospace" Foreground="{Binding AccentColor}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                     </Border>
                                                     <!-- Name & Category -->
                                                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,0,0">
-                                                        <TextBlock Text="{Binding Name}" FontSize="11" FontWeight="SemiBold" Foreground="#D5E0EE"/>
-                                                        <TextBlock Text="{Binding Category}" FontSize="9" Foreground="#6A7D94"/>
+                                                        <TextBlock Text="{Binding Name}" FontSize="11" FontWeight="SemiBold" Foreground="#E2E8F0"/>
+                                                        <TextBlock Text="{Binding Category}" FontSize="9" Foreground="#6C7D93"/>
                                                     </StackPanel>
-                                                    <!-- Hotkey Ref Badge -->
-                                                    <Border Grid.Column="2" Background="#111722" BorderBrush="#1C2738" BorderThickness="1" CornerRadius="4" Padding="5,1" VerticalAlignment="Center" IsVisible="{Binding HasHotkey}">
-                                                        <TextBlock Text="{Binding Hotkey}" FontSize="9" FontWeight="Bold" FontFamily="Consolas,SF Mono,Menlo,monospace" Foreground="#00E676"/>
+                                                    <!-- Keycap Ref Badge -->
+                                                    <Border Grid.Column="2" Background="#0A0E16" BorderBrush="#223048" BorderThickness="1" CornerRadius="4" Padding="5,2" VerticalAlignment="Center" IsVisible="{Binding HasHotkey}">
+                                                        <TextBlock Text="{Binding Hotkey}" FontSize="8.5" FontWeight="Bold" FontFamily="Consolas,SF Mono,Menlo,monospace" Foreground="#00E676"/>
                                                     </Border>
                                                 </Grid>
                                             </Button>
@@ -510,12 +689,16 @@
                                 </ItemsControl>
                             </ScrollViewer>
 
-                            <!-- Bottom Helper Text -->
-                            <Border Grid.Row="4" Background="#0E131C" BorderBrush="#1B2433" BorderThickness="1" CornerRadius="5" Padding="6,4" Margin="2,6,2,0">
-                                <TextBlock Text="Click component to place on canvas" FontSize="9.5" Foreground="#5A6D85" TextAlignment="Center"/>
+                            <!-- Bottom Guidance Hint -->
+                            <Border Grid.Row="4" Background="#0B0F17" BorderBrush="#1C273C" BorderThickness="1" CornerRadius="6" Padding="7,5" Margin="2,6,2,0">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <TextBlock Grid.Column="0" Text="⚡" FontSize="10" Foreground="#00F0FF" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="Click item to place on schematic grid" FontSize="9.5" FontWeight="Medium" Foreground="#7E90A8" VerticalAlignment="Center"/>
+                                </Grid>
                             </Border>
                         </Grid>
                     </Border>
+
 
                     <!-- Collapsed Slim Mini Rail (Width: 42px) -->
                     <Border Width="42" IsVisible="{Binding !IsLeftPanelOpen}">
@@ -609,21 +792,28 @@
                         <!-- Oscilloscope Probe Control Bar -->
                         <Border Grid.Row="0" Background="#10141D" BorderBrush="#1C2332" BorderThickness="0,0,0,1" Padding="10,4">
                             <Grid ColumnDefinitions="Auto,Auto,*,Auto">
-                                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                    <TextBlock Text="OSCILLOSCOPE PROBES:" FontSize="10" FontWeight="Bold" Foreground="#6C7D93" VerticalAlignment="Center"/>
-                                    <Button Classes="chip" Command="{Binding StartProbingCommand}" CommandParameter="1" ToolTip.Tip="Click then click any terminal on schematic to attach CH1">
-                                        <StackPanel Orientation="Horizontal" Spacing="5">
-                                            <Ellipse Width="6" Height="6" Fill="#FFD700"/>
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
+                                    <Border Background="#151A26" BorderBrush="#202A3C" BorderThickness="1" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                                        <TextBlock Text="∿ CHANNELS" FontSize="9.5" FontWeight="Bold" Foreground="#7E8F9F" FontFamily="Consolas,SF Mono,Menlo,monospace"/>
+                                    </Border>
+                                    <Button Classes="chip" Classes.probing="{Binding IsProbingCh1}" Command="{Binding StartProbingCommand}" CommandParameter="1" ToolTip.Tip="Click then click any terminal on schematic to attach CH1">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                            <Ellipse Width="7" Height="7" Fill="#FFD700"/>
                                             <TextBlock Text="{Binding ProbedCh1Label}" FontSize="10" Foreground="#FFD700" FontWeight="Bold"/>
                                         </StackPanel>
                                     </Button>
-                                    <Button Classes="chip" Command="{Binding StartProbingCommand}" CommandParameter="2" ToolTip.Tip="Click then click any terminal on schematic to attach CH2">
-                                        <StackPanel Orientation="Horizontal" Spacing="5">
-                                            <Ellipse Width="6" Height="6" Fill="#00F0FF"/>
+                                    <Button Classes="chip" Classes.probing2="{Binding IsProbingCh2}" Command="{Binding StartProbingCommand}" CommandParameter="2" ToolTip.Tip="Click then click any terminal on schematic to attach CH2">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                            <Ellipse Width="7" Height="7" Fill="#00F0FF"/>
                                             <TextBlock Text="{Binding ProbedCh2Label}" FontSize="10" Foreground="#00F0FF" FontWeight="Bold"/>
                                         </StackPanel>
                                     </Button>
-                                    <Button Classes="chip" Content="Reset Probes" Command="{Binding ClearProbesCommand}" ToolTip.Tip="Reset to automatic signal probing"/>
+                                    <Button Classes="chip" Command="{Binding ClearProbesCommand}" ToolTip.Tip="Reset to automatic signal probing">
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <TextBlock Text="↺" FontSize="11" Foreground="#8C9BB0"/>
+                                            <TextBlock Text="Reset Auto" FontSize="10" Foreground="#8C9BB0"/>
+                                        </StackPanel>
+                                    </Button>
                                 </StackPanel>
 
                                 <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
@@ -661,57 +851,70 @@
                         </Grid>
 
                         <!-- Selected Component Card -->
-                        <Border Background="#161B26" BorderBrush="#222B3B" BorderThickness="1" CornerRadius="8" Padding="10">
-                            <StackPanel Spacing="8">
+                        <Border Background="#141924" BorderBrush="#202A3C" BorderThickness="1" CornerRadius="10" Padding="12"
+                                BoxShadow="0 4 16 #20000000">
+                            <StackPanel Spacing="10">
                                 
                                 <Grid ColumnDefinitions="*,Auto">
-                                    <StackPanel Grid.Column="0">
-                                        <TextBlock Text="{Binding SelectedDevice.Type, FallbackValue='No Selection', StringFormat='Component: {0}'}" 
-                                                   FontWeight="Bold" FontSize="13" Foreground="#00F0FF"/>
-                                        <TextBlock Text="{Binding SelectedDevice.Id, StringFormat='ID: #{0}', FallbackValue='Click device or pin on canvas'}" 
-                                                   FontSize="11" Foreground="#7A8B9E"/>
+                                    <StackPanel Grid.Column="0" Spacing="2">
+                                        <TextBlock Text="{Binding SelectedDeviceDisplayName, FallbackValue='No Selection'}" 
+                                                   FontWeight="Bold" FontSize="13.5" Foreground="#FFFFFF"/>
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <Border Background="#0E2333" BorderBrush="#00F0FF" BorderThickness="1" CornerRadius="4" Padding="5,1" VerticalAlignment="Center"
+                                                    IsVisible="{Binding HasSelectedDevice}">
+                                                <TextBlock Text="{Binding SelectedDeviceCategoryName}" FontSize="9" FontWeight="Bold" Foreground="#00F0FF"/>
+                                            </Border>
+                                            <TextBlock Text="{Binding SelectedDevice.Id, StringFormat='REF: #{0}', FallbackValue='Click device on canvas'}" 
+                                                       FontSize="10.5" Foreground="#7A8B9E" VerticalAlignment="Center"/>
+                                        </StackPanel>
                                     </StackPanel>
 
                                     <!-- Quick Rotate / Delete Buttons -->
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" IsVisible="{Binding HasSelectedDevice}">
-                                        <Button Classes="chip" Content="↺" ToolTip.Tip="Rotate 90°" Command="{Binding RotateSelectedCommand}"/>
-                                        <Button Classes="chip" Content="🗑" ToolTip.Tip="Delete" Command="{Binding DeleteSelectedCommand}"/>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" IsVisible="{Binding HasSelectedDevice}" VerticalAlignment="Center">
+                                        <Button Classes="chip" Content="↺" ToolTip.Tip="Rotate 90° (R)" Command="{Binding RotateSelectedCommand}"/>
+                                        <Button Classes="chip" Content="🗑" ToolTip.Tip="Delete (Del)" Command="{Binding DeleteSelectedCommand}"/>
                                     </StackPanel>
                                 </Grid>
 
-                                <Separator Background="#222B3B" Height="1"/>
+                                <Separator Background="#1D2638" Height="1"/>
 
-                                <!-- Instantaneous Electrical Values (Single Row 3-Column Telemetry Badges) -->
-                                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="5" Margin="0,2,0,4" IsVisible="{Binding HasSelectedDevice}">
-                                    <Border Grid.Column="0" Background="#141C28" BorderBrush="#202C3D" BorderThickness="1" CornerRadius="6" Padding="5,4">
-                                        <StackPanel Spacing="2">
-                                            <TextBlock Text="Current (I)" FontSize="9" FontWeight="Medium" Foreground="#7A8B9E"/>
-                                            <TextBlock Text="{Binding SelectedDevice.FormattedCurrent, FallbackValue='0.00 A'}" 
-                                                       FontWeight="Bold" FontSize="10" Foreground="#00E676"
+                                <!-- Instantaneous Electrical Values (Single Row 3-Column Telemetry Badges with Glowing Accents) -->
+                                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="6" Margin="0,2,0,2" IsVisible="{Binding HasSelectedDevice}">
+                                    <!-- Current Telemetry Card -->
+                                    <Border Grid.Column="0" Background="#0F141E" BorderBrush="#1C2B22" BorderThickness="1" CornerRadius="6" Padding="6,5">
+                                        <Grid RowDefinitions="Auto,Auto">
+                                            <TextBlock Grid.Row="0" Text="CURRENT (I)" FontSize="8.5" FontWeight="Bold" Foreground="#6C7F93" LetterSpacing="0.5"/>
+                                            <TextBlock Grid.Row="1" Text="{Binding SelectedDevice.FormattedCurrent, FallbackValue='0.00 A'}" 
+                                                       FontWeight="Bold" FontSize="10.5" Foreground="#00E676"
                                                        TextTrimming="CharacterEllipsis"
+                                                       Margin="0,2,0,0"
                                                        ToolTip.Tip="{Binding SelectedDevice.FormattedCurrent}"
                                                        FontFamily="Consolas,SF Mono,Menlo,monospace"/>
-                                        </StackPanel>
+                                        </Grid>
                                     </Border>
-                                    <Border Grid.Column="1" Background="#141C28" BorderBrush="#202C3D" BorderThickness="1" CornerRadius="6" Padding="5,4">
-                                        <StackPanel Spacing="2">
-                                            <TextBlock Text="Voltage (ΔV)" FontSize="9" FontWeight="Medium" Foreground="#7A8B9E"/>
-                                            <TextBlock Text="{Binding SelectedDevice.FormattedVoltage, FallbackValue='0.00 V'}" 
-                                                       FontWeight="Bold" FontSize="10" Foreground="#FFD700"
+                                    <!-- Voltage Telemetry Card -->
+                                    <Border Grid.Column="1" Background="#0F141E" BorderBrush="#2F2B14" BorderThickness="1" CornerRadius="6" Padding="6,5">
+                                        <Grid RowDefinitions="Auto,Auto">
+                                            <TextBlock Grid.Row="0" Text="VOLTAGE (ΔV)" FontSize="8.5" FontWeight="Bold" Foreground="#6C7F93" LetterSpacing="0.5"/>
+                                            <TextBlock Grid.Row="1" Text="{Binding SelectedDevice.FormattedVoltage, FallbackValue='0.00 V'}" 
+                                                       FontWeight="Bold" FontSize="10.5" Foreground="#FFD700"
                                                        TextTrimming="CharacterEllipsis"
+                                                       Margin="0,2,0,0"
                                                        ToolTip.Tip="{Binding SelectedDevice.FormattedVoltage}"
                                                        FontFamily="Consolas,SF Mono,Menlo,monospace"/>
-                                        </StackPanel>
+                                        </Grid>
                                     </Border>
-                                    <Border Grid.Column="2" Background="#141C28" BorderBrush="#202C3D" BorderThickness="1" CornerRadius="6" Padding="5,4">
-                                        <StackPanel Spacing="2">
-                                            <TextBlock Text="Power (P)" FontSize="9" FontWeight="Medium" Foreground="#7A8B9E"/>
-                                            <TextBlock Text="{Binding SelectedDevice.FormattedPower, FallbackValue='0.00 W'}" 
-                                                       FontWeight="Bold" FontSize="10" Foreground="#00F0FF"
+                                    <!-- Power Telemetry Card -->
+                                    <Border Grid.Column="2" Background="#0F141E" BorderBrush="#142838" BorderThickness="1" CornerRadius="6" Padding="6,5">
+                                        <Grid RowDefinitions="Auto,Auto">
+                                            <TextBlock Grid.Row="0" Text="POWER (P)" FontSize="8.5" FontWeight="Bold" Foreground="#6C7F93" LetterSpacing="0.5"/>
+                                            <TextBlock Grid.Row="1" Text="{Binding SelectedDevice.FormattedPower, FallbackValue='0.00 W'}" 
+                                                       FontWeight="Bold" FontSize="10.5" Foreground="#00F0FF"
                                                        TextTrimming="CharacterEllipsis"
+                                                       Margin="0,2,0,0"
                                                        ToolTip.Tip="{Binding SelectedDevice.FormattedPower}"
                                                        FontFamily="Consolas,SF Mono,Menlo,monospace"/>
-                                        </StackPanel>
+                                        </Grid>
                                     </Border>
                                 </Grid>
 
@@ -746,49 +949,49 @@
 
                                     <!-- Color Preset Swatches -->
                                     <WrapPanel Orientation="Horizontal">
-                                        <Button Classes="chip" Command="{Binding SetLedColorCommand}" CommandParameter="Red" ToolTip.Tip="Red - 650nm (Vf ≈ 1.9V)" Margin="1,2" Padding="6,3">
+                                        <Button Classes="chip" Classes.active="{Binding IsRedSelected}" Command="{Binding SetLedColorCommand}" CommandParameter="Red" ToolTip.Tip="Red - 650nm (Vf ≈ 1.9V)" Margin="1,2" Padding="6,3">
                                             <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                                                 <Border Width="8" Height="8" CornerRadius="4" Background="#FF2020"/>
                                                 <TextBlock Text="Red" FontSize="10"/>
                                             </StackPanel>
                                         </Button>
-                                        <Button Classes="chip" Command="{Binding SetLedColorCommand}" CommandParameter="Orange" ToolTip.Tip="Orange - 610nm (Vf ≈ 2.0V)" Margin="1,2" Padding="6,3">
+                                        <Button Classes="chip" Classes.active="{Binding IsOrangeSelected}" Command="{Binding SetLedColorCommand}" CommandParameter="Orange" ToolTip.Tip="Orange - 610nm (Vf ≈ 2.0V)" Margin="1,2" Padding="6,3">
                                             <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                                                 <Border Width="8" Height="8" CornerRadius="4" Background="#FF8C00"/>
                                                 <TextBlock Text="Orange" FontSize="10"/>
                                             </StackPanel>
                                         </Button>
-                                        <Button Classes="chip" Command="{Binding SetLedColorCommand}" CommandParameter="Yellow" ToolTip.Tip="Yellow - 585nm (Vf ≈ 2.1V)" Margin="1,2" Padding="6,3">
+                                        <Button Classes="chip" Classes.active="{Binding IsYellowSelected}" Command="{Binding SetLedColorCommand}" CommandParameter="Yellow" ToolTip.Tip="Yellow - 585nm (Vf ≈ 2.1V)" Margin="1,2" Padding="6,3">
                                             <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                                                 <Border Width="8" Height="8" CornerRadius="4" Background="#FFD700"/>
                                                 <TextBlock Text="Yellow" FontSize="10"/>
                                             </StackPanel>
                                         </Button>
-                                        <Button Classes="chip" Command="{Binding SetLedColorCommand}" CommandParameter="Green" ToolTip.Tip="Green - 525nm (Vf ≈ 2.4V)" Margin="1,2" Padding="6,3">
+                                        <Button Classes="chip" Classes.active="{Binding IsGreenSelected}" Command="{Binding SetLedColorCommand}" CommandParameter="Green" ToolTip.Tip="Green - 525nm (Vf ≈ 2.4V)" Margin="1,2" Padding="6,3">
                                             <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                                                 <Border Width="8" Height="8" CornerRadius="4" Background="#00E060"/>
                                                 <TextBlock Text="Green" FontSize="10"/>
                                             </StackPanel>
                                         </Button>
-                                        <Button Classes="chip" Command="{Binding SetLedColorCommand}" CommandParameter="Cyan" ToolTip.Tip="Cyan - 500nm (Vf ≈ 2.5V)" Margin="1,2" Padding="6,3">
+                                        <Button Classes="chip" Classes.active="{Binding IsCyanSelected}" Command="{Binding SetLedColorCommand}" CommandParameter="Cyan" ToolTip.Tip="Cyan - 500nm (Vf ≈ 2.5V)" Margin="1,2" Padding="6,3">
                                             <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                                                 <Border Width="8" Height="8" CornerRadius="4" Background="#00F0FF"/>
                                                 <TextBlock Text="Cyan" FontSize="10"/>
                                             </StackPanel>
                                         </Button>
-                                        <Button Classes="chip" Command="{Binding SetLedColorCommand}" CommandParameter="Blue" ToolTip.Tip="Blue - 470nm (Vf ≈ 2.6V)" Margin="1,2" Padding="6,3">
+                                        <Button Classes="chip" Classes.active="{Binding IsBlueSelected}" Command="{Binding SetLedColorCommand}" CommandParameter="Blue" ToolTip.Tip="Blue - 470nm (Vf ≈ 2.6V)" Margin="1,2" Padding="6,3">
                                             <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                                                 <Border Width="8" Height="8" CornerRadius="4" Background="#0080FF"/>
                                                 <TextBlock Text="Blue" FontSize="10"/>
                                             </StackPanel>
                                         </Button>
-                                        <Button Classes="chip" Command="{Binding SetLedColorCommand}" CommandParameter="Violet" ToolTip.Tip="Violet - 405nm (Vf ≈ 3.1V)" Margin="1,2" Padding="6,3">
+                                        <Button Classes="chip" Classes.active="{Binding IsVioletSelected}" Command="{Binding SetLedColorCommand}" CommandParameter="Violet" ToolTip.Tip="Violet - 405nm (Vf ≈ 3.1V)" Margin="1,2" Padding="6,3">
                                             <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                                                 <Border Width="8" Height="8" CornerRadius="4" Background="#8B00FF"/>
                                                 <TextBlock Text="Violet" FontSize="10"/>
                                             </StackPanel>
                                         </Button>
-                                        <Button Classes="chip" Command="{Binding SetLedColorCommand}" CommandParameter="White" ToolTip.Tip="White - Phosphor (Vf ≈ 3.2V)" Margin="1,2" Padding="6,3">
+                                        <Button Classes="chip" Classes.active="{Binding IsWhiteSelected}" Command="{Binding SetLedColorCommand}" CommandParameter="White" ToolTip.Tip="White - Phosphor (Vf ≈ 3.2V)" Margin="1,2" Padding="6,3">
                                             <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                                                 <Border Width="8" Height="8" CornerRadius="4" Background="#FFFFFF"/>
                                                 <TextBlock Text="White" FontSize="10"/>
@@ -993,57 +1196,134 @@
             </Border>
 
             <!-- SPICE Netlist Modal Drawer -->
-            <Border Grid.Column="0" Grid.ColumnSpan="3" Background="#E0080B10" IsVisible="{Binding IsSpiceDrawerOpen}" ZIndex="100">
-                <Border Background="#141822" BorderBrush="#00F0FF" BorderThickness="1" CornerRadius="10" 
-                        Width="840" Height="520" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="16">
+            <Border Grid.Column="0" Grid.ColumnSpan="3" Background="#CC05070B" IsVisible="{Binding IsSpiceDrawerOpen}" ZIndex="100">
+                <Border Width="880" Height="540" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        BorderBrush="#00F0FF" BorderThickness="1.2" CornerRadius="12"
+                        BoxShadow="0 20 60 #99000000, 0 0 25 #3300F0FF" Padding="20">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                            <GradientStop Color="#161D2A" Offset="0.0"/>
+                            <GradientStop Color="#0D111A" Offset="1.0"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
                     <Grid RowDefinitions="Auto,*,Auto">
-                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
-                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                                <TextBlock Text="📋" FontSize="16" VerticalAlignment="Center"/>
-                                <TextBlock Text="SPICE Simulation Deck (Berkeley SPICE 3f5 / LTspice / WRSPICE)" FontWeight="Bold" FontSize="14" Foreground="#00F0FF" VerticalAlignment="Center"/>
+                        <!-- Header -->
+                        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,14">
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                <Border Background="#0C2533" BorderBrush="#00F0FF" BorderThickness="1" CornerRadius="6" Padding="8,4" BoxShadow="0 0 8 #3300F0FF">
+                                    <TextBlock Text="⚡ SPICE 3f5 / LTSPICE" FontSize="11" FontWeight="Bold" Foreground="#00F0FF" FontFamily="Consolas,SF Mono,Menlo,monospace"/>
+                                </Border>
+                                <TextBlock Text="SPICE Simulation Deck &amp; Netlist Architecture" FontWeight="Bold" FontSize="13" Foreground="#FFFFFF" VerticalAlignment="Center"/>
                             </StackPanel>
-                            <Button Grid.Column="1" Classes="chip" Content="✕ Close" Command="{Binding ToggleSpiceDrawerCommand}"/>
+
+                            <Button Grid.Column="2" Classes="chip" Command="{Binding ToggleSpiceDrawerCommand}" ToolTip.Tip="Close SPICE Deck (Esc)">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="✕" FontSize="11" Foreground="#FF5555" FontWeight="Bold"/>
+                                    <TextBlock Text="Close" FontSize="11" Foreground="#D0DBE8"/>
+                                </StackPanel>
+                            </Button>
                         </Grid>
 
-                        <TextBox Grid.Row="1" Text="{Binding SpiceNetlistText, Mode=TwoWay}"
-                                 FontFamily="Consolas,Cascadia Code,Courier New,monospace" FontSize="12"
-                                 Foreground="#A6E22E" Background="#0C0E14" BorderBrush="#252E3E"
-                                 AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap"/>
+                        <!-- Code Editor Container -->
+                        <Border Grid.Row="1" Background="#07090E" BorderBrush="#1C2536" BorderThickness="1" CornerRadius="8" Padding="2"
+                                BoxShadow="inset 0 2 6 #44000000">
+                            <TextBox Text="{Binding SpiceNetlistText, Mode=TwoWay}"
+                                     FontFamily="Consolas,Cascadia Code,Fira Code,Menlo,monospace" FontSize="12"
+                                     Foreground="#5AF78E" Background="Transparent" BorderThickness="0"
+                                     AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap"
+                                     Padding="12,10"/>
+                        </Border>
 
-                        <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Margin="0,12,0,0">
+                        <!-- Footer Actions -->
+                        <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Margin="0,14,0,0">
                             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                                <Button Classes="toolbtn" Content="↻ Re-export from Circuit" Command="{Binding GenerateSpiceNetlistCommand}"/>
-                                <Button Classes="toolbtn" Content="📥 Import Deck to Canvas" Command="{Binding ImportSpiceDeckCommand}"/>
+                                <Button Classes="toolbtn" Command="{Binding GenerateSpiceNetlistCommand}" ToolTip.Tip="Re-extract fresh netlist from current schematic">
+                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                        <TextBlock Text="↻" Foreground="#00F0FF" FontWeight="Bold"/>
+                                        <TextBlock Text="Re-export from Circuit" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Classes="toolbtn" Command="{Binding CopySpiceToClipboardCommand}" ToolTip.Tip="Copy deck to system clipboard">
+                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                        <TextBlock Text="📋" FontSize="11"/>
+                                        <TextBlock Text="Copy to Clipboard" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Classes="toolbtn" Command="{Binding ImportSpiceDeckCommand}" ToolTip.Tip="Synthesize and import netlist into canvas schematic">
+                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                        <TextBlock Text="📥" Foreground="#00E676" FontWeight="Bold"/>
+                                        <TextBlock Text="Import Deck to Canvas" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </Button>
                             </StackPanel>
-                            <TextBlock Grid.Column="2" Text="Compatible with LTspice, ngspice &amp; WRSPICE" FontSize="11" Foreground="#5A6D85" VerticalAlignment="Center"/>
+
+                            <Border Grid.Column="2" Background="#111622" BorderBrush="#1C2434" BorderThickness="1" CornerRadius="4" Padding="8,4">
+                                <TextBlock Text="Standard Berkeley SPICE 3f5, LTspice, ngspice &amp; WRSPICE compatible" FontSize="10.5" Foreground="#6C7D93" VerticalAlignment="Center"/>
+                            </Border>
                         </Grid>
                     </Grid>
                 </Border>
             </Border>
 
             <!-- Bill of Materials (BOM) Modal Drawer -->
-            <Border Grid.Column="0" Grid.ColumnSpan="3" Background="#E0080B10" IsVisible="{Binding IsBomDrawerOpen}" ZIndex="100">
-                <Border Background="#141822" BorderBrush="#00E676" BorderThickness="1" CornerRadius="10" 
-                        Width="1060" Height="550" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="16">
+            <Border Grid.Column="0" Grid.ColumnSpan="3" Background="#CC05070B" IsVisible="{Binding IsBomDrawerOpen}" ZIndex="100">
+                <Border Width="1100" Height="580" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        BorderBrush="#00E676" BorderThickness="1.2" CornerRadius="12"
+                        BoxShadow="0 20 60 #99000000, 0 0 25 #3300E676" Padding="20">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                            <GradientStop Color="#161D2A" Offset="0.0"/>
+                            <GradientStop Color="#0D111A" Offset="1.0"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
                     <Grid RowDefinitions="Auto,*,Auto">
-                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
-                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                                <TextBlock Text="📊" FontSize="16" VerticalAlignment="Center"/>
-                                <TextBlock Text="Manufacturing Bill of Materials (BOM) • Mil-Spec &amp; Aerospace Class" FontWeight="Bold" FontSize="14" Foreground="#00E676" VerticalAlignment="Center"/>
+                        <!-- Header -->
+                        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,14">
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                <Border Background="#0C2B1D" BorderBrush="#00E676" BorderThickness="1" CornerRadius="6" Padding="8,4" BoxShadow="0 0 8 #3300E676">
+                                    <TextBlock Text="📊 MIL-SPEC / IPC CLASS 3" FontSize="11" FontWeight="Bold" Foreground="#00E676" FontFamily="Consolas,SF Mono,Menlo,monospace"/>
+                                </Border>
+                                <TextBlock Text="Manufacturing Bill of Materials (BOM) • Procurement &amp; Assembly" FontWeight="Bold" FontSize="13" Foreground="#FFFFFF" VerticalAlignment="Center"/>
                             </StackPanel>
-                            <Button Grid.Column="1" Classes="chip" Content="✕ Close" Command="{Binding ToggleBomDrawerCommand}"/>
+
+                            <Button Grid.Column="2" Classes="chip" Command="{Binding ToggleBomDrawerCommand}" ToolTip.Tip="Close BOM (Esc)">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="✕" FontSize="11" Foreground="#FF5555" FontWeight="Bold"/>
+                                    <TextBlock Text="Close" FontSize="11" Foreground="#D0DBE8"/>
+                                </StackPanel>
+                            </Button>
                         </Grid>
 
-                        <TextBox Grid.Row="1" Text="{Binding BomText, Mode=TwoWay}"
-                                 FontFamily="Consolas,Cascadia Code,Courier New,monospace" FontSize="11.5"
-                                 Foreground="#E2E8F0" Background="#0C0E14" BorderBrush="#252E3E"
-                                 AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap" IsReadOnly="True"/>
+                        <!-- Code / Markdown Container -->
+                        <Border Grid.Row="1" Background="#07090E" BorderBrush="#1C2536" BorderThickness="1" CornerRadius="8" Padding="2"
+                                BoxShadow="inset 0 2 6 #44000000">
+                            <TextBox Text="{Binding BomText, Mode=TwoWay}"
+                                     FontFamily="Consolas,Cascadia Code,Fira Code,Menlo,monospace" FontSize="11.5"
+                                     Foreground="#E2E8F0" Background="Transparent" BorderThickness="0"
+                                     AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap" IsReadOnly="True"
+                                     Padding="12,10"/>
+                        </Border>
 
-                        <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Margin="0,12,0,0">
+                        <!-- Footer Actions -->
+                        <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Margin="0,14,0,0">
                             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                                <Button Classes="toolbtn" Content="↻ Re-generate BOM" Command="{Binding GenerateBomCommand}"/>
+                                <Button Classes="toolbtn" Command="{Binding GenerateBomCommand}" ToolTip.Tip="Regenerate BOM breakdown from current design">
+                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                        <TextBlock Text="↻" Foreground="#00E676" FontWeight="Bold"/>
+                                        <TextBlock Text="Re-generate BOM" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Classes="toolbtn" Command="{Binding CopyBomToClipboardCommand}" ToolTip.Tip="Copy BOM table to system clipboard">
+                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                        <TextBlock Text="📋" FontSize="11"/>
+                                        <TextBlock Text="Copy BOM Markdown" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </Button>
                             </StackPanel>
-                            <TextBlock Grid.Column="2" Text="Industry Standard Reference Designators &amp; SMD Packaging" FontSize="11" Foreground="#5A6D85" VerticalAlignment="Center"/>
+
+                            <Border Grid.Column="2" Background="#111622" BorderBrush="#1C2434" BorderThickness="1" CornerRadius="4" Padding="8,4">
+                                <TextBlock Text="Standardized RefDes &amp; SMD Packaging (DigiKey / Mouser / JLCPCB ready)" FontSize="10.5" Foreground="#6C7D93" VerticalAlignment="Center"/>
+                            </Border>
                         </Grid>
                     </Grid>
                 </Border>
