@@ -17,6 +17,7 @@ using FryCircuit.Core.Models;
 using FryCircuit.Core.Simulation;
 using FryCircuit.UI.Controls;
 using FryWorld.Sdk.Plugins;
+using FryWorld.Sdk.Shortcuts;
 using Material.Icons;
 
 namespace FryCircuit.UI.ViewModels;
@@ -27,6 +28,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly FryWorld.Sdk.Plugins.IFryPluginContext? _pluginContext;
     private readonly EventHandler? _historyHandler;
     private readonly Action<string>? _settingsHandler;
+    private readonly List<IDisposable> _shortcutRegistrations = new();
     private bool _disposed;
     private MnaSolver? _solver;
     private CircuitCanvas? _canvas;
@@ -533,6 +535,18 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             {
                 // Settings store not available or mocked
             }
+
+            if (_pluginContext.TryGetService<IShortcutManager>(out var shortcutManager))
+            {
+                _shortcutRegistrations.Add(shortcutManager.RegisterCommandHandler("circuit.tool.wire", () => SetToolMode("wire")));
+                _shortcutRegistrations.Add(shortcutManager.RegisterCommandHandler("circuit.tool.select", () => SetToolMode("select")));
+                _shortcutRegistrations.Add(shortcutManager.RegisterCommandHandler("circuit.tool.cut", () => SetToolMode("cut")));
+                _shortcutRegistrations.Add(shortcutManager.RegisterCommandHandler("circuit.device.rotate", () => RotateSelected()));
+                _shortcutRegistrations.Add(shortcutManager.RegisterCommandHandler("circuit.view.zoomToFit", () => ZoomToFit()));
+                _shortcutRegistrations.Add(shortcutManager.RegisterCommandHandler("circuit.edit.delete", () => DeleteSelected()));
+                _shortcutRegistrations.Add(shortcutManager.RegisterCommandHandler("circuit.edit.undo", () => Undo()));
+                _shortcutRegistrations.Add(shortcutManager.RegisterCommandHandler("circuit.edit.redo", () => Redo()));
+            }
         }
 
         LoadPreset(initialPreset);
@@ -650,6 +664,11 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         {
             SelectedWire = null;
             HasSelectedWire = false;
+        }
+
+        if (_pluginContext != null && _pluginContext.TryGetService<IShortcutManager>(out var smDev))
+        {
+            smDev.SetContextKey("circuit.hasSelection", HasSelectedDevice || HasSelectedWire);
         }
 
         OnPropertyChanged(nameof(HasNoSelection));
@@ -785,6 +804,12 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             FormattedSelectedWireVoltage = "0.00 V";
             IsSelectedWireGround = false;
         }
+
+        if (_pluginContext != null && _pluginContext.TryGetService<IShortcutManager>(out var smWire))
+        {
+            smWire.SetContextKey("circuit.hasSelection", HasSelectedDevice || HasSelectedWire);
+        }
+
         NotifySelectedWireProbeProperties();
     }
 
@@ -1639,6 +1664,12 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                 // Ignored
             }
         }
+
+        foreach (var reg in _shortcutRegistrations)
+        {
+            reg.Dispose();
+        }
+        _shortcutRegistrations.Clear();
 
         _canvas = null;
         _oscilloscope = null;

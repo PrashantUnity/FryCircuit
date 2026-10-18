@@ -267,6 +267,79 @@ public class CircuitPlugin : IFryPlugin
             }
         });
 
+        // 6. Scoped Keyboard Shortcuts (Active when Circuit Studio is open)
+        ctx.RegisterShortcut(new ShortcutDescriptor
+        {
+            Id = "circuit.tool.wire",
+            Description = "Switch to Wire Placement Tool",
+            KeyGesture = "W",
+            Scope = Id,
+            Category = "Tools"
+        });
+
+        ctx.RegisterShortcut(new ShortcutDescriptor
+        {
+            Id = "circuit.tool.select",
+            Description = "Switch to Selection Tool",
+            KeyGesture = "V",
+            Scope = Id,
+            Category = "Tools"
+        });
+
+        ctx.RegisterShortcut(new ShortcutDescriptor
+        {
+            Id = "circuit.tool.cut",
+            Description = "Switch to Wire Cut Tool",
+            KeyGesture = "X",
+            Scope = Id,
+            Category = "Tools"
+        });
+
+        ctx.RegisterShortcut(new ShortcutDescriptor
+        {
+            Id = "circuit.device.rotate",
+            Description = "Rotate Selected Component",
+            KeyGesture = "R",
+            Scope = Id,
+            Category = "Edit"
+        });
+
+        ctx.RegisterShortcut(new ShortcutDescriptor
+        {
+            Id = "circuit.view.zoomToFit",
+            Description = "Zoom Canvas to Fit All Components",
+            KeyGesture = "F",
+            Scope = Id,
+            Category = "View"
+        });
+
+        ctx.RegisterShortcut(new ShortcutDescriptor
+        {
+            Id = "circuit.edit.delete",
+            Description = "Delete Selected Device or Wire",
+            KeyGesture = "Delete",
+            Scope = Id,
+            Category = "Edit"
+        });
+
+        ctx.RegisterShortcut(new ShortcutDescriptor
+        {
+            Id = "circuit.edit.undo",
+            Description = "Undo Last Action",
+            KeyGesture = "Mod+Z",
+            Scope = Id,
+            Category = "Edit"
+        });
+
+        ctx.RegisterShortcut(new ShortcutDescriptor
+        {
+            Id = "circuit.edit.redo",
+            Description = "Redo Last Action",
+            KeyGesture = "Mod+Shift+Z",
+            Scope = Id,
+            Category = "Edit"
+        });
+
         return Task.CompletedTask;
     }
 }

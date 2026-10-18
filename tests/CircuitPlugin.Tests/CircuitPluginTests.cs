@@ -31,6 +31,17 @@ public sealed class CircuitPluginTests
         var ribbonTabs = host.Context.GetRegisteredRibbonTabs();
         Assert.Contains(ribbonTabs, r => r.Id == "circuit");
 
+        var shortcuts = host.Context.GetRegisteredShortcuts();
+        Assert.Contains(shortcuts, s => s.Id == "circuit.tool.wire" && s.KeyGesture == "W" && s.Scope == "com.fryworld.circuit");
+        Assert.Contains(shortcuts, s => s.Id == "circuit.tool.select" && s.KeyGesture == "V");
+        Assert.Contains(shortcuts, s => s.Id == "circuit.device.rotate" && s.KeyGesture == "R");
+        Assert.Contains(shortcuts, s => s.Id == "circuit.edit.delete" && s.KeyGesture == "Delete");
+        Assert.Contains(shortcuts, s => s.Id == "circuit.edit.undo" && s.KeyGesture == "Mod+Z");
+        Assert.Contains(shortcuts, s => s.Id == "circuit.edit.redo" && s.KeyGesture == "Mod+Shift+Z");
+
+        var bindings = host.Context.Shortcuts.GetRegisteredBindings();
+        Assert.Contains(bindings, b => b.Id == "circuit.tool.wire" && b.Scope == "com.fryworld.circuit");
+
         await host.AssertCleanUnmountAsync();
     }
 
@@ -282,6 +293,47 @@ public sealed class CircuitPluginTests
         Assert.Equal(185, vm.ScopeRowHeight.Value);
 
         vm.Dispose();
+    }
+
+    [Fact]
+    public async Task CircuitShortcuts_ExecuteCommands_WhenScopeIsActive()
+    {
+        await using var host = await FryPluginTestHost.MountAsync<CircuitPlugin>();
+
+        // Instantiate ViewModel with plugin context (wires IShortcutManager command handlers)
+        var vm = new FryCircuit.UI.ViewModels.MainWindowViewModel(host.Context);
+
+        var shortcutManager = host.Context.GetService<FryWorld.Sdk.Shortcuts.IShortcutManager>();
+        shortcutManager.SetActiveScope("com.fryworld.circuit");
+
+        // Initially in Select mode
+        Assert.Equal(FryCircuit.UI.Controls.CircuitToolMode.Select, vm.ActiveToolMode);
+
+        // Press 'W' -> switches to Wire mode
+        var keyArgs = new Avalonia.Input.KeyEventArgs
+        {
+            RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent,
+            Key = Avalonia.Input.Key.W,
+            KeyModifiers = Avalonia.Input.KeyModifiers.None
+        };
+        bool handled = shortcutManager.ProcessKeyDown(keyArgs);
+        Assert.True(handled);
+        Assert.True(keyArgs.Handled);
+        Assert.Equal(FryCircuit.UI.Controls.CircuitToolMode.Wire, vm.ActiveToolMode);
+
+        // Press 'V' -> switches to Select mode
+        var keyArgs2 = new Avalonia.Input.KeyEventArgs
+        {
+            RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent,
+            Key = Avalonia.Input.Key.V,
+            KeyModifiers = Avalonia.Input.KeyModifiers.None
+        };
+        bool handled2 = shortcutManager.ProcessKeyDown(keyArgs2);
+        Assert.True(handled2);
+        Assert.Equal(FryCircuit.UI.Controls.CircuitToolMode.Select, vm.ActiveToolMode);
+
+        vm.Dispose();
+        await host.AssertCleanUnmountAsync();
     }
 }
 

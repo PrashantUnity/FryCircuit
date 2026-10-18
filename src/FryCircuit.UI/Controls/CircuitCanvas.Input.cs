@@ -747,6 +747,9 @@ public partial class CircuitCanvas
     {
         base.OnKeyDown(e);
 
+        if (e.Handled)
+            return;
+
         bool isCtrlOrCmd = e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta);
         if (isCtrlOrCmd && e.Key == Key.Z)
         {
