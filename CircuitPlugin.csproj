@@ -9,7 +9,7 @@
     <AssemblyName>CircuitPlugin</AssemblyName>
     <PackageId>FryWorld.Plugin.Circuit</PackageId>
     <RootNamespace>FryCircuit.Plugin</RootNamespace>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <!-- FryWorld.Sdk packages the plugin on Release builds; keep the file name the store catalog links to. -->
     <FryPluginPackageName>Circuit</FryPluginPackageName>
     <Company>Code Fry Dev</Company>
