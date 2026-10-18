@@ -238,9 +238,59 @@
         <Style Selector="Slider.green:pressed">
             <Setter Property="Foreground" Value="#FFFFFF"/>
         </Style>
+
+        <!-- Library Component Card Button -->
+        <Style Selector="Button.libbtn">
+            <Setter Property="Background" Value="#151A24"/>
+            <Setter Property="Foreground" Value="#D5E0EE"/>
+            <Setter Property="BorderBrush" Value="#222B3B"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="7,5"/>
+            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.12"/>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.12"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.libbtn:pointerover">
+            <Setter Property="Background" Value="#1E2738"/>
+            <Setter Property="BorderBrush" Value="#00F0FF"/>
+        </Style>
+        <Style Selector="Button.libbtn:pressed">
+            <Setter Property="Background" Value="#0F3342"/>
+            <Setter Property="BorderBrush" Value="#00F0FF"/>
+        </Style>
+
+        <!-- Mini Rail Button -->
+        <Style Selector="Button.minirailbtn">
+            <Setter Property="Background" Value="#161B26"/>
+            <Setter Property="BorderBrush" Value="#222B3B"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="5"/>
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.12"/>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.12"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.minirailbtn:pointerover">
+            <Setter Property="Background" Value="#202A3D"/>
+            <Setter Property="BorderBrush" Value="#00F0FF"/>
+        </Style>
     </UserControl.Styles>
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto">
+    <Grid RowDefinitions="Auto,*,Auto">
 
         <!-- Top Header & Main Tool Controls -->
         <Border Grid.Row="0" Background="#121620" BorderBrush="#1C2332" BorderThickness="0,0,0,1" Padding="10,6">
@@ -281,6 +331,15 @@
                                 </MenuFlyout>
                             </Button.Flyout>
                         </Button>
+
+                        <!-- Toggle Left Library Panel -->
+                        <ToggleButton Classes="modebtn" IsChecked="{Binding IsLeftPanelOpen, Mode=TwoWay}"
+                                      ToolTip.Tip="Toggle Component Library Panel (◀ / ▶)">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="◨" FontSize="11" Foreground="#00F0FF"/>
+                                <TextBlock Text="Library" FontSize="11" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </ToggleButton>
 
                         <Separator Background="#242E40" Width="1" Height="18" Margin="3,0"/>
 
@@ -353,101 +412,135 @@
             </ScrollViewer>
         </Border>
 
-        <!-- Component Palette Toolbar (Click to Place on Canvas) -->
-        <Border Grid.Row="1" Background="#141822" BorderBrush="#1C2332" BorderThickness="0,0,0,1" Padding="10,4">
-            <Grid ColumnDefinitions="Auto,Auto,*">
-                <!-- Category Filter Tabs -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                    <Button Classes="categoryTab" Content="All" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="All"/>
-                    <Button Classes="categoryTab" Content="Passives" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Passives"/>
-                    <Button Classes="categoryTab" Content="Sources" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Sources"/>
-                    <Button Classes="categoryTab" Content="Semiconductors" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Semiconductors"/>
-                    <Button Classes="categoryTab" Content="Quantum &amp; RF" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Quantum &amp; RF"/>
-                    <Button Classes="categoryTab" Content="Logic &amp; ICs" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Logic &amp; ICs"/>
-                    <Button Classes="categoryTab" Content="Meters" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Meters &amp; Switches"/>
-                </StackPanel>
+        <!-- Main Workspace: Left Library Sidebar + Canvas & Probes + Right Inspector Sidebar -->
+        <Grid Grid.Row="1" ColumnDefinitions="Auto,*,315">
 
-                <Separator Grid.Column="1" Background="#242E40" Width="1" Height="20" Margin="8,0"/>
+            <!-- Left Sidebar: Collapsible Component & Device Library -->
+            <Border Grid.Column="0" Background="#121620" BorderBrush="#1C2332" BorderThickness="0,0,1,0">
+                <Grid>
+                    <!-- Expanded Panel View (Width: 235px) -->
+                    <Border Width="235" IsVisible="{Binding IsLeftPanelOpen}">
+                        <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="8,8,6,8">
+                            
+                            <!-- Panel Header with Title and Collapse Button -->
+                            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="4,2,4,8">
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                    <TextBlock Text="📦" FontSize="13" VerticalAlignment="Center"/>
+                                    <TextBlock Text="COMPONENTS" FontWeight="Bold" FontSize="11" Foreground="#BAC7D8" LetterSpacing="0.8" VerticalAlignment="Center"/>
+                                    <Border Background="#1C2332" CornerRadius="4" Padding="5,1" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding FilteredPaletteItems.Count}" FontSize="9" FontWeight="Bold" Foreground="#00F0FF"/>
+                                    </Border>
+                                </StackPanel>
+                                <Button Grid.Column="1" Classes="chip" Command="{Binding ToggleLeftPanelCommand}" ToolTip.Tip="Collapse Library Panel (◀)">
+                                    <TextBlock Text="◀" FontSize="10" Foreground="#8C9BB0"/>
+                                </Button>
+                            </Grid>
 
-                <!-- Category Filtered Palette Buttons -->
-                <ScrollViewer Grid.Column="2" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
-                    <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Left" VerticalAlignment="Center">
-                        
-                        <!-- Passives -->
-                        <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsPassivesVisible}">
-                            <Button Classes="palette" Content="⤹ Resistor" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="resistor"/>
-                            <Button Classes="palette" Content="⫝ Capacitor" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="capacitor"/>
-                            <Button Classes="palette" Content="ᛘ Inductor" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="inductor"/>
-                            <Button Classes="palette" Content="🎛 Potentiometer" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="potentiometer"/>
-                            <Separator Background="#242E40" Width="1" Height="16" Margin="4,0"/>
-                        </StackPanel>
+                            <!-- Real-time Filter Search Box -->
+                            <Border Grid.Row="1" Background="#0C0E14" BorderBrush="#252E3E" BorderThickness="1" CornerRadius="6" Padding="6,4" Margin="2,0,2,8">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <TextBlock Grid.Column="0" Text="🔍" FontSize="10" Foreground="#6C7D93" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBox Grid.Column="1" Text="{Binding ComponentSearchQuery, Mode=TwoWay}"
+                                             PlaceholderText="Filter components..." FontSize="11"
+                                             Background="Transparent" BorderThickness="0" Padding="0"
+                                             Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
 
-                        <!-- Sources & Ground -->
-                        <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsSourcesVisible}">
-                            <Button Classes="palette" Content="⚡ DC Voltage" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="vsource"/>
-                            <Button Classes="palette" Content="∿ AC Sine" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="vsrcsine"/>
-                            <Button Classes="palette" Content="⤤ DC Current" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="csource"/>
-                            <Button Classes="palette" Content="🔋 LiPo Battery" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="battery" ToolTip.Tip="Lithium-Ion / LiPo Electrochemical Cell with Temperature Derating &amp; SOC"/>
-                            <Button Classes="palette" Content="⏚ Ground" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="ground"/>
-                            <Separator Background="#242E40" Width="1" Height="16" Margin="4,0"/>
-                        </StackPanel>
+                            <!-- Category Chips Horizontal Bar -->
+                            <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,0,0,8">
+                                <StackPanel Orientation="Horizontal" Spacing="3">
+                                    <Button Classes="chip" Content="All" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="All"/>
+                                    <Button Classes="chip" Content="Passives" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Passives"/>
+                                    <Button Classes="chip" Content="Sources" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Sources"/>
+                                    <Button Classes="chip" Content="Semis" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Semiconductors"/>
+                                    <Button Classes="chip" Content="Quantum" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Quantum &amp; RF"/>
+                                    <Button Classes="chip" Content="Logic" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Logic &amp; ICs"/>
+                                    <Button Classes="chip" Content="Meters" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Meters &amp; Switches"/>
+                                </StackPanel>
+                            </ScrollViewer>
 
-                        <!-- Semiconductors & Diodes -->
-                        <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsSemiconductorsVisible}">
-                            <Button Classes="palette" Content="▷| Diode" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="diode"/>
-                            <Button Classes="palette" Content="▷| Zener" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="zener"/>
-                            <Button Classes="palette" Content="💡 LED" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="led"/>
-                            <Button Classes="palette" Content="⎶ NPN BJT" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="npn"/>
-                            <Button Classes="palette" Content="⎶ NMOS FET" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="nmos"/>
-                            <Button Classes="palette" Content="▷ Op-Amp" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="opamp"/>
-                            <Separator Background="#242E40" Width="1" Height="16" Margin="4,0"/>
-                        </StackPanel>
+                            <!-- Scrollable List of Component Cards -->
+                            <ScrollViewer Grid.Row="3" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
+                                <ItemsControl ItemsSource="{Binding FilteredPaletteItems}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:PaletteItemViewModel">
+                                            <Button Classes="libbtn" Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).StartPlacingDeviceCommand}" CommandParameter="{Binding Code}" ToolTip.Tip="{Binding ToolTip}">
+                                                <Grid ColumnDefinitions="28,*,Auto">
+                                                    <!-- Symbol Badge -->
+                                                    <Border Grid.Column="0" Background="#161C27" BorderBrush="#222D3E" BorderThickness="1" CornerRadius="5" Width="26" Height="26" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Symbol}" FontSize="12" Foreground="#00F0FF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <!-- Name & Category -->
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="8,0,0,0">
+                                                        <TextBlock Text="{Binding Name}" FontSize="11" FontWeight="SemiBold" Foreground="#D5E0EE"/>
+                                                        <TextBlock Text="{Binding Category}" FontSize="9" Foreground="#6A7D94"/>
+                                                    </StackPanel>
+                                                    <!-- Hotkey Ref Badge -->
+                                                    <Border Grid.Column="2" Background="#111722" BorderBrush="#1C2738" BorderThickness="1" CornerRadius="4" Padding="5,1" VerticalAlignment="Center" IsVisible="{Binding HasHotkey}">
+                                                        <TextBlock Text="{Binding Hotkey}" FontSize="9" FontWeight="Bold" FontFamily="Consolas,SF Mono,Menlo,monospace" Foreground="#00E676"/>
+                                                    </Border>
+                                                </Grid>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
 
-                        <!-- Quantum, RF & Aerospace Devices -->
-                        <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsQuantumVisible}">
-                            <Button Classes="palette" Content="⚛ Josephson JJ" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="josephson" ToolTip.Tip="Superconducting Josephson Junction (RCSJ Qubit Model)"/>
-                            <Button Classes="palette" Content="🧲 DC SQUID" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="squid" ToolTip.Tip="Superconducting Quantum Interference Device (Dual-JJ Magnetometer with Magnetic Flux Tuning)"/>
-                            <Button Classes="palette" Content="▷| Tunnel Diode" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="tunneldiode" ToolTip.Tip="Esaki Tunnel Diode with Quantum Band-to-Band Tunneling &amp; NDR"/>
-                            <Button Classes="palette" Content="〰 T-Line" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="tline" ToolTip.Tip="High-Frequency Bergeron Wave Distributed Transmission Line"/>
-                            <Button Classes="palette" Content="☄ Cosmic Pulse" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="cosmicipulse" ToolTip.Tip="Aerospace Radiation Heavy-Ion Strike SEU Double-Exponential Charge Injection"/>
-                            <Button Classes="palette" Content="🧭 Hall Sensor" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="hallsensor" ToolTip.Tip="4-Terminal Magnetic Hall Effect Transducer for Drone Motor Commutation"/>
-                            <Button Classes="palette" Content="🏷 Net Label" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="netlabel" ToolTip.Tip="EDA Net Label / Global Rail Marker"/>
-                            <Separator Background="#242E40" Width="1" Height="16" Margin="4,0"/>
-                        </StackPanel>
+                            <!-- Bottom Helper Text -->
+                            <Border Grid.Row="4" Background="#0E131C" BorderBrush="#1B2433" BorderThickness="1" CornerRadius="5" Padding="6,4" Margin="2,6,2,0">
+                                <TextBlock Text="Click component to place on canvas" FontSize="9.5" Foreground="#5A6D85" TextAlignment="Center"/>
+                            </Border>
+                        </Grid>
+                    </Border>
 
-                        <!-- Logic Gates & ICs -->
-                        <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsLogicVisible}">
-                            <Button Classes="palette" Content="&amp; AND Gate" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="and"/>
-                            <Button Classes="palette" Content="≥1 OR Gate" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="or"/>
-                            <Button Classes="palette" Content="! NOT Gate" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="not"/>
-                            <Button Classes="palette" Content="&amp;̄ NAND Gate" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="nand"/>
-                            <Button Classes="palette" Content="≥̄1 NOR Gate" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="nor"/>
-                            <Button Classes="palette" Content="=1 XOR Gate" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="xor"/>
-                            <Button Classes="palette" Content="⏱ 555 Timer" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="timer555"/>
-                            <Button Classes="palette" Content="🔠 7-Seg Display" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="seg7" ToolTip.Tip="7-Segment LED Numeric &amp; Hex Display"/>
-                            <Button Classes="palette" Content="🧮 7448 Decoder" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="bcd7seg" ToolTip.Tip="BCD-to-7-Segment Active-High Decoder Driver IC"/>
-                            <Button Classes="palette" Content="🔢 74193 Counter" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="counter4" ToolTip.Tip="4-Bit Synchronous Up/Down Binary Counter IC"/>
-                            <Separator Background="#242E40" Width="1" Height="16" Margin="4,0"/>
-                        </StackPanel>
+                    <!-- Collapsed Slim Mini Rail (Width: 42px) -->
+                    <Border Width="42" IsVisible="{Binding !IsLeftPanelOpen}">
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                            <StackPanel Spacing="5" Margin="4,8" HorizontalAlignment="Center">
+                                <!-- Expand Button -->
+                                <Button Classes="chip" Command="{Binding ToggleLeftPanelCommand}" ToolTip.Tip="Expand Library Panel (▶)" Width="32" Height="30" Padding="0">
+                                    <TextBlock Text="▶" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#00F0FF"/>
+                                </Button>
 
-                        <!-- Controls, Meters, Lamp -->
-                        <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding IsMetersVisible}">
-                            <Button Classes="palette" Content="⏻ Switch" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="spst"/>
-                            <Button Classes="palette" Content="💡 Lamp" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="lamp"/>
-                            <Button Classes="palette" Content="[V] Voltmeter" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="voltmeter"/>
-                            <Button Classes="palette" Content="[A] Ammeter" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="amperemeter"/>
-                            <Button Classes="palette" Content="[Ω] Ohmmeter" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="ohmmeter"/>
-                        </StackPanel>
-                    </StackPanel>
-                </ScrollViewer>
-            </Grid>
-        </Border>
+                                <Separator Background="#222C3D" Height="1" Margin="2,2"/>
 
-        <!-- Main Workspace: Canvas + Inspector Sidebar + Dual Oscilloscope -->
-        <Grid Grid.Row="2" ColumnDefinitions="*,315">
+                                <!-- Quick Placement Icons on Mini Rail -->
+                                <Button Classes="minirailbtn" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="resistor" ToolTip.Tip="Resistor (R)">
+                                    <TextBlock Text="⤹" FontSize="14" Foreground="#00F0FF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Button>
+                                <Button Classes="minirailbtn" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="capacitor" ToolTip.Tip="Capacitor (C)">
+                                    <TextBlock Text="⫝" FontSize="14" Foreground="#00F0FF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Button>
+                                <Button Classes="minirailbtn" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="inductor" ToolTip.Tip="Inductor (L)">
+                                    <TextBlock Text="ᛘ" FontSize="13" Foreground="#00F0FF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Button>
+                                <Button Classes="minirailbtn" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="vsource" ToolTip.Tip="DC Voltage (V)">
+                                    <TextBlock Text="⚡" FontSize="13" Foreground="#00E676" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Button>
+                                <Button Classes="minirailbtn" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="ground" ToolTip.Tip="Ground (G)">
+                                    <TextBlock Text="⏚" FontSize="14" Foreground="#FFD700" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Button>
+                                <Button Classes="minirailbtn" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="diode" ToolTip.Tip="Diode (D)">
+                                    <TextBlock Text="▷|" FontSize="12" Foreground="#00F0FF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Button>
+                                <Button Classes="minirailbtn" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="led" ToolTip.Tip="LED (LED)">
+                                    <TextBlock Text="💡" FontSize="13" Foreground="#FFD700" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Button>
+                                <Button Classes="minirailbtn" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="npn" ToolTip.Tip="NPN BJT (Q)">
+                                    <TextBlock Text="⎶" FontSize="13" Foreground="#00F0FF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Button>
+                                <Button Classes="minirailbtn" Command="{Binding StartPlacingDeviceCommand}" CommandParameter="spst" ToolTip.Tip="Switch (SW)">
+                                    <TextBlock Text="⏻" FontSize="13" Foreground="#00E676" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Button>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </Border>
 
-            <!-- Left / Center: Schematic Canvas + Oscilloscope -->
-            <Grid Grid.Column="0" RowDefinitions="*,170">
+            <!-- Center: Schematic Canvas + Oscilloscope -->
+            <Grid Grid.Column="1" RowDefinitions="*,170">
                 <!-- Circuit Schematic Canvas -->
                 <controls:CircuitCanvas x:Name="CanvasControl" Grid.Row="0" 
                                         Circuit="{Binding CurrentCircuit}"
@@ -488,7 +581,7 @@
             </Grid>
 
             <!-- Right Sidebar: Live Electrical Inspector & Tuning Controls -->
-            <Border Grid.Column="1" Background="#121620" BorderBrush="#1C2332" BorderThickness="1,0,0,0" Padding="12,12,6,12">
+            <Border Grid.Column="2" Background="#121620" BorderBrush="#1C2332" BorderThickness="1,0,0,0" Padding="12,12,6,12">
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
                     <StackPanel Spacing="10">
                         <TextBlock Text="CIRCUIT INSPECTOR" FontWeight="Bold" FontSize="11" Foreground="#6C7D93" LetterSpacing="1"/>
@@ -826,7 +919,7 @@
             </Border>
 
             <!-- SPICE Netlist Modal Drawer -->
-            <Border Grid.Column="0" Grid.ColumnSpan="2" Background="#E0080B10" IsVisible="{Binding IsSpiceDrawerOpen}" ZIndex="100">
+            <Border Grid.Column="0" Grid.ColumnSpan="3" Background="#E0080B10" IsVisible="{Binding IsSpiceDrawerOpen}" ZIndex="100">
                 <Border Background="#141822" BorderBrush="#00F0FF" BorderThickness="1" CornerRadius="10" 
                         Width="840" Height="520" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="16">
                     <Grid RowDefinitions="Auto,*,Auto">
@@ -855,7 +948,7 @@
             </Border>
 
             <!-- Bill of Materials (BOM) Modal Drawer -->
-            <Border Grid.Column="0" Grid.ColumnSpan="2" Background="#E0080B10" IsVisible="{Binding IsBomDrawerOpen}" ZIndex="100">
+            <Border Grid.Column="0" Grid.ColumnSpan="3" Background="#E0080B10" IsVisible="{Binding IsBomDrawerOpen}" ZIndex="100">
                 <Border Background="#141822" BorderBrush="#00E676" BorderThickness="1" CornerRadius="10" 
                         Width="1060" Height="550" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="16">
                     <Grid RowDefinitions="Auto,*,Auto">
@@ -884,7 +977,7 @@
         </Grid>
 
         <!-- Bottom Status Bar -->
-        <Border Grid.Row="3" Background="#0A0D12" BorderBrush="#181F2C" BorderThickness="0,1,0,0" Padding="12,5">
+        <Border Grid.Row="2" Background="#0A0D12" BorderBrush="#181F2C" BorderThickness="0,1,0,0" Padding="12,5">
             <Grid ColumnDefinitions="Auto,*,Auto">
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
                     <Ellipse Width="8" Height="8" Fill="#00E676" VerticalAlignment="Center"/>

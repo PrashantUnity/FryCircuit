@@ -182,6 +182,23 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private ObservableCollection<DeviceParameterViewModel> _deviceParameters = new();
 
     [ObservableProperty]
+    private bool _isLeftPanelOpen = true;
+
+    [RelayCommand]
+    public void ToggleLeftPanel()
+    {
+        IsLeftPanelOpen = !IsLeftPanelOpen;
+    }
+
+    [ObservableProperty]
+    private string _componentSearchQuery = "";
+
+    partial void OnComponentSearchQueryChanged(string value)
+    {
+        UpdateFilteredPaletteItems();
+    }
+
+    [ObservableProperty]
     private string _selectedPaletteCategory = "All";
 
     public bool IsPassivesVisible => SelectedPaletteCategory == "All" || SelectedPaletteCategory == "Passives";
@@ -191,10 +208,91 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public bool IsLogicVisible => SelectedPaletteCategory == "All" || SelectedPaletteCategory == "Logic & ICs";
     public bool IsMetersVisible => SelectedPaletteCategory == "All" || SelectedPaletteCategory == "Meters & Switches";
 
+    public IReadOnlyList<PaletteItemViewModel> AllPaletteItems { get; } = new List<PaletteItemViewModel>
+    {
+        // Passives
+        new() { Code = "resistor", Name = "Resistor", Symbol = "⤹", Category = "Passives", Hotkey = "R", ToolTip = "Passive linear 2-terminal resistor" },
+        new() { Code = "capacitor", Name = "Capacitor", Symbol = "⫝", Category = "Passives", Hotkey = "C", ToolTip = "Passive dual-plate energy storage capacitor" },
+        new() { Code = "inductor", Name = "Inductor", Symbol = "ᛘ", Category = "Passives", Hotkey = "L", ToolTip = "Passive magnetic flux coil inductor" },
+        new() { Code = "potentiometer", Name = "Potentiometer", Symbol = "🎛", Category = "Passives", Hotkey = "P", ToolTip = "3-terminal variable voltage divider" },
+
+        // Sources & Ground
+        new() { Code = "vsource", Name = "DC Voltage", Symbol = "⚡", Category = "Sources", Hotkey = "V", ToolTip = "Constant DC voltage power source" },
+        new() { Code = "vsrcsine", Name = "AC Sine Source", Symbol = "∿", Category = "Sources", Hotkey = "S", ToolTip = "Sinusoidal AC alternating voltage generator" },
+        new() { Code = "csource", Name = "DC Current", Symbol = "⤤", Category = "Sources", Hotkey = "I", ToolTip = "Constant ideal current generator" },
+        new() { Code = "battery", Name = "LiPo Battery", Symbol = "🔋", Category = "Sources", Hotkey = "BAT", ToolTip = "Lithium-Ion / LiPo Electrochemical Cell with Temperature Derating & SOC" },
+        new() { Code = "ground", Name = "Ground (0V)", Symbol = "⏚", Category = "Sources", Hotkey = "G", ToolTip = "Earth ground 0V reference rail" },
+
+        // Semiconductors
+        new() { Code = "diode", Name = "Diode", Symbol = "▷|", Category = "Semiconductors", Hotkey = "D", ToolTip = "P-N junction rectifier diode" },
+        new() { Code = "zener", Name = "Zener Diode", Symbol = "▷|", Category = "Semiconductors", Hotkey = "Z", ToolTip = "Reverse breakdown voltage regulator diode" },
+        new() { Code = "led", Name = "LED", Symbol = "💡", Category = "Semiconductors", Hotkey = "LED", ToolTip = "Optoelectronic light-emitting diode with photon emission" },
+        new() { Code = "npn", Name = "NPN BJT", Symbol = "⎶", Category = "Semiconductors", Hotkey = "Q", ToolTip = "Bipolar junction transistor (Ebers-Moll model)" },
+        new() { Code = "nmos", Name = "NMOS FET", Symbol = "⎶", Category = "Semiconductors", Hotkey = "M", ToolTip = "N-Channel MOSFET (Shichman-Hodges model)" },
+        new() { Code = "opamp", Name = "Op-Amp", Symbol = "▷", Category = "Semiconductors", Hotkey = "OA", ToolTip = "Operational amplifier (Differential input, single output)" },
+
+        // Quantum, RF & Aerospace
+        new() { Code = "josephson", Name = "Josephson JJ", Symbol = "⚛", Category = "Quantum & RF", Hotkey = "JJ", ToolTip = "Superconducting Josephson Junction (RCSJ Qubit Model)" },
+        new() { Code = "squid", Name = "DC SQUID", Symbol = "🧲", Category = "Quantum & RF", Hotkey = "SQ", ToolTip = "Superconducting Quantum Interference Device (Dual-JJ Magnetometer with Magnetic Flux Tuning)" },
+        new() { Code = "tunneldiode", Name = "Tunnel Diode", Symbol = "▷|", Category = "Quantum & RF", Hotkey = "TD", ToolTip = "Esaki Tunnel Diode with Quantum Band-to-Band Tunneling & NDR" },
+        new() { Code = "tline", Name = "T-Line", Symbol = "〰", Category = "Quantum & RF", Hotkey = "TL", ToolTip = "High-Frequency Bergeron Wave Distributed Transmission Line" },
+        new() { Code = "cosmicipulse", Name = "Cosmic Pulse", Symbol = "☄", Category = "Quantum & RF", Hotkey = "CP", ToolTip = "Aerospace Radiation Heavy-Ion Strike SEU Double-Exponential Charge Injection" },
+        new() { Code = "hallsensor", Name = "Hall Sensor", Symbol = "🧭", Category = "Quantum & RF", Hotkey = "HS", ToolTip = "4-Terminal Magnetic Hall Effect Transducer for Drone Motor Commutation" },
+        new() { Code = "netlabel", Name = "Net Label", Symbol = "🏷", Category = "Quantum & RF", Hotkey = "NET", ToolTip = "EDA Net Label / Global Rail Marker" },
+
+        // Logic & ICs
+        new() { Code = "and", Name = "AND Gate", Symbol = "&", Category = "Logic & ICs", Hotkey = "AND", ToolTip = "Dual-input Boolean AND logic gate" },
+        new() { Code = "or", Name = "OR Gate", Symbol = "≥1", Category = "Logic & ICs", Hotkey = "OR", ToolTip = "Dual-input Boolean OR logic gate" },
+        new() { Code = "not", Name = "NOT Gate", Symbol = "!", Category = "Logic & ICs", Hotkey = "NOT", ToolTip = "Single-input Boolean NOT inverter" },
+        new() { Code = "nand", Name = "NAND Gate", Symbol = "&̄", Category = "Logic & ICs", Hotkey = "NAND", ToolTip = "Dual-input Boolean NAND logic gate" },
+        new() { Code = "nor", Name = "NOR Gate", Symbol = "≥̄1", Category = "Logic & ICs", Hotkey = "NOR", ToolTip = "Dual-input Boolean NOR logic gate" },
+        new() { Code = "xor", Name = "XOR Gate", Symbol = "=1", Category = "Logic & ICs", Hotkey = "XOR", ToolTip = "Dual-input Boolean XOR logic gate" },
+        new() { Code = "timer555", Name = "555 Timer", Symbol = "⏱", Category = "Logic & ICs", Hotkey = "555", ToolTip = "Precision analog/digital timing circuit IC" },
+        new() { Code = "seg7", Name = "7-Seg Display", Symbol = "🔠", Category = "Logic & ICs", Hotkey = "7SEG", ToolTip = "7-Segment LED Numeric & Hex Display" },
+        new() { Code = "bcd7seg", Name = "7448 Decoder", Symbol = "🧮", Category = "Logic & ICs", Hotkey = "7448", ToolTip = "BCD-to-7-Segment Active-High Decoder Driver IC" },
+        new() { Code = "counter4", Name = "74193 Counter", Symbol = "🔢", Category = "Logic & ICs", Hotkey = "74193", ToolTip = "4-Bit Synchronous Up/Down Binary Counter IC" },
+
+        // Meters & Controls
+        new() { Code = "spst", Name = "SPST Switch", Symbol = "⏻", Category = "Meters & Switches", Hotkey = "SW", ToolTip = "Single-pole single-throw toggle switch (click to toggle)" },
+        new() { Code = "lamp", Name = "Lamp", Symbol = "💡", Category = "Meters & Switches", Hotkey = "LAMP", ToolTip = "Thermal tungsten filament dynamic load indicator" },
+        new() { Code = "voltmeter", Name = "Voltmeter", Symbol = "[V]", Category = "Meters & Switches", Hotkey = "VM", ToolTip = "High-impedance potential difference meter" },
+        new() { Code = "amperemeter", Name = "Ammeter", Symbol = "[A]", Category = "Meters & Switches", Hotkey = "AM", ToolTip = "Series low-resistance branch current meter" },
+        new() { Code = "ohmmeter", Name = "Ohmmeter", Symbol = "[Ω]", Category = "Meters & Switches", Hotkey = "OHM", ToolTip = "Active 2-terminal resistance measurement probe" }
+    };
+
+    public ObservableCollection<PaletteItemViewModel> FilteredPaletteItems { get; } = new();
+
+    public void UpdateFilteredPaletteItems()
+    {
+        FilteredPaletteItems.Clear();
+        var q = ComponentSearchQuery?.Trim();
+        bool hasQuery = !string.IsNullOrWhiteSpace(q);
+
+        foreach (var item in AllPaletteItems)
+        {
+            if (SelectedPaletteCategory != "All" && item.Category != SelectedPaletteCategory)
+                continue;
+
+            if (hasQuery)
+            {
+                bool matches = item.Name.Contains(q!, StringComparison.OrdinalIgnoreCase)
+                    || item.Code.Contains(q!, StringComparison.OrdinalIgnoreCase)
+                    || item.Category.Contains(q!, StringComparison.OrdinalIgnoreCase)
+                    || item.Hotkey.Contains(q!, StringComparison.OrdinalIgnoreCase)
+                    || item.ToolTip.Contains(q!, StringComparison.OrdinalIgnoreCase);
+
+                if (!matches) continue;
+            }
+
+            FilteredPaletteItems.Add(item);
+        }
+    }
+
     [RelayCommand]
     public void SelectPaletteCategory(string category)
     {
         SelectedPaletteCategory = category;
+        UpdateFilteredPaletteItems();
         OnPropertyChanged(nameof(IsPassivesVisible));
         OnPropertyChanged(nameof(IsSourcesVisible));
         OnPropertyChanged(nameof(IsSemiconductorsVisible));
@@ -273,6 +371,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         _timer.Tick += OnSimulationTick;
 
         LoadAvailablePresets();
+        UpdateFilteredPaletteItems();
 
         string initialPreset = "Half-Wave Rectifier";
 

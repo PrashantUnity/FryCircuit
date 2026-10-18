@@ -163,5 +163,51 @@ public sealed class CircuitPluginTests
         var hitColumn = canvas.FindDeviceAt(11.0, 10.0);
         Assert.Null(hitColumn);
     }
+
+    [Fact]
+    public void MainWindowViewModel_LeftPanel_TogglesOpenState()
+    {
+        var vm = new FryCircuit.UI.ViewModels.MainWindowViewModel();
+        Assert.True(vm.IsLeftPanelOpen);
+
+        vm.ToggleLeftPanelCommand.Execute(null);
+        Assert.False(vm.IsLeftPanelOpen);
+
+        vm.ToggleLeftPanelCommand.Execute(null);
+        Assert.True(vm.IsLeftPanelOpen);
+
+        vm.Dispose();
+    }
+
+    [Fact]
+    public void MainWindowViewModel_PaletteCatalog_FiltersByCategoryAndSearchQuery()
+    {
+        var vm = new FryCircuit.UI.ViewModels.MainWindowViewModel();
+        Assert.Equal(37, vm.AllPaletteItems.Count);
+        Assert.Equal(37, vm.FilteredPaletteItems.Count);
+
+        // Filter by category: Passives
+        vm.SelectPaletteCategoryCommand.Execute("Passives");
+        Assert.Equal("Passives", vm.SelectedPaletteCategory);
+        Assert.Equal(4, vm.FilteredPaletteItems.Count); // resistor, capacitor, inductor, potentiometer
+        Assert.All(vm.FilteredPaletteItems, item => Assert.Equal("Passives", item.Category));
+
+        // Filter by search query: "ind" while in Passives
+        vm.ComponentSearchQuery = "ind";
+        Assert.Single(vm.FilteredPaletteItems);
+        Assert.Equal("inductor", vm.FilteredPaletteItems[0].Code);
+
+        // Reset category to "All", search for "gate"
+        vm.SelectPaletteCategoryCommand.Execute("All");
+        vm.ComponentSearchQuery = "gate";
+        Assert.Equal(6, vm.FilteredPaletteItems.Count); // AND, OR, NOT, NAND, NOR, XOR
+        Assert.All(vm.FilteredPaletteItems, item => Assert.Equal("Logic & ICs", item.Category));
+
+        // Clear search
+        vm.ComponentSearchQuery = "";
+        Assert.Equal(37, vm.FilteredPaletteItems.Count);
+
+        vm.Dispose();
+    }
 }
 
