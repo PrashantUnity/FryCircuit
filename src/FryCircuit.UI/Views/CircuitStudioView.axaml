@@ -243,80 +243,90 @@
     <Grid RowDefinitions="Auto,Auto,*,Auto">
 
         <!-- Top Header & Main Tool Controls -->
-        <Border Grid.Row="0" Background="#121620" BorderBrush="#1C2332" BorderThickness="0,0,0,1" Padding="12,8">
-            <Grid ColumnDefinitions="Auto,Auto,*,Auto">
-                
-                <!-- App Title & Logo -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,10,0">
-                    <Border Background="#00E676" CornerRadius="7" Width="26" Height="26">
-                        <TextBlock Text="⚡" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
-                    <TextBlock Text="FryCircuit" FontSize="16" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
-                    <Border Background="#1C2332" CornerRadius="4" Padding="4,2" VerticalAlignment="Center">
-                        <TextBlock Text="CAD v2.0" FontSize="10" FontWeight="SemiBold" Foreground="#00F0FF"/>
-                    </Border>
-                </StackPanel>
-
-                <!-- Tool Mode Selector -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
-                    <Button Classes="modebtn" Classes.active="{Binding IsSelectMode}" Content="↖ Select" Command="{Binding SetToolModeCommand}" CommandParameter="select"/>
-                    <Button Classes="modebtn" Classes.active="{Binding IsWireMode}" Content="⚡ Wire" Command="{Binding SetToolModeCommand}" CommandParameter="wire"/>
-                    <Button Classes="modebtn" Classes.active="{Binding IsCutMode}" Content="✂ Cut" Command="{Binding SetToolModeCommand}" CommandParameter="cut"/>
-                    <Button Classes="modebtn" Content="↺ Rotate" Command="{Binding RotateSelectedCommand}"/>
-                    <Button Classes="modebtn" Content="🗑 Delete" Command="{Binding DeleteSelectedCommand}"/>
-
-                    <Separator Background="#242E40" Width="1" Height="18" Margin="3,0"/>
-
-                    <Button Classes="modebtn" Content="↩ Undo" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" ToolTip.Tip="{Binding UndoLabel}"/>
-                    <Button Classes="modebtn" Content="↪ Redo" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" ToolTip.Tip="{Binding RedoLabel}"/>
-
-                    <Separator Background="#242E40" Width="1" Height="18" Margin="3,0"/>
-
-                    <!-- Live Circuit Visual Overlays -->
-                    <ToggleButton Classes="modebtn" IsChecked="{Binding ShowCurrentAnnotations, Mode=TwoWay}"
-                                  ToolTip.Tip="Toggle Live Branch Currents (Animated direction arrows &amp; values)">
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                            <TextBlock Text="⚡" FontSize="11" Foreground="#00E676"/>
-                            <TextBlock Text="Currents" FontSize="11" FontWeight="SemiBold"/>
-                        </StackPanel>
-                    </ToggleButton>
-                    <ToggleButton Classes="modebtn" IsChecked="{Binding ShowVoltageAnnotations, Mode=TwoWay}"
-                                  ToolTip.Tip="Toggle Live Node Voltages (Junction &amp; rail badges)">
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                            <TextBlock Text="⏚" FontSize="11" Foreground="#FFD700"/>
-                            <TextBlock Text="Voltages" FontSize="11" FontWeight="SemiBold"/>
-                        </StackPanel>
-                    </ToggleButton>
-                </StackPanel>
-
-                <!-- Right: Simulation Controls & Preset Selection -->
-                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="3" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <!-- Simulation Controls -->
-                    <Button Classes="toolbtn" Command="{Binding ToggleSimulationCommand}">
-                        <TextBlock Text="{Binding PlayPauseButtonText}" FontWeight="Bold"/>
-                    </Button>
-                    <Button Classes="toolbtn" Content="⏭ Step" Command="{Binding StepSimulationCommand}" />
-                    <Button Classes="toolbtn" Content="↺ Reset" Command="{Binding ResetSimulationCommand}" />
-                    <Button Classes="toolbtn" Content="⛶ Fit" Command="{Binding ZoomToFitCommand}" />
-                    <Button Classes="toolbtn" Content="📋 SPICE" Command="{Binding ToggleSpiceDrawerCommand}" ToolTip.Tip="Inspect &amp; export Berkeley SPICE / LTspice / WRSPICE netlist" />
-                    <Button Classes="toolbtn" Content="📊 BOM" Command="{Binding ToggleBomDrawerCommand}" ToolTip.Tip="Generate and view manufacturing Bill of Materials" />
-
-                    <!-- Simulation Speed Slider -->
-                    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" Margin="3,0,3,0">
-                        <TextBlock Text="Speed:" Foreground="#8C9BB0" FontSize="11" VerticalAlignment="Center"/>
-                        <Slider Classes="cyberSlider green" Width="68" Minimum="0.1" Maximum="4.0" Value="{Binding SimulationSpeed}" VerticalAlignment="Center"/>
-                        <Border Background="#0E1A16" BorderBrush="#1B3828" BorderThickness="1" CornerRadius="4" Padding="4,1" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding SimulationSpeed, StringFormat='{}{0:F1}x'}" Foreground="#00E676" FontWeight="Bold" FontSize="10" FontFamily="Consolas,SF Mono,Menlo,monospace" VerticalAlignment="Center"/>
+        <Border Grid.Row="0" Background="#121620" BorderBrush="#1C2332" BorderThickness="0,0,0,1" Padding="10,6">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                    
+                    <!-- App Title & Logo -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,8,0">
+                        <Border Background="#00E676" CornerRadius="7" Width="24" Height="24">
+                            <TextBlock Text="⚡" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="FryCircuit" FontSize="15" FontWeight="Bold" Foreground="#FFFFFF" VerticalAlignment="Center"/>
+                        <Border Background="#1C2332" CornerRadius="4" Padding="3,1" VerticalAlignment="Center">
+                            <TextBlock Text="CAD" FontSize="9" FontWeight="SemiBold" Foreground="#00F0FF"/>
                         </Border>
                     </StackPanel>
 
-                    <!-- Presets Selection -->
-                    <TextBlock Text="Preset:" Foreground="#8C9BB0" FontSize="11" VerticalAlignment="Center"/>
-                    <ComboBox ItemsSource="{Binding AvailablePresets}" 
-                              SelectedItem="{Binding SelectedPreset}"
-                              Width="305" Background="#171D28" Foreground="#D8E2F0" BorderBrush="#252E3E" CornerRadius="6" FontSize="11"/>
-                </StackPanel>
-            </Grid>
+                    <!-- Tool Mode Selector -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
+                        <Button Classes="modebtn" Classes.active="{Binding IsSelectMode}" Content="↖ Select" Command="{Binding SetToolModeCommand}" CommandParameter="select"/>
+                        <Button Classes="modebtn" Classes.active="{Binding IsWireMode}" Content="⚡ Wire" Command="{Binding SetToolModeCommand}" CommandParameter="wire"/>
+                        <Button Classes="modebtn" Classes.active="{Binding IsCutMode}" Content="✂ Cut" Command="{Binding SetToolModeCommand}" CommandParameter="cut"/>
+                        <Button Classes="modebtn" Content="↺" ToolTip.Tip="Rotate 90° Clockwise" Command="{Binding RotateSelectedCommand}"/>
+                        <Button Classes="modebtn" Content="🗑" ToolTip.Tip="Delete Selected (Del)" Command="{Binding DeleteSelectedCommand}"/>
+
+                        <Separator Background="#242E40" Width="1" Height="18" Margin="2,0"/>
+
+                        <Button Classes="modebtn" Content="↩" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" ToolTip.Tip="{Binding UndoLabel}"/>
+                        <Button Classes="modebtn" Content="↪" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" ToolTip.Tip="{Binding RedoLabel}"/>
+
+                        <Separator Background="#242E40" Width="1" Height="18" Margin="2,0"/>
+
+                        <!-- Live Circuit Visual Overlays -->
+                        <ToggleButton Classes="modebtn" IsChecked="{Binding ShowCurrentAnnotations, Mode=TwoWay}"
+                                      ToolTip.Tip="Toggle Live Branch Currents (Animated direction arrows &amp; values)">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="⚡" FontSize="11" Foreground="#00E676"/>
+                                <TextBlock Text="Currents" FontSize="11" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </ToggleButton>
+                        <ToggleButton Classes="modebtn" IsChecked="{Binding ShowVoltageAnnotations, Mode=TwoWay}"
+                                      ToolTip.Tip="Toggle Live Node Voltages (Junction &amp; rail badges)">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="⏚" FontSize="11" Foreground="#FFD700"/>
+                                <TextBlock Text="Voltages" FontSize="11" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </ToggleButton>
+                    </StackPanel>
+
+                    <!-- Right: Simulation Controls & Preset Selection -->
+                    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="3" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <!-- Simulation Controls -->
+                        <Button Classes="toolbtn" Command="{Binding ToggleSimulationCommand}">
+                            <TextBlock Text="{Binding PlayPauseButtonText}" FontWeight="Bold"/>
+                        </Button>
+                        <Button Classes="toolbtn" Content="⏭" ToolTip.Tip="Single Step (0.25 ms)" Command="{Binding StepSimulationCommand}" />
+                        <Button Classes="toolbtn" Content="↺" ToolTip.Tip="Reset Simulation Time" Command="{Binding ResetSimulationCommand}" />
+                        <Button Classes="toolbtn" Content="⛶" ToolTip.Tip="Zoom to Fit Canvas" Command="{Binding ZoomToFitCommand}" />
+                        <Button Classes="toolbtn" Content="SPICE" Command="{Binding ToggleSpiceDrawerCommand}" ToolTip.Tip="Inspect &amp; export Berkeley SPICE / LTspice / WRSPICE netlist" />
+                        <Button Classes="toolbtn" Content="BOM" Command="{Binding ToggleBomDrawerCommand}" ToolTip.Tip="Generate and view manufacturing Bill of Materials" />
+
+                        <!-- Simulation Speed Slider -->
+                        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Margin="2,0,2,0">
+                            <TextBlock Text="Speed:" Foreground="#8C9BB0" FontSize="11" VerticalAlignment="Center"/>
+                            <Slider Classes="cyberSlider green" Width="52" Minimum="0.1" Maximum="4.0" Value="{Binding SimulationSpeed}" VerticalAlignment="Center"/>
+                            <Border Background="#0E1A16" BorderBrush="#1B3828" BorderThickness="1" CornerRadius="4" Padding="3,1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding SimulationSpeed, StringFormat='{}{0:F1}x'}" Foreground="#00E676" FontWeight="Bold" FontSize="10" FontFamily="Consolas,SF Mono,Menlo,monospace" VerticalAlignment="Center"/>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Presets Selection -->
+                        <TextBlock Text="Preset:" Foreground="#8C9BB0" FontSize="11" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                        <ComboBox ItemsSource="{Binding AvailablePresets}" 
+                                  SelectedItem="{Binding SelectedPreset}"
+                                  Width="175" MaxDropDownHeight="360"
+                                  Background="#171D28" Foreground="#D8E2F0" BorderBrush="#252E3E" CornerRadius="6" FontSize="11"
+                                  ToolTip.Tip="{Binding SelectedPreset}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding}" FontSize="11"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
         </Border>
 
         <!-- Component Palette Toolbar (Click to Place on Canvas) -->
