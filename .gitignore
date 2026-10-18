@@ -1,0 +1,49 @@
+snapshots/*
+## Visual Studio / .NET Build Artifacts
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+ARM/
+ARM64/
+
+## User-specific files and settings
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+
+## Roslyn and MSBuild caches
+.vs/
+.cache/
+.failed-recipes/
+*.generated.cs
+
+## Rider & JetBrains IDEs
+.idea/
+*.sln.iml
+
+## Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+## NuGet Packages & Caches
+*.nupkg
+**/packages/
+!**/packages/repositories.config
+project.lock.json
+project.fragment.lock.json
+
+## OS-specific files
+.DS_Store
+Thumbs.db
+
+## Avalonia / Mobile specifics (if targeting Android/iOS)
+.gradle/
+.pnpm-store/
+node_modules/
