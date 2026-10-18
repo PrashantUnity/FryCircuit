@@ -641,9 +641,20 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    public void SetInspectorPreset(double value)
+    public void SetInspectorPreset(object? parameter)
     {
-        InspectorValue = value;
+        if (parameter is double d)
+        {
+            InspectorValue = d;
+        }
+        else if (parameter is string s && double.TryParse(s, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var parsed))
+        {
+            InspectorValue = parsed;
+        }
+        else if (parameter is IConvertible c)
+        {
+            InspectorValue = Convert.ToDouble(c, System.Globalization.CultureInfo.InvariantCulture);
+        }
     }
 
     [RelayCommand]
