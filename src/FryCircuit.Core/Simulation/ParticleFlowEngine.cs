@@ -17,7 +17,7 @@ public class ParticleBranch
     private readonly double _totalLength;
     private readonly List<double> _segmentLengths = new();
 
-    public ParticleBranch(Device? device, IReadOnlyList<(double X, double Y)> pathPoints, int particleCount = 3, Func<double>? currentProvider = null)
+    public ParticleBranch(Device? device, IReadOnlyList<(double X, double Y)> pathPoints, int particleCount = -1, Func<double>? currentProvider = null)
     {
         Device = device;
         CurrentProvider = currentProvider;
@@ -34,9 +34,10 @@ public class ParticleBranch
         }
         _totalLength = Math.Max(0.001, sum);
 
-        for (int i = 0; i < particleCount; i++)
+        int count = particleCount > 0 ? particleCount : Math.Max(1, (int)Math.Round(_totalLength / 1.6));
+        for (int i = 0; i < count; i++)
         {
-            Particles.Add(new CircuitParticle { Progress = (double)i / particleCount });
+            Particles.Add(new CircuitParticle { Progress = (double)i / count });
         }
     }
 
@@ -91,7 +92,7 @@ public class ParticleFlowEngine
     {
         _branches.Clear();
 
-        // Wire segments flow along intelligent orthogonal routed polyline
+        // 1. Wire segments flow along intelligent orthogonal routed polyline
         circuit.EnsureWiresSynthesized();
         foreach (var wire in circuit.Wires)
         {
@@ -119,8 +120,49 @@ public class ParticleFlowEngine
                 return 0.0;
             };
 
-            int pCount = Math.Max(2, wire.PathPoints.Count);
-            _branches.Add(new ParticleBranch(null, wire.PathPoints, particleCount: pCount, currentProvider: currentFunc));
+            _branches.Add(new ParticleBranch(null, wire.PathPoints, currentProvider: currentFunc));
+        }
+
+        // 2. Component internal conduction branches (through resistors, sources, diodes, inductors, caps, etc.)
+        foreach (var dev in circuit.Devices)
+        {
+            if (dev.Type == "ground" || dev.Type == "netlabel" || dev.Type is "voltmeter" or "ohmmeter" || dev.Pins.Count < 2)
+                continue;
+
+            if (dev.Type is "vsource" or "battery" or "csource")
+            {
+                // Active DC/AC power source or battery:
+                // When supplying power (Current > 0), conventional current moves internally from Pin 1 (-) to Pin 0 (+)
+                var (p1x, p1y) = dev.GetAbsolutePinPosition(1);
+                var (p0x, p0y) = dev.GetAbsolutePinPosition(0);
+                var path = new List<(double X, double Y)> { (p1x, p1y), (p0x, p0y) };
+                _branches.Add(new ParticleBranch(dev, path, currentProvider: () => dev.Current));
+            }
+            else if (dev.Type is "npn" or "pnp" && dev.Pins.Count >= 3)
+            {
+                // BJT: Collector (Pin 1) to Emitter (Pin 2)
+                var (p1x, p1y) = dev.GetAbsolutePinPosition(1);
+                var (p2x, p2y) = dev.GetAbsolutePinPosition(2);
+                var path = new List<(double X, double Y)> { (p1x, p1y), (p2x, p2y) };
+                _branches.Add(new ParticleBranch(dev, path, currentProvider: () => dev.Current));
+            }
+            else if (dev.Type is "nmos" or "pmos" && dev.Pins.Count >= 3)
+            {
+                // MOSFET: Drain (Pin 1) to Source (Pin 2)
+                var (p1x, p1y) = dev.GetAbsolutePinPosition(1);
+                var (p2x, p2y) = dev.GetAbsolutePinPosition(2);
+                var path = new List<(double X, double Y)> { (p1x, p1y), (p2x, p2y) };
+                _branches.Add(new ParticleBranch(dev, path, currentProvider: () => dev.Current));
+            }
+            else if (dev.Pins.Count >= 2)
+            {
+                // Standard 2-terminal passive or semiconductor device:
+                // Current enters Pin 0 and exits Pin 1.
+                var (p0x, p0y) = dev.GetAbsolutePinPosition(0);
+                var (p1x, p1y) = dev.GetAbsolutePinPosition(1);
+                var path = new List<(double X, double Y)> { (p0x, p0y), (p1x, p1y) };
+                _branches.Add(new ParticleBranch(dev, path, currentProvider: () => dev.Current));
+            }
         }
     }
 
@@ -138,9 +180,10 @@ public class ParticleFlowEngine
             case "vsource":
             case "battery":
                 // In MNA, voltage source auxiliary current enters pin 0 and exits pin 1 internally.
-                // Current exiting Pin 0 (Positive terminal) is -dev.Current (positive when supplying power).
-                // Current exiting Pin 1 (Negative terminal) is +dev.Current (negative, i.e. return current enters).
-                return (pinIndex == 0) ? -dev.Current : dev.Current;
+                // dev.Current is already positive when supplying power into the circuit.
+                // Current exiting Pin 0 (Positive terminal) is +dev.Current (flows out into the wire).
+                // Current exiting Pin 1 (Negative terminal) is -dev.Current (flows in from the wire).
+                return (pinIndex == 0) ? dev.Current : -dev.Current;
 
             case "csource":
                 return (pinIndex == 0) ? dev.Current : -dev.Current;
