@@ -123,4 +123,98 @@ public class ParticleFlowEngineTests
             Assert.NotEqual(initialProgresses[i], engine.Branches[i].Particles[0].Progress);
         }
     }
+
+    [Fact]
+    public void CalculateWireCurrent_ParallelBranchesWithGround_GroundWireHasZeroCurrentAndBusAccumulatesKclCurrent()
+    {
+        var circuit = new Circuit("ParallelWithGround");
+        circuit.GetOrCreateNode(0, isGround: true);
+        circuit.GetOrCreateNode(1);
+
+        // 4V DC Source connected between Node 1 (+) and Node 0 (-)
+        var vs = new VoltageSourceDevice(1, 0, 4, voltage: 4.0);
+        vs.Pins[0].NodeId = 1;
+        vs.Pins[1].NodeId = 0;
+        circuit.AddDevice(vs);
+
+        // Four parallel 4-Ohm resistors between Node 1 and Node 0
+        // Each resistor should draw 4V / 4 Ohm = 1.0 A. Total current = 4.0 A.
+        var r1 = new ResistorDevice(2, 2, 4, resistance: 4.0);
+        r1.Pins[0].NodeId = 1;
+        r1.Pins[1].NodeId = 0;
+        circuit.AddDevice(r1);
+
+        var r2 = new ResistorDevice(3, 4, 4, resistance: 4.0);
+        r2.Pins[0].NodeId = 1;
+        r2.Pins[1].NodeId = 0;
+        circuit.AddDevice(r2);
+
+        var r3 = new ResistorDevice(4, 6, 4, resistance: 4.0);
+        r3.Pins[0].NodeId = 1;
+        r3.Pins[1].NodeId = 0;
+        circuit.AddDevice(r3);
+
+        var r4 = new ResistorDevice(5, 8, 4, resistance: 4.0);
+        r4.Pins[0].NodeId = 1;
+        r4.Pins[1].NodeId = 0;
+        circuit.AddDevice(r4);
+
+        // Ground symbol attached to Resistor 2's bottom pin on Node 0
+        var gnd = new GroundDevice(6, 4, 6);
+        gnd.Pins[0].NodeId = 0;
+        circuit.AddDevice(gnd);
+
+        // Connect Node 0 wiring tree:
+        // r4 <-> r3 <-> r2 <-> r1 <-> vs(-)
+        // r2 <-> gnd
+        var wire43 = new CircuitWire(1, 0, r4.Id, 1, r3.Id, 1);
+        var wire32 = new CircuitWire(2, 0, r3.Id, 1, r2.Id, 1);
+        var wire21 = new CircuitWire(3, 0, r2.Id, 1, r1.Id, 1);
+        var wire1Vs = new CircuitWire(4, 0, r1.Id, 1, vs.Id, 1);
+        var wireGnd = new CircuitWire(5, 0, r2.Id, 1, gnd.Id, 0);
+
+        circuit.Wires.Add(wire43);
+        circuit.Wires.Add(wire32);
+        circuit.Wires.Add(wire21);
+        circuit.Wires.Add(wire1Vs);
+        circuit.Wires.Add(wireGnd);
+
+        // Top bus (Node 1):
+        circuit.Wires.Add(new CircuitWire(6, 1, vs.Id, 0, r1.Id, 0));
+        circuit.Wires.Add(new CircuitWire(7, 1, r1.Id, 0, r2.Id, 0));
+        circuit.Wires.Add(new CircuitWire(8, 1, r2.Id, 0, r3.Id, 0));
+        circuit.Wires.Add(new CircuitWire(9, 1, r3.Id, 0, r4.Id, 0));
+
+        // Solve DC operating point
+        var solver = new MnaSolver(circuit);
+        solver.Step(0.001);
+
+        // Verify total source current is 4.0 A
+        Assert.Equal(4.0, vs.Current, precision: 3);
+        Assert.Equal(1.0, r1.Current, precision: 3);
+        Assert.Equal(1.0, r2.Current, precision: 3);
+        Assert.Equal(1.0, r3.Current, precision: 3);
+        Assert.Equal(1.0, r4.Current, precision: 3);
+
+        // 1. Crucial verification: Wire connecting to Ground MUST have exactly 0.0 A!
+        double gndCurrent = ParticleFlowEngine.CalculateWireCurrent(circuit, wireGnd);
+        Assert.Equal(0.0, gndCurrent, precision: 4);
+
+        // 2. Return rail wires must accumulate current according to KCL:
+        // From r4 to r3 carries 1.0 A (from r4)
+        double i43 = ParticleFlowEngine.CalculateWireCurrent(circuit, wire43);
+        Assert.Equal(1.0, i43, precision: 3);
+
+        // From r3 to r2 carries 2.0 A (from r4 + r3)
+        double i32 = ParticleFlowEngine.CalculateWireCurrent(circuit, wire32);
+        Assert.Equal(2.0, i32, precision: 3);
+
+        // From r2 to r1 carries 3.0 A (from r4 + r3 + r2)
+        double i21 = ParticleFlowEngine.CalculateWireCurrent(circuit, wire21);
+        Assert.Equal(3.0, i21, precision: 3);
+
+        // From r1 to vs Pin 1 carries 4.0 A (all 4 resistors returning to source)
+        double i1Vs = ParticleFlowEngine.CalculateWireCurrent(circuit, wire1Vs);
+        Assert.Equal(4.0, i1Vs, precision: 3);
+    }
 }

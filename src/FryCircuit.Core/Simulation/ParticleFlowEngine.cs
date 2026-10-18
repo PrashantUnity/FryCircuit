@@ -105,20 +105,7 @@ public class ParticleFlowEngine
                 wire.PathPoints = SchematicWireRouter.RouteWire(circuit, dev1, wire.FromPinIndex, dev2, wire.ToPinIndex);
             }
 
-            Func<double> currentFunc = () =>
-            {
-                double exit1 = GetPinExitCurrent(dev1, wire.FromPinIndex);
-                double exit2 = GetPinExitCurrent(dev2, wire.ToPinIndex);
-
-                if (Math.Abs(exit1) > 1e-9 && Math.Abs(exit2) > 1e-9)
-                {
-                    return (exit1 - exit2) / 2.0;
-                }
-                if (Math.Abs(exit1) > 1e-9) return exit1;
-                if (Math.Abs(exit2) > 1e-9) return -exit2;
-
-                return 0.0;
-            };
+            Func<double> currentFunc = () => CalculateWireCurrent(circuit, wire);
 
             _branches.Add(new ParticleBranch(null, wire.PathPoints, currentProvider: currentFunc));
         }
@@ -224,6 +211,94 @@ public class ParticleFlowEngine
                 }
                 return dev.Current;
         }
+    }
+
+    /// <summary>
+    /// Calculates the true physical conventional current flowing through a specific wire from FromDevice to ToDevice.
+    /// Uses graph cut-set analysis (Kirchhoff's Current Law) on the node's wiring tree.
+    /// Positive value means current flows from FromDevice towards ToDevice.
+    /// Negative value means current flows from ToDevice towards FromDevice.
+    /// </summary>
+    public static double CalculateWireCurrent(Circuit circuit, CircuitWire wire)
+    {
+        if (circuit == null || wire == null) return 0.0;
+
+        int nodeId = wire.NodeId;
+        var fromPin = (DevId: wire.FromDeviceId, PinIndex: wire.FromPinIndex);
+        var toPin = (DevId: wire.ToDeviceId, PinIndex: wire.ToPinIndex);
+
+        // 1. Build adjacency list of device pins on this electrical node using all OTHER wires on this node
+        var adj = new Dictionary<(int DevId, int PinIndex), List<(int DevId, int PinIndex)>>();
+
+        foreach (var w in circuit.Wires)
+        {
+            if (ReferenceEquals(w, wire) || w.NodeId != nodeId) continue;
+
+            var p1 = (w.FromDeviceId, w.FromPinIndex);
+            var p2 = (w.ToDeviceId, w.ToPinIndex);
+
+            if (!adj.TryGetValue(p1, out var list1))
+            {
+                list1 = new List<(int, int)>();
+                adj[p1] = list1;
+            }
+            list1.Add(p2);
+
+            if (!adj.TryGetValue(p2, out var list2))
+            {
+                list2 = new List<(int, int)>();
+                adj[p2] = list2;
+            }
+            list2.Add(p1);
+        }
+
+        // 2. Perform BFS from fromPin to identify the connected component of pins reachable without traversing 'wire'
+        var visited = new HashSet<(int DevId, int PinIndex)>();
+        var queue = new Queue<(int DevId, int PinIndex)>();
+
+        queue.Enqueue(fromPin);
+        visited.Add(fromPin);
+
+        while (queue.Count > 0)
+        {
+            var curr = queue.Dequeue();
+            if (adj.TryGetValue(curr, out var neighbors))
+            {
+                foreach (var next in neighbors)
+                {
+                    if (visited.Add(next))
+                    {
+                        queue.Enqueue(next);
+                    }
+                }
+            }
+        }
+
+        // 3. If toPin is reachable without traversing 'wire', then 'wire' is part of a parallel wire cycle in the node.
+        if (visited.Contains(toPin))
+        {
+            var dev1 = circuit.Devices.FirstOrDefault(d => d.Id == wire.FromDeviceId);
+            var dev2 = circuit.Devices.FirstOrDefault(d => d.Id == wire.ToDeviceId);
+            if (dev1 == null || dev2 == null) return 0.0;
+            double exit1 = GetPinExitCurrent(dev1, wire.FromPinIndex);
+            double exit2 = GetPinExitCurrent(dev2, wire.ToPinIndex);
+            return (exit1 - exit2) / 2.0;
+        }
+
+        // 4. Sum the currents exiting into the node from all device pins in the fromPin component.
+        // By KCL, this net sum is precisely the current flowing across 'wire' towards toPin.
+        double netCurrent = 0.0;
+        foreach (var (devId, pinIdx) in visited)
+        {
+            var dev = circuit.Devices.FirstOrDefault(d => d.Id == devId);
+            if (dev != null)
+            {
+                netCurrent += GetPinExitCurrent(dev, pinIdx);
+            }
+        }
+
+        if (Math.Abs(netCurrent) < 1e-12) return 0.0;
+        return netCurrent;
     }
 
     public void Update(double dt, double speedMultiplier = 1.0)

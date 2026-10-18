@@ -283,29 +283,29 @@ public partial class CircuitCanvas
         // 2. Return rails and distribution buses (wires not bridging two already-annotated components)
         var annotatedCurrentNodes = new HashSet<int>();
 
+        // Find candidate wires that have valid physical current
+        var candidateWires = new List<(CircuitWire Wire, Device Dev1, Device Dev2, double Current, double MaxSegLen, (double X, double Y) SegA, (double X, double Y) SegB, bool IsSourceReturn, bool IsGroundStub)>();
+
         foreach (var wire in Circuit.Wires)
         {
-            if (annotatedCurrentNodes.Contains(wire.NodeId)) continue;
-
-            var pts = wire.PathPoints;
-            if (pts == null || pts.Count < 2) continue;
-
             var dev1 = Circuit.Devices.FirstOrDefault(d => d.Id == wire.FromDeviceId);
             var dev2 = Circuit.Devices.FirstOrDefault(d => d.Id == wire.ToDeviceId);
             if (dev1 == null || dev2 == null) continue;
 
-            bool dev1HasBadge = dev1.Type != "ground" && dev1.Type != "netlabel" && dev1 is not LogicGateDevice && dev1.Type is not "voltmeter" and not "ammeter" and not "ohmmeter" && dev1.Pins.Count == 2;
-            bool dev2HasBadge = dev2.Type != "ground" && dev2.Type != "netlabel" && dev2 is not LogicGateDevice && dev2.Type is not "voltmeter" and not "ammeter" and not "ohmmeter" && dev2.Pins.Count == 2;
+            var pts = wire.PathPoints;
+            if (pts == null || pts.Count < 2) continue;
 
-            // If both terminal devices already display badges, the interconnect doesn't need a redundant badge
-            if (dev1HasBadge && dev2HasBadge) continue;
+            bool isGroundStub = dev1.Type is "ground" or "netlabel" || dev2.Type is "ground" or "netlabel";
+            bool isSourceReturn = (dev1 is VoltageSourceDevice or BatteryCellDevice && wire.FromPinIndex == 1) ||
+                                  (dev2 is VoltageSourceDevice or BatteryCellDevice && wire.ToPinIndex == 1);
 
-            double exit1 = ParticleFlowEngine.GetPinExitCurrent(dev1, wire.FromPinIndex);
-            double exit2 = ParticleFlowEngine.GetPinExitCurrent(dev2, wire.ToPinIndex);
-            double wireCurrent = (Math.Abs(exit1) > 1e-9 && Math.Abs(exit2) > 1e-9)
-                ? (exit1 - exit2) / 2.0
-                : (Math.Abs(exit1) > 1e-9 ? exit1 : -exit2);
+            bool dev1HasBadge = dev1.Type is not "ground" and not "netlabel" && dev1 is not LogicGateDevice && dev1.Type is not "voltmeter" and not "ammeter" and not "ohmmeter" && dev1.Pins.Count == 2;
+            bool dev2HasBadge = dev2.Type is not "ground" and not "netlabel" && dev2 is not LogicGateDevice && dev2.Type is not "voltmeter" and not "ammeter" and not "ohmmeter" && dev2.Pins.Count == 2;
 
+            if (dev1HasBadge && dev2HasBadge && !isSourceReturn) continue;
+
+            double wireCurrent = ParticleFlowEngine.CalculateWireCurrent(Circuit, wire);
+            // Strictly exclude zero-current wires (e.g. dead-end stubs to Ground symbols or open pins)
             if (Math.Abs(wireCurrent) < 1e-6) continue;
 
             // Find longest straight segment in this wire
@@ -328,14 +328,32 @@ public partial class CircuitCanvas
 
             if (maxSegLen < 2.0) continue;
 
-            double mx = (segA.X + segB.X) / 2.0;
-            double my = (segA.Y + segB.Y) / 2.0;
-            double sdx = segB.X - segA.X;
-            double sdy = segB.Y - segA.Y;
+            candidateWires.Add((wire, dev1, dev2, wireCurrent, maxSegLen, segA, segB, isSourceReturn, isGroundStub));
+        }
+
+        // Sort candidates:
+        // 1. Prefer wires connected directly to power source return terminal (Pin 1)
+        // 2. Prefer wires not terminating at ground symbols
+        // 3. Prefer highest current (main trunk)
+        // 4. Prefer longest straight segment
+        var sortedCandidates = candidateWires
+            .OrderByDescending(c => c.IsSourceReturn ? 1 : 0)
+            .ThenByDescending(c => c.IsGroundStub ? 0 : 1)
+            .ThenByDescending(c => Math.Abs(c.Current))
+            .ThenByDescending(c => c.MaxSegLen);
+
+        foreach (var cand in sortedCandidates)
+        {
+            if (annotatedCurrentNodes.Contains(cand.Wire.NodeId)) continue;
+
+            double mx = (cand.SegA.X + cand.SegB.X) / 2.0;
+            double my = (cand.SegA.Y + cand.SegB.Y) / 2.0;
+            double sdx = cand.SegB.X - cand.SegA.X;
+            double sdy = cand.SegB.Y - cand.SegA.Y;
             bool isHoriz = Math.Abs(sdx) >= Math.Abs(sdy);
 
             // Flow direction along the wire from segA towards segB
-            int currentSign = wireCurrent >= 0 ? 1 : -1;
+            int currentSign = cand.Current >= 0 ? 1 : -1;
             Point flowDir = isHoriz
                 ? new Point(currentSign * Math.Sign(sdx), 0)
                 : new Point(0, currentSign * Math.Sign(sdy));
@@ -352,8 +370,8 @@ public partial class CircuitCanvas
                 continue;
 
             occupiedPositions.Add(badgePos);
-            annotatedCurrentNodes.Add(wire.NodeId);
-            string text = FormatCurrentLabel(Math.Abs(wireCurrent));
+            annotatedCurrentNodes.Add(cand.Wire.NodeId);
+            string text = FormatCurrentLabel(Math.Abs(cand.Current));
             DrawBranchCurrentBadge(context, badgePos, flowDir, text, false);
         }
     }
