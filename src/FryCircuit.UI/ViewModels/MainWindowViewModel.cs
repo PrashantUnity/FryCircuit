@@ -333,6 +333,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public string SelectedLedColorHex => SelectedLed?.ColorHex ?? "#FF2020";
     public string SelectedLedColorName => SelectedLed?.ColorName ?? "Red";
     public double SelectedLedForwardVoltage => SelectedLed?.ForwardVoltage ?? 1.8;
+    public bool ShowPrimaryKnob => HasSelectedDevice && !IsLedSelected;
     public IBrush SelectedLedColorBrush
     {
         get
@@ -369,6 +370,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             HasSelectedWire = false;
         }
 
+        OnPropertyChanged(nameof(ShowPrimaryKnob));
         OnPropertyChanged(nameof(IsVoltageSourceSelected));
         OnPropertyChanged(nameof(IsCurrentSourceSelected));
         OnPropertyChanged(nameof(IsResistorSelected));
