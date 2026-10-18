@@ -68,4 +68,42 @@ public sealed class CircuitPluginTests
 
         await host.AssertCleanUnmountAsync();
     }
+
+    [Fact]
+    public void MainWindowViewModel_LedSelection_ProvidesColorPresetsAndUpdatesWavelength()
+    {
+        var vm = new FryCircuit.UI.ViewModels.MainWindowViewModel();
+        var led = new FryCircuit.Core.Devices.LedDevice(1, 0, 0, 650.0);
+        Assert.NotNull(vm.CurrentCircuit);
+        vm.CurrentCircuit.AddDevice(led);
+        vm.SelectedDevice = led;
+
+        Assert.True(vm.IsLedSelected);
+        Assert.NotNull(vm.SelectedLed);
+        Assert.Equal("Red", vm.SelectedLedColorName);
+        Assert.Equal("#FF2020", vm.SelectedLedColorHex);
+        Assert.Equal(650.0, vm.InspectorValue);
+
+        // Switch to Blue preset via string command parameter
+        vm.SetLedColorCommand.Execute("Blue");
+        Assert.Equal("Blue", vm.SelectedLedColorName);
+        Assert.Equal("#0080FF", vm.SelectedLedColorHex);
+        Assert.Equal(470.0, led.Wavelength);
+        Assert.Equal(470.0, vm.InspectorValue);
+
+        // Switch to White preset
+        vm.SetLedColorCommand.Execute("White");
+        Assert.Equal("White", vm.SelectedLedColorName);
+        Assert.Equal("#FFFFFF", vm.SelectedLedColorHex);
+        Assert.Equal(0.0, led.Wavelength);
+
+        // Continuous tuning via InspectorValue
+        vm.InspectorValue = 525.0;
+        Assert.Equal(525.0, led.Wavelength);
+        Assert.Equal("Green", vm.SelectedLedColorName);
+        Assert.Equal("#00E060", vm.SelectedLedColorHex);
+
+        vm.Dispose();
+    }
 }
+

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -327,6 +328,37 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public bool IsResistorSelected => SelectedDevice != null && (SelectedDevice.Type == "resistor" || SelectedDevice.Type == "potentiometer");
     public bool IsCapacitorSelected => SelectedDevice != null && SelectedDevice.Type == "capacitor";
     public bool IsInductorSelected => SelectedDevice != null && SelectedDevice.Type == "inductor";
+    public bool IsLedSelected => SelectedDevice != null && (SelectedDevice is LedDevice || SelectedDevice.Type == "led");
+    public LedDevice? SelectedLed => SelectedDevice as LedDevice;
+    public string SelectedLedColorHex => SelectedLed?.ColorHex ?? "#FF2020";
+    public string SelectedLedColorName => SelectedLed?.ColorName ?? "Red";
+    public double SelectedLedForwardVoltage => SelectedLed?.ForwardVoltage ?? 1.8;
+    public IBrush SelectedLedColorBrush
+    {
+        get
+        {
+            try
+            {
+                return new SolidColorBrush(Color.Parse(SelectedLedColorHex));
+            }
+            catch
+            {
+                return new SolidColorBrush(Color.FromRgb(255, 32, 32));
+            }
+        }
+    }
+
+    public IReadOnlyList<LedColorPresetItem> LedColorPresets { get; } = new List<LedColorPresetItem>
+    {
+        new("Red", "#FF2020", 650.0, "650nm (1.9V)"),
+        new("Orange", "#FF8C00", 610.0, "610nm (2.0V)"),
+        new("Yellow", "#FFD700", 585.0, "585nm (2.1V)"),
+        new("Green", "#00E060", 525.0, "525nm (2.4V)"),
+        new("Cyan", "#00F0FF", 500.0, "500nm (2.5V)"),
+        new("Blue", "#0080FF", 470.0, "470nm (2.6V)"),
+        new("Violet", "#8B00FF", 405.0, "405nm (3.1V)"),
+        new("White", "#FFFFFF", 0.0, "White (3.2V)")
+    };
 
     partial void OnSelectedDeviceChanged(Device? value)
     {
@@ -342,6 +374,12 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsResistorSelected));
         OnPropertyChanged(nameof(IsCapacitorSelected));
         OnPropertyChanged(nameof(IsInductorSelected));
+        OnPropertyChanged(nameof(IsLedSelected));
+        OnPropertyChanged(nameof(SelectedLed));
+        OnPropertyChanged(nameof(SelectedLedColorHex));
+        OnPropertyChanged(nameof(SelectedLedColorBrush));
+        OnPropertyChanged(nameof(SelectedLedColorName));
+        OnPropertyChanged(nameof(SelectedLedForwardVoltage));
 
         DeviceParameters.Clear();
 
@@ -357,6 +395,14 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                 if (primary != null && primary.ParameterName == pSpec.ParameterName)
                 {
                     InspectorValue = pSpec.Getter(value);
+                }
+                if (value is LedDevice)
+                {
+                    OnPropertyChanged(nameof(SelectedLed));
+                    OnPropertyChanged(nameof(SelectedLedColorHex));
+                    OnPropertyChanged(nameof(SelectedLedColorBrush));
+                    OnPropertyChanged(nameof(SelectedLedColorName));
+                    OnPropertyChanged(nameof(SelectedLedForwardVoltage));
                 }
             }));
         }
@@ -440,6 +486,15 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             spec.Setter(SelectedDevice, value);
             var vm = DeviceParameters.FirstOrDefault(p => p.ParameterName == spec.ParameterName);
             vm?.RefreshFromDevice();
+        }
+
+        if (SelectedDevice is LedDevice)
+        {
+            OnPropertyChanged(nameof(SelectedLed));
+            OnPropertyChanged(nameof(SelectedLedColorHex));
+            OnPropertyChanged(nameof(SelectedLedColorBrush));
+            OnPropertyChanged(nameof(SelectedLedColorName));
+            OnPropertyChanged(nameof(SelectedLedForwardVoltage));
         }
 
         _canvas?.InvalidateVisual();
@@ -655,6 +710,52 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         {
             InspectorValue = Convert.ToDouble(c, System.Globalization.CultureInfo.InvariantCulture);
         }
+    }
+
+    [RelayCommand]
+    public void SetLedColor(object? parameter)
+    {
+        if (SelectedDevice is not LedDevice led) return;
+
+        double targetWavelength = led.Wavelength;
+        if (parameter is LedColorPresetItem preset)
+        {
+            targetWavelength = preset.Wavelength;
+        }
+        else if (parameter is double d)
+        {
+            targetWavelength = d;
+        }
+        else if (parameter is string s)
+        {
+            if (double.TryParse(s, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var parsedWavelength))
+            {
+                targetWavelength = parsedWavelength;
+            }
+            else
+            {
+                var match = LedColorPresets.FirstOrDefault(p => string.Equals(p.Name, s, StringComparison.OrdinalIgnoreCase));
+                if (match != null)
+                {
+                    targetWavelength = match.Wavelength;
+                }
+            }
+        }
+
+        led.Wavelength = targetWavelength;
+        InspectorValue = targetWavelength;
+
+        var pVm = DeviceParameters.FirstOrDefault(p => p.ParameterName == "Wavelength");
+        pVm?.RefreshFromDevice();
+
+        OnPropertyChanged(nameof(SelectedLed));
+        OnPropertyChanged(nameof(SelectedLedColorHex));
+        OnPropertyChanged(nameof(SelectedLedColorBrush));
+        OnPropertyChanged(nameof(SelectedLedColorName));
+        OnPropertyChanged(nameof(SelectedLedForwardVoltage));
+
+        _canvas?.InvalidateVisual();
+        StatusText = $"Set LED color to {led.ColorName} ({led.Wavelength:F0} nm, Vf ≈ {led.ForwardVoltage:F1} V)";
     }
 
     [RelayCommand]
@@ -902,3 +1003,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         _oscilloscope = null;
     }
 }
+
+public record LedColorPresetItem(string Name, string Hex, double Wavelength, string Label);
+

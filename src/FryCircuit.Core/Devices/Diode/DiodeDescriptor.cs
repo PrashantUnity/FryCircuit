@@ -154,5 +154,29 @@ public class LedDescriptor : DeviceDescriptorBase
         return led;
     }
 
-    public override string FormatLabel(Device device) => "LED";
+    public override string FormatLabel(Device device)
+    {
+        if (device is LedDevice led)
+        {
+            return led.Wavelength <= 0.0 ? "LED (White)" : $"LED ({led.ColorName})";
+        }
+        return "LED";
+    }
+
+    public override DeviceParameterSpec? PrimaryParameter => new(
+        "Wavelength",
+        "Wavelength",
+        "nm",
+        min: 380.0,
+        max: 780.0,
+        def: 650.0,
+        step: 5.0,
+        getter: d => d is LedDevice led ? led.Wavelength : 650.0,
+        setter: (d, v) => { if (d is LedDevice led) led.Wavelength = Math.Clamp(v, 0.0, 780.0); }
+    );
+
+    public override IReadOnlyList<DeviceParameterSpec> Parameters => new List<DeviceParameterSpec>
+    {
+        PrimaryParameter!
+    };
 }

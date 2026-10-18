@@ -35,6 +35,13 @@ public static class Program
 
         Console.WriteLine($"Capturing snapshots to: {outDir}");
 
+        if (args.Length > 0 && args[0].Equals("led", StringComparison.OrdinalIgnoreCase))
+        {
+            CaptureLedInspector(outDir);
+            Console.WriteLine("LED snapshot captured successfully!");
+            return;
+        }
+
         string[] presetsToCapture = new[]
         {
             "Half-Wave Rectifier",
@@ -146,6 +153,59 @@ public static class Program
         {
             // Fallback: RenderTargetBitmap
             var pixelSize = new PixelSize(1280, 800);
+            using var rtb = new RenderTargetBitmap(pixelSize, new Vector(96, 96));
+            rtb.Render(window);
+            rtb.Save(filename);
+            Console.WriteLine($"Saved snapshot (via RTB): {filename}");
+        }
+#pragma warning restore CS0618
+
+        window.Close();
+    }
+
+    private static void CaptureLedInspector(string outDir)
+    {
+        var window = new MainWindow();
+        window.Width = 1380;
+        window.Height = 850;
+
+        if (window.DataContext is MainWindowViewModel vm)
+        {
+            vm.LoadPreset("LED with Current Limiter");
+            for (int i = 0; i < 100; i++)
+            {
+                vm.StepSimulationCommand.Execute(null);
+            }
+
+            var led = vm.CurrentCircuit?.Devices.OfType<FryCircuit.Core.Devices.LedDevice>().FirstOrDefault();
+            if (led != null)
+            {
+                vm.SelectedDevice = led;
+                vm.SetLedColorCommand.Execute("Cyan");
+            }
+        }
+
+        var canvas = window.FindControl<FryCircuit.UI.Controls.CircuitCanvas>("CanvasControl");
+        if (canvas != null)
+        {
+            canvas.ShowCurrentAnnotations = true;
+            canvas.ShowVoltageAnnotations = true;
+            canvas.ZoomToFit();
+        }
+
+        window.Show();
+
+        string filename = Path.Combine(outDir, "led_inspector_color_selection.png");
+        var frame = window.CaptureRenderedFrame();
+#pragma warning disable CS0618
+        if (frame != null)
+        {
+            frame.Save(filename);
+            Console.WriteLine($"Saved snapshot: {filename}");
+        }
+        else
+        {
+            var pixelSize = new PixelSize(1380, 850);
             using var rtb = new RenderTargetBitmap(pixelSize, new Vector(96, 96));
             rtb.Render(window);
             rtb.Save(filename);

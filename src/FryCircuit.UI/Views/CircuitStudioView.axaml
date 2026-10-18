@@ -622,6 +622,88 @@
                                     </StackPanel>
                                 </StackPanel>
 
+                                <!-- LED Color & Optics Selector -->
+                                <StackPanel Spacing="6" IsVisible="{Binding IsLedSelected}">
+                                    <TextBlock Text="LED Color &amp; Optics:" FontSize="10" Foreground="#6C7D93" FontWeight="SemiBold"/>
+
+                                    <!-- Active Color Badge -->
+                                    <Border Background="#141C28" BorderBrush="#202C3D" BorderThickness="1" CornerRadius="6" Padding="8,6"
+                                            BoxShadow="0 2 8 #18000000">
+                                        <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                                            <!-- Glowing Circle Preview -->
+                                            <Border Grid.Column="0" Width="16" Height="16" CornerRadius="8"
+                                                    Background="{Binding SelectedLedColorBrush}"
+                                                    BorderBrush="#FFFFFF" BorderThickness="1.5" Margin="0,0,8,0"
+                                                    BoxShadow="0 0 8 #55FFFFFF"/>
+
+                                            <!-- Text Description -->
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                                                <TextBlock Text="{Binding SelectedLedColorName}" FontWeight="Bold" FontSize="11" Foreground="#E0E6ED"/>
+                                                <TextBlock Text="{Binding InspectorValue, StringFormat='Emission: {0:F0} nm'}" FontSize="10" Foreground="#8C9BB0"/>
+                                            </StackPanel>
+
+                                            <!-- Turn-on Voltage Badge -->
+                                            <Border Grid.Column="2" Background="#1C2433" CornerRadius="4" Padding="6,2">
+                                                <TextBlock Text="{Binding SelectedLedForwardVoltage, StringFormat='Vf ≈ {0:F1} V'}"
+                                                           FontSize="10" FontWeight="SemiBold" Foreground="#00F0FF"
+                                                           FontFamily="Consolas,SF Mono,Menlo,monospace"/>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Color Preset Swatches -->
+                                    <WrapPanel Orientation="Horizontal">
+                                        <Button Classes="chip" Command="{Binding SetLedColorCommand}" CommandParameter="Red" ToolTip.Tip="Red - 650nm (Vf ≈ 1.9V)" Margin="1,2" Padding="6,3">
+                                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                                <Border Width="8" Height="8" CornerRadius="4" Background="#FF2020"/>
+                                                <TextBlock Text="Red" FontSize="10"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Classes="chip" Command="{Binding SetLedColorCommand}" CommandParameter="Orange" ToolTip.Tip="Orange - 610nm (Vf ≈ 2.0V)" Margin="1,2" Padding="6,3">
+                                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                                <Border Width="8" Height="8" CornerRadius="4" Background="#FF8C00"/>
+                                                <TextBlock Text="Orange" FontSize="10"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Classes="chip" Command="{Binding SetLedColorCommand}" CommandParameter="Yellow" ToolTip.Tip="Yellow - 585nm (Vf ≈ 2.1V)" Margin="1,2" Padding="6,3">
+                                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                                <Border Width="8" Height="8" CornerRadius="4" Background="#FFD700"/>
+                                                <TextBlock Text="Yellow" FontSize="10"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Classes="chip" Command="{Binding SetLedColorCommand}" CommandParameter="Green" ToolTip.Tip="Green - 525nm (Vf ≈ 2.4V)" Margin="1,2" Padding="6,3">
+                                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                                <Border Width="8" Height="8" CornerRadius="4" Background="#00E060"/>
+                                                <TextBlock Text="Green" FontSize="10"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Classes="chip" Command="{Binding SetLedColorCommand}" CommandParameter="Cyan" ToolTip.Tip="Cyan - 500nm (Vf ≈ 2.5V)" Margin="1,2" Padding="6,3">
+                                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                                <Border Width="8" Height="8" CornerRadius="4" Background="#00F0FF"/>
+                                                <TextBlock Text="Cyan" FontSize="10"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Classes="chip" Command="{Binding SetLedColorCommand}" CommandParameter="Blue" ToolTip.Tip="Blue - 470nm (Vf ≈ 2.6V)" Margin="1,2" Padding="6,3">
+                                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                                <Border Width="8" Height="8" CornerRadius="4" Background="#0080FF"/>
+                                                <TextBlock Text="Blue" FontSize="10"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Classes="chip" Command="{Binding SetLedColorCommand}" CommandParameter="Violet" ToolTip.Tip="Violet - 405nm (Vf ≈ 3.1V)" Margin="1,2" Padding="6,3">
+                                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                                <Border Width="8" Height="8" CornerRadius="4" Background="#8B00FF"/>
+                                                <TextBlock Text="Violet" FontSize="10"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Classes="chip" Command="{Binding SetLedColorCommand}" CommandParameter="White" ToolTip.Tip="White - Phosphor (Vf ≈ 3.2V)" Margin="1,2" Padding="6,3">
+                                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                                <Border Width="8" Height="8" CornerRadius="4" Background="#FFFFFF"/>
+                                                <TextBlock Text="White" FontSize="10"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </WrapPanel>
+                                </StackPanel>
+
                             </StackPanel>
                         </Border>
 

@@ -44,7 +44,9 @@ public class DiodeRenderer : IDeviceRenderer
 
         var fillBrush = isEmitting
             ? new SolidColorBrush(Color.FromArgb(230, ledColor.R, ledColor.G, ledColor.B))
-            : new SolidColorBrush(Color.FromRgb(30, 42, 60));
+            : isLed
+                ? new SolidColorBrush(Color.FromArgb(55, ledColor.R, ledColor.G, ledColor.B))
+                : new SolidColorBrush(Color.FromRgb(30, 42, 60));
 
         // Leads from pins to triangle
         context.DrawLine(strokePen, new Point(center.X, center.Y - u), new Point(center.X, center.Y - u * 0.35));
@@ -75,7 +77,7 @@ public class DiodeRenderer : IDeviceRenderer
         if (isLed)
         {
             // Two diagonal emission arrows
-            var rayPen = new Pen(new SolidColorBrush(isEmitting ? ledColor : Color.FromRgb(180, 200, 220)), 2.2 * z)
+            var rayPen = new Pen(new SolidColorBrush(isEmitting ? ledColor : Color.FromArgb(170, ledColor.R, ledColor.G, ledColor.B)), 2.2 * z)
             {
                 LineCap = PenLineCap.Round
             };
