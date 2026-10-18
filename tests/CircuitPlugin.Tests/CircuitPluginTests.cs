@@ -21,6 +21,8 @@ public sealed class CircuitPluginTests
 
         var commands = host.Context.GetRegisteredCommands();
         Assert.Contains(commands, c => c.Id == "cmd.circuit.open");
+        Assert.Contains(commands, c => c.Id == "cmd.circuit.new");
+        Assert.Contains(commands, c => c.Id == "cmd.circuit.file.open");
         Assert.Contains(commands, c => c.Id == "cmd.circuit.overlay");
 
         var statusWidgets = host.Context.GetRegisteredStatusBarWidgets();
@@ -38,6 +40,17 @@ public sealed class CircuitPluginTests
         await using var host = await FryPluginTestHost.MountAsync<CircuitPlugin>();
 
         await host.RunCommandAsync("cmd.circuit.open");
+        Assert.Equal("com.fryworld.circuit", host.Shell.LastNavigation);
+
+        await host.AssertCleanUnmountAsync();
+    }
+
+    [Fact]
+    public async Task NewCommand_NavigatesToCircuitStudio()
+    {
+        await using var host = await FryPluginTestHost.MountAsync<CircuitPlugin>();
+
+        await host.RunCommandAsync("cmd.circuit.new");
         Assert.Equal("com.fryworld.circuit", host.Shell.LastNavigation);
 
         await host.AssertCleanUnmountAsync();
@@ -104,6 +117,51 @@ public sealed class CircuitPluginTests
         Assert.Equal("#00E060", vm.SelectedLedColorHex);
 
         vm.Dispose();
+    }
+
+    [Fact]
+    public void MainWindowViewModel_NewCircuit_ResetsStateAndSetsUntitledFrycircuit()
+    {
+        var vm = new FryCircuit.UI.ViewModels.MainWindowViewModel();
+        Assert.NotNull(vm.CurrentCircuit);
+
+        vm.NewCircuitCommand.Execute(null);
+
+        Assert.NotNull(vm.CurrentCircuit);
+        Assert.Equal("New Circuit", vm.CurrentCircuit.Name);
+        Assert.Null(vm.CurrentFilePath);
+        Assert.Equal("Untitled.frycircuit", vm.CurrentFileName);
+        Assert.False(vm.IsDirty);
+        Assert.Equal("FryCircuit - New Circuit", vm.CircuitTitle);
+        Assert.Contains("Created new blank circuit", vm.StatusText);
+
+        vm.Dispose();
+    }
+
+    [Fact]
+    public void CircuitCanvas_FindDeviceAt_TightHitTestingAllowsAdjacentClicks()
+    {
+        var canvas = new FryCircuit.UI.Controls.CircuitCanvas();
+        var circuit = new FryCircuit.Core.Models.Circuit();
+        var resistor = new FryCircuit.Core.Devices.ResistorDevice(1, 10, 10, 1000);
+        circuit.AddDevice(resistor);
+        canvas.Circuit = circuit;
+
+        // Click directly on resistor center/body (10, 10) -> Hit!
+        var hitDirect = canvas.FindDeviceAt(10.0, 10.0);
+        Assert.Same(resistor, hitDirect);
+
+        // Click close to resistor zigzag (10.2, 10.0) -> Hit!
+        var hitNear = canvas.FindDeviceAt(10.2, 10.0);
+        Assert.Same(resistor, hitNear);
+
+        // Click 0.8 units away horizontally (10.8, 10.0) where adjacent wires run -> Miss!
+        var hitAway = canvas.FindDeviceAt(10.8, 10.0);
+        Assert.Null(hitAway);
+
+        // Click 1.0 unit away horizontally (11.0, 10.0) -> Miss!
+        var hitColumn = canvas.FindDeviceAt(11.0, 10.0);
+        Assert.Null(hitColumn);
     }
 }
 

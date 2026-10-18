@@ -94,11 +94,18 @@ public static class Program
 
     private static void CaptureWindow(string presetName, string outDir, bool isFft = false, bool showCursors = false, bool openSpiceDrawer = false, bool openBomDrawer = false, string? filenameOverride = null)
     {
-        var window = new MainWindow();
-        window.Width = 1380;
-        window.Height = 850;
+        var studio = new CircuitStudioView();
+        var vm = new MainWindowViewModel();
+        studio.DataContext = vm;
+        var window = new Window
+        {
+            Width = 1380,
+            Height = 850,
+            DataContext = vm,
+            Content = studio
+        };
 
-        if (window.DataContext is MainWindowViewModel vm)
+        if (true)
         {
             vm.LoadPreset(presetName);
             // Run simulation steps so waveforms, node potentials and electron particles are vibrant
@@ -165,11 +172,18 @@ public static class Program
 
     private static void CaptureLedInspector(string outDir)
     {
-        var window = new MainWindow();
-        window.Width = 1380;
-        window.Height = 850;
+        var studio = new CircuitStudioView();
+        var vm = new MainWindowViewModel();
+        studio.DataContext = vm;
+        var window = new Window
+        {
+            Width = 1380,
+            Height = 850,
+            DataContext = vm,
+            Content = studio
+        };
 
-        if (window.DataContext is MainWindowViewModel vm)
+        if (true)
         {
             vm.LoadPreset("LED with Current Limiter");
             for (int i = 0; i < 100; i++)

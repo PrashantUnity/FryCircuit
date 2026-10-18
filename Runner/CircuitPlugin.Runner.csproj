@@ -7,10 +7,13 @@
     <LangVersion>13</LangVersion>
     <AssemblyName>CircuitPlugin.Runner</AssemblyName>
     <RootNamespace>FryCircuit.Plugin.Runner</RootNamespace>
+    <Product>FryCircuit</Product>
+    <Title>FryCircuit Studio</Title>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\CircuitPlugin.csproj" />
+    <ProjectReference Include="..\src\FryCircuit.UI\FryCircuit.UI.csproj" />
   </ItemGroup>
 
   <ItemGroup>

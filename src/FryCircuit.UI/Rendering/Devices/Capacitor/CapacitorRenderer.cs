@@ -11,15 +11,8 @@ public class CapacitorRenderer : IDeviceRenderer
         double u = unitSize;
         double z = renderContext.Zoom;
 
-        var strokeBrush = renderContext.IsPlacingGhost
-            ? new SolidColorBrush(Color.FromArgb(140, 0, 240, 255))
-            : new SolidColorBrush(Color.FromRgb(240, 246, 255));
-
-        var strokePen = new Pen(strokeBrush, 2.8 * z)
-        {
-            LineCap = PenLineCap.Round,
-            LineJoin = PenLineJoin.Round
-        };
+        var strokeBrush = renderContext.GetStrokeBrush();
+        var strokePen = renderContext.GetStrokePen(2.8);
 
         // Top terminal line & top plate
         context.DrawLine(strokePen, new Point(center.X, center.Y - u), new Point(center.X, center.Y - u * 0.2));
@@ -30,7 +23,8 @@ public class CapacitorRenderer : IDeviceRenderer
         context.DrawLine(strokePen, new Point(center.X, center.Y + u * 0.2), new Point(center.X, center.Y + u));
 
         // Terminal solder pads
-        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y - u), 3.2 * z, 3.2 * z);
-        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y + u), 3.2 * z, 3.2 * z);
+        double padRadius = (renderContext.IsGlowPass ? 4.8 : 3.2) * z;
+        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y - u), padRadius, padRadius);
+        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y + u), padRadius, padRadius);
     }
 }

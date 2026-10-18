@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -105,6 +107,37 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private string _circuitTitle = "FryCircuit - Rectifier Demo";
+
+    public IStorageProvider? StorageProvider { get; set; }
+
+    [ObservableProperty]
+    private string? _currentFilePath;
+
+    [ObservableProperty]
+    private bool _isDirty;
+
+    [ObservableProperty]
+    private string _currentFileName = "Untitled.frycircuit";
+
+    partial void OnCurrentFilePathChanged(string? value)
+    {
+        CurrentFileName = string.IsNullOrWhiteSpace(value) ? "Untitled.frycircuit" : Path.GetFileName(value);
+        UpdateTitle();
+    }
+
+    partial void OnIsDirtyChanged(bool value)
+    {
+        UpdateTitle();
+    }
+
+    public void UpdateTitle()
+    {
+        string dirtyIndicator = IsDirty ? " •" : "";
+        string name = string.IsNullOrWhiteSpace(CurrentFilePath)
+            ? (CurrentCircuit?.Name ?? "Untitled")
+            : Path.GetFileName(CurrentFilePath);
+        CircuitTitle = $"FryCircuit - {name}{dirtyIndicator}";
+    }
 
     [ObservableProperty]
     private bool _showCurrentAnnotations = true;
@@ -229,6 +262,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             CanRedo = History.CanRedo;
             UndoLabel = History.NextUndoDescription != null ? $"Undo {History.NextUndoDescription}" : "Undo (Ctrl+Z)";
             RedoLabel = History.NextRedoDescription != null ? $"Redo {History.NextRedoDescription}" : "Redo (Ctrl+Y)";
+            IsDirty = true;
         };
         History.HistoryChanged += _historyHandler;
 
@@ -842,12 +876,163 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
+    public void NewCircuit()
+    {
+        bool wasSimulating = IsSimulating;
+        IsSimulating = false;
+
+        var newCirc = new Circuit
+        {
+            Name = "New Circuit"
+        };
+        var groundDev = DeviceRegistry.CreateDevice("ground", 1, 10, 15);
+        if (groundDev != null)
+        {
+            newCirc.AddDevice(groundDev);
+        }
+
+        CurrentFilePath = null;
+        SetCircuit(newCirc);
+        History.Clear();
+        CanUndo = History.CanUndo;
+        CanRedo = History.CanRedo;
+        IsDirty = false;
+        StatusText = "Created new blank circuit";
+
+        if (wasSimulating)
+        {
+            IsSimulating = true;
+        }
+    }
+
+    [RelayCommand]
+    public async Task OpenCircuitFileDialogAsync()
+    {
+        if (StorageProvider == null)
+        {
+            StatusText = "File picker unavailable";
+            return;
+        }
+
+        try
+        {
+            var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            {
+                Title = "Open Circuit Schematic",
+                AllowMultiple = false,
+                FileTypeFilter = new List<FilePickerFileType>
+                {
+                    new("FryCircuit Schematic (*.frycircuit; *.circuit)")
+                    {
+                        Patterns = new[] { "*.frycircuit", "*.circuit", "*.xml" }
+                    },
+                    new("All Files (*.*)")
+                    {
+                        Patterns = new[] { "*.*" }
+                    }
+                }
+            });
+
+            if (files.Count > 0)
+            {
+                var file = files[0];
+                string localPath = file.Path.LocalPath;
+                await using var stream = await file.OpenReadAsync();
+                var circuit = CircuitSerializer.LoadFromStream(stream);
+                CurrentFilePath = localPath;
+                SetCircuit(circuit);
+                IsDirty = false;
+                StatusText = $"Opened {Path.GetFileName(localPath)}";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Open error: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    public async Task SaveCircuitAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(CurrentFilePath))
+        {
+            SaveCircuit(CurrentFilePath);
+            return;
+        }
+
+        await SaveCircuitAsDialogAsync();
+    }
+
+    [RelayCommand]
+    public async Task SaveCircuitAsDialogAsync()
+    {
+        if (StorageProvider == null)
+        {
+            StatusText = "File picker unavailable";
+            return;
+        }
+
+        if (CurrentCircuit == null) return;
+
+        try
+        {
+            string suggested = string.IsNullOrWhiteSpace(CurrentFilePath)
+                ? (string.IsNullOrWhiteSpace(CurrentCircuit.Name) ? "circuit.frycircuit" : $"{CurrentCircuit.Name.Replace(" ", "_").ToLowerInvariant()}.frycircuit")
+                : Path.GetFileName(CurrentFilePath);
+
+            if (!suggested.EndsWith(".frycircuit", StringComparison.OrdinalIgnoreCase) &&
+                !suggested.EndsWith(".circuit", StringComparison.OrdinalIgnoreCase))
+            {
+                suggested += ".frycircuit";
+            }
+
+            var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            {
+                Title = "Save Circuit As",
+                DefaultExtension = "frycircuit",
+                SuggestedFileName = suggested,
+                FileTypeChoices = new List<FilePickerFileType>
+                {
+                    new("FryCircuit File (*.frycircuit)")
+                    {
+                        Patterns = new[] { "*.frycircuit" }
+                    },
+                    new("Legacy Circuit File (*.circuit)")
+                    {
+                        Patterns = new[] { "*.circuit" }
+                    }
+                }
+            });
+
+            if (file != null)
+            {
+                string localPath = file.Path.LocalPath;
+                string xml = CircuitSerializer.Serialize(CurrentCircuit);
+                await using (var stream = await file.OpenWriteAsync())
+                await using (var writer = new StreamWriter(stream, System.Text.Encoding.UTF8))
+                {
+                    await writer.WriteAsync(xml);
+                }
+
+                CurrentFilePath = localPath;
+                IsDirty = false;
+                StatusText = $"Saved circuit to {Path.GetFileName(localPath)}";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Save error: {ex.Message}";
+        }
+    }
+
     public void SaveCircuit(string filePath)
     {
         if (CurrentCircuit == null) return;
         try
         {
             CircuitSerializer.SaveToFile(CurrentCircuit, filePath);
+            CurrentFilePath = filePath;
+            IsDirty = false;
             StatusText = $"Saved circuit to {Path.GetFileName(filePath)}";
         }
         catch (Exception ex)
@@ -856,14 +1041,14 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
-    [RelayCommand]
     public void OpenCircuit(string filePath)
     {
         try
         {
             var circuit = CircuitSerializer.LoadFromFile(filePath);
+            CurrentFilePath = filePath;
             SetCircuit(circuit);
-            CircuitTitle = $"FryCircuit - {circuit.Name}";
+            IsDirty = false;
             StatusText = $"Opened {Path.GetFileName(filePath)}";
         }
         catch (Exception ex)
@@ -960,6 +1145,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             _canvas.ZoomToFit();
         }
         SelectedDevice = circuit.Devices.FirstOrDefault(d => d.Type != "ground") ?? circuit.Devices.FirstOrDefault();
+        UpdateTitle();
     }
 
     private void LoadDefaultCircuit()

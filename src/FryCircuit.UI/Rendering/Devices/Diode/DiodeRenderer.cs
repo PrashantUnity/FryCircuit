@@ -12,15 +12,8 @@ public class DiodeRenderer : IDeviceRenderer
         double u = unitSize;
         double z = renderContext.Zoom;
 
-        var strokeBrush = renderContext.IsPlacingGhost
-            ? new SolidColorBrush(Color.FromArgb(140, 0, 240, 255))
-            : new SolidColorBrush(Color.FromRgb(240, 246, 255));
-
-        var strokePen = new Pen(strokeBrush, 2.8 * z)
-        {
-            LineCap = PenLineCap.Round,
-            LineJoin = PenLineJoin.Round
-        };
+        var strokeBrush = renderContext.GetStrokeBrush();
+        var strokePen = renderContext.GetStrokePen(2.8);
 
         bool isLed = device is LedDevice || device.Type == "led";
         string hexColor = (device as LedDevice)?.ColorHex ?? "#00E676";
@@ -98,7 +91,8 @@ public class DiodeRenderer : IDeviceRenderer
         }
 
         // Terminal solder pads
-        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y - u), 3.2 * z, 3.2 * z);
-        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y + u), 3.2 * z, 3.2 * z);
+        double padRadius = (renderContext.IsGlowPass ? 4.8 : 3.2) * z;
+        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y - u), padRadius, padRadius);
+        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y + u), padRadius, padRadius);
     }
 }

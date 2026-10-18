@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:FryCircuit.UI.ViewModels"
         xmlns:views="using:FryCircuit.UI.Views"
-        x:Class="FryCircuit.UI.Views.MainWindow"
+        x:Class="FryCircuit.Plugin.Runner.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="{Binding CircuitTitle}"
         Width="1420" Height="860"

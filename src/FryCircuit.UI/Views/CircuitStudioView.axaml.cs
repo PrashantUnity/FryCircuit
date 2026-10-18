@@ -30,6 +30,12 @@ public partial class CircuitStudioView : UserControl
             return;
         }
 
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel != null)
+        {
+            vm.StorageProvider = topLevel.StorageProvider;
+        }
+
         var canvas = this.FindControl<Controls.CircuitCanvas>("CanvasControl");
         var scope = this.FindControl<Controls.OscilloscopeControl>("Oscilloscope");
 

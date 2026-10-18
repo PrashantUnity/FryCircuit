@@ -12,15 +12,8 @@ public class ResistorRenderer : IDeviceRenderer
         double u = unitSize;
         double z = renderContext.Zoom;
 
-        var strokeBrush = renderContext.IsPlacingGhost
-            ? new SolidColorBrush(Color.FromArgb(140, 0, 240, 255))
-            : new SolidColorBrush(Color.FromRgb(240, 246, 255));
-
-        var strokePen = new Pen(strokeBrush, 2.8 * z)
-        {
-            LineCap = PenLineCap.Round,
-            LineJoin = PenLineJoin.Round
-        };
+        var strokeBrush = renderContext.GetStrokeBrush();
+        var strokePen = renderContext.GetStrokePen(2.8);
 
         var geom = new StreamGeometry();
         using (var g = geom.Open())
@@ -38,7 +31,8 @@ public class ResistorRenderer : IDeviceRenderer
         context.DrawGeometry(null, strokePen, geom);
 
         // Terminal solder pads
-        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y - u), 3.2 * z, 3.2 * z);
-        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y + u), 3.2 * z, 3.2 * z);
+        double padRadius = (renderContext.IsGlowPass ? 4.8 : 3.2) * z;
+        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y - u), padRadius, padRadius);
+        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y + u), padRadius, padRadius);
     }
 }

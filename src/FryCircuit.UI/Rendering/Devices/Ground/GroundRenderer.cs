@@ -11,14 +11,8 @@ public class GroundRenderer : IDeviceRenderer
         double u = unitSize;
         double z = renderContext.Zoom;
 
-        var strokeBrush = renderContext.IsPlacingGhost
-            ? new SolidColorBrush(Color.FromArgb(140, 0, 240, 255))
-            : new SolidColorBrush(Color.FromRgb(240, 246, 255));
-
-        var strokePen = new Pen(strokeBrush, 2.8 * z)
-        {
-            LineCap = PenLineCap.Round
-        };
+        var strokeBrush = renderContext.GetStrokeBrush();
+        var strokePen = renderContext.GetStrokePen(2.8);
 
         // Stem from top pin terminal down to ground bars
         context.DrawLine(strokePen, new Point(center.X, center.Y), new Point(center.X, center.Y + u * 0.35));
@@ -29,6 +23,7 @@ public class GroundRenderer : IDeviceRenderer
         context.DrawLine(strokePen, new Point(center.X - u * 0.09, center.Y + u * 0.68), new Point(center.X + u * 0.09, center.Y + u * 0.68));
 
         // Terminal solder pad
-        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y), 3.0 * z, 3.0 * z);
+        double padRadius = (renderContext.IsGlowPass ? 4.8 : 3.0) * z;
+        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y), padRadius, padRadius);
     }
 }

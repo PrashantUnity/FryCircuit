@@ -652,6 +652,32 @@ public class CircuitBuilderAndDeviceTests
             Assert.False(double.IsInfinity(node.Voltage), $"Node {node.Id} has Infinite voltage");
         }
     }
+
+    [Fact]
+    public void CircuitSerializer_SupportsFrycircuitExtension()
+    {
+        Assert.Equal(".frycircuit", FryCircuit.Core.IO.CircuitSerializer.DefaultFileExtension);
+        Assert.Equal(".circuit", FryCircuit.Core.IO.CircuitSerializer.LegacyFileExtension);
+
+        var original = FryCircuit.Core.Presets.CircuitPresets.CreateResistorDivider();
+        string tempFile = Path.Combine(Path.GetTempPath(), $"test_circuit_{Guid.NewGuid()}{FryCircuit.Core.IO.CircuitSerializer.DefaultFileExtension}");
+
+        try
+        {
+            FryCircuit.Core.IO.CircuitSerializer.SaveToFile(original, tempFile);
+            Assert.True(File.Exists(tempFile));
+
+            var loaded = FryCircuit.Core.IO.CircuitSerializer.LoadFromFile(tempFile);
+            Assert.NotNull(loaded);
+            Assert.Equal(original.Devices.Count, loaded.Devices.Count);
+            Assert.Equal(original.Nodes.Count, loaded.Nodes.Count);
+            Assert.Equal(original.Name, loaded.Name);
+        }
+        finally
+        {
+            if (File.Exists(tempFile)) File.Delete(tempFile);
+        }
+    }
 }
 
 

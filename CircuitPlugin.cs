@@ -156,6 +156,28 @@ public class CircuitPlugin : IFryPlugin
 
         ctx.RegisterCommand(new CommandPaletteDescriptor
         {
+            Id = "cmd.circuit.new",
+            Title = "New Circuit Schematic",
+            Subtitle = "Create a blank .frycircuit schematic in Circuit Studio",
+            Category = "Engineering & Simulation",
+            IconKind = "FilePlusOutline",
+            ShortcutKey = OperatingSystem.IsMacOS() ? "Cmd+N" : "Ctrl+N",
+            Command = new RelayCommand(NavigateToStudio)
+        });
+
+        ctx.RegisterCommand(new CommandPaletteDescriptor
+        {
+            Id = "cmd.circuit.file.open",
+            Title = "Open Circuit Schematic (.frycircuit)",
+            Subtitle = "Open a .frycircuit or .circuit schematic file in Circuit Studio",
+            Category = "Engineering & Simulation",
+            IconKind = "FolderOpenOutline",
+            ShortcutKey = OperatingSystem.IsMacOS() ? "Cmd+O" : "Ctrl+O",
+            Command = new RelayCommand(NavigateToStudio)
+        });
+
+        ctx.RegisterCommand(new CommandPaletteDescriptor
+        {
             Id = "cmd.circuit.overlay",
             Title = "Open Circuit Floating Overlay",
             Subtitle = "Launch draggable picture-in-picture circuit simulator window",
@@ -183,6 +205,26 @@ public class CircuitPlugin : IFryPlugin
             Order = 50,
             Actions = new()
             {
+                new RibbonActionDescriptor
+                {
+                    Id = "fryworld.ribbon.circuit.new",
+                    GroupId = "file",
+                    Label = "New",
+                    Tooltip = "Create a new blank circuit schematic",
+                    IconKind = "FilePlusOutline",
+                    Order = 1,
+                    Command = new RelayCommand(NavigateToStudio)
+                },
+                new RibbonActionDescriptor
+                {
+                    Id = "fryworld.ribbon.circuit.file.open",
+                    GroupId = "file",
+                    Label = "Open",
+                    Tooltip = "Open .frycircuit / .circuit file",
+                    IconKind = "FolderOpenOutline",
+                    Order = 2,
+                    Command = new RelayCommand(NavigateToStudio)
+                },
                 new RibbonActionDescriptor
                 {
                     Id = "fryworld.ribbon.circuit.open",

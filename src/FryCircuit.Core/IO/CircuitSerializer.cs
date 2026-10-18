@@ -7,16 +7,23 @@ using FryCircuit.Core.Models;
 namespace FryCircuit.Core.IO;
 
 /// <summary>
-/// Handles saving and loading circuits using the clean FryCircuit (.circuit) XML schema.
+/// Handles saving and loading circuits using the clean FryCircuit (.frycircuit / .circuit) XML schema.
 /// </summary>
 public static class CircuitSerializer
 {
-    public const string DefaultFileExtension = ".circuit";
+    public const string DefaultFileExtension = ".frycircuit";
+    public const string LegacyFileExtension = ".circuit";
+
+    private sealed class Utf8StringWriter : StringWriter
+    {
+        public override Encoding Encoding => Encoding.UTF8;
+    }
 
     public static void SaveToFile(Circuit circuit, string filePath)
     {
-        string xml = Serialize(circuit);
-        File.WriteAllText(filePath, xml, Encoding.UTF8);
+        using var stream = File.Create(filePath);
+        var doc = BuildDocument(circuit);
+        doc.Save(stream);
     }
 
     public static Circuit LoadFromFile(string filePath)
@@ -38,6 +45,14 @@ public static class CircuitSerializer
     }
 
     public static string Serialize(Circuit circuit)
+    {
+        var doc = BuildDocument(circuit);
+        using var writer = new Utf8StringWriter();
+        doc.Save(writer);
+        return writer.ToString();
+    }
+
+    public static XDocument BuildDocument(Circuit circuit)
     {
         var root = new XElement("circuit",
             new XAttribute("version", circuit.Version),
@@ -104,11 +119,7 @@ public static class CircuitSerializer
         }
         root.Add(devicesElem);
 
-        var doc = new XDocument(new XDeclaration("1.0", "utf-8", "yes"), root);
-        var sb = new StringBuilder();
-        using var writer = new StringWriter(sb);
-        doc.Save(writer);
-        return sb.ToString();
+        return new XDocument(new XDeclaration("1.0", "utf-8", "yes"), root);
     }
 
     private static Circuit DeserializeDocument(XDocument doc)

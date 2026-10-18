@@ -12,17 +12,10 @@ public class VoltageSourceRenderer : IDeviceRenderer
         double u = unitSize;
         double z = renderContext.Zoom;
 
-        var strokeBrush = renderContext.IsPlacingGhost
-            ? new SolidColorBrush(Color.FromArgb(140, 0, 240, 255))
-            : new SolidColorBrush(Color.FromRgb(240, 246, 255));
+        var strokeBrush = renderContext.GetStrokeBrush();
+        var strokePen = renderContext.GetStrokePen(2.8);
 
-        var strokePen = new Pen(strokeBrush, 2.8 * z)
-        {
-            LineCap = PenLineCap.Round,
-            LineJoin = PenLineJoin.Round
-        };
-
-        var fillBrush = new SolidColorBrush(Color.FromRgb(20, 28, 40));
+        var fillBrush = renderContext.IsGlowPass ? null : new SolidColorBrush(Color.FromRgb(20, 28, 40));
 
         // Leads from pins to circle
         double radius = u * 0.55;
@@ -71,7 +64,8 @@ public class VoltageSourceRenderer : IDeviceRenderer
         }
 
         // Terminal solder pads
-        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y - u), 3.2 * z, 3.2 * z);
-        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y + u), 3.2 * z, 3.2 * z);
+        double padRadius = (renderContext.IsGlowPass ? 4.8 : 3.2) * z;
+        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y - u), padRadius, padRadius);
+        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y + u), padRadius, padRadius);
     }
 }

@@ -1790,22 +1790,6 @@ public class CircuitCanvas : Control
             bool isRot90or270 = ((int)dev.Transform.Rotation % 180) != 0;
             double devW = (isRot90or270 ? baseH : baseW) * GridSize * Zoom;
             double devH = (isRot90or270 ? baseW : baseH) * GridSize * Zoom;
-            double selPad = 8 * Zoom;
-            double selW = devW + selPad;
-            double selH = devH + selPad;
-
-            // Highlight border if selected
-            if (isSelected)
-            {
-                var selColor = (_isDragCollision && dev == _draggedDevice)
-                    ? Color.FromArgb(240, 255, 60, 60)
-                    : Color.FromArgb(220, 0, 240, 255);
-                var selPen = new Pen(new SolidColorBrush(selColor), 2)
-                {
-                    LineCap = PenLineCap.Round
-                };
-                context.DrawRectangle(null, selPen, new Rect(center.X - selW / 2.0, center.Y - selH / 2.0, selW, selH), 8, 8);
-            }
 
             // Push rotation transform
             double rotAngle = (int)dev.Transform.Rotation;
@@ -1814,7 +1798,33 @@ public class CircuitCanvas : Control
                                          Matrix.CreateTranslation(center.X, center.Y)))
             {
                 var renderer = DeviceRendererRegistry.GetRenderer(dev.Type);
-                renderer.Render(context, dev, center, GridSize * Zoom, isSelected, renderCtx);
+
+                // 1. If selected, first render glowing shape aura pass
+                if (isSelected)
+                {
+                    var glowCtx = new DeviceRenderContext
+                    {
+                        Zoom = Zoom,
+                        GridSize = GridSize,
+                        IsPlacingGhost = false,
+                        IsSelected = true,
+                        IsDragCollision = _isDragCollision && dev == _draggedDevice,
+                        IsGlowPass = true
+                    };
+                    renderer.Render(context, dev, center, GridSize * Zoom, true, glowCtx);
+                }
+
+                // 2. Render core device shape
+                var devCtx = new DeviceRenderContext
+                {
+                    Zoom = Zoom,
+                    GridSize = GridSize,
+                    IsPlacingGhost = false,
+                    IsSelected = isSelected,
+                    IsDragCollision = _isDragCollision && dev == _draggedDevice,
+                    IsGlowPass = false
+                };
+                renderer.Render(context, dev, center, GridSize * Zoom, isSelected, devCtx);
             }
 
             // Draw component parameter value label
@@ -1851,15 +1861,11 @@ public class CircuitCanvas : Control
                     // For LEDs, emission arrows are drawn on the right, so position label to the left.
                     if (dev.Type == "led")
                     {
-                        labelX = isSelected
-                            ? center.X - selW / 2.0 - ft.Width - 6 * Zoom
-                            : center.X - devW / 2.0 - ft.Width - 6 * Zoom;
+                        labelX = center.X - devW / 2.0 - ft.Width - 6 * Zoom;
                     }
                     else
                     {
-                        labelX = isSelected
-                            ? center.X + selW / 2.0 + 6 * Zoom
-                            : center.X + devW / 2.0 + 5 * Zoom;
+                        labelX = center.X + devW / 2.0 + 6 * Zoom;
                     }
                     labelY = center.Y - ft.Height / 2.0;
                 }
@@ -1867,9 +1873,7 @@ public class CircuitCanvas : Control
                 {
                     // Potentiometer has terminals at Top, Bottom, and Wiper on Right.
                     // Position label cleanly to the Left where there are zero pins or wires.
-                    labelX = isSelected
-                        ? center.X - selW / 2.0 - ft.Width - 6 * Zoom
-                        : center.X - devW / 2.0 - ft.Width - 6 * Zoom;
+                    labelX = center.X - devW / 2.0 - ft.Width - 6 * Zoom;
                     labelY = center.Y - ft.Height / 2.0;
                 }
                 else if (dev.Type is "nmos" or "pmos" or "npn" or "pnp")
@@ -1884,18 +1888,14 @@ public class CircuitCanvas : Control
                     else
                     {
                         labelX = center.X - ft.Width / 2.0;
-                        labelY = isSelected
-                            ? center.Y + selH / 2.0 + 5 * Zoom
-                            : center.Y + devH / 2.0 + 4 * Zoom;
+                        labelY = center.Y + devH / 2.0 + 4 * Zoom;
                     }
                 }
                 else
                 {
-                    // Position badge cleanly below the device/selection boundary
+                    // Position badge cleanly below the device boundary
                     labelX = center.X - ft.Width / 2.0;
-                    labelY = isSelected
-                        ? center.Y + selH / 2.0 + 5 * Zoom
-                        : center.Y + devH / 2.0 + 4 * Zoom;
+                    labelY = center.Y + devH / 2.0 + 4 * Zoom;
                 }
 
                 var badgeRect = new Rect(labelX - 4 * Zoom, labelY - 2 * Zoom, ft.Width + 8 * Zoom, ft.Height + 4 * Zoom);
@@ -2143,13 +2143,62 @@ public class CircuitCanvas : Control
         if (Circuit == null) return null;
         return Circuit.Devices.FirstOrDefault(d =>
         {
-            var desc = DeviceRegistry.GetDescriptor(d);
-            double bw = desc?.BoundingBoxSize.Width ?? 2.0;
-            double bh = desc?.BoundingBoxSize.Height ?? 2.0;
-            bool isRot = ((int)d.Transform.Rotation % 180) != 0;
-            double halfW = (isRot ? bh : bw) / 2.0 + 0.15;
-            double halfH = (isRot ? bw : bh) / 2.0 + 0.15;
-            return Math.Abs(d.LocationX - wx) <= halfW && Math.Abs(d.LocationY - wy) <= halfH;
+            // Transform (wx, wy) into device's unrotated local coordinates:
+            double dx = wx - d.LocationX;
+            double dy = wy - d.LocationY;
+            double rad = -(int)d.Transform.Rotation * Math.PI / 180.0;
+            double cos = Math.Cos(rad);
+            double sin = Math.Sin(rad);
+            double localX = dx * cos - dy * sin;
+            double localY = dx * sin + dy * cos;
+
+            // Tight shape hit testing based on device descriptor and type
+            double hitHalfW;
+            double hitHalfH;
+
+            switch (d.Type.ToLowerInvariant())
+            {
+                case "resistor":
+                case "inductor":
+                    hitHalfW = 0.48;
+                    hitHalfH = 1.15;
+                    break;
+                case "diode":
+                case "zener":
+                case "led":
+                    hitHalfW = 0.55;
+                    hitHalfH = 1.15;
+                    break;
+                case "capacitor":
+                    hitHalfW = 0.65;
+                    hitHalfH = 1.15;
+                    break;
+                case "vsource":
+                case "isource":
+                    hitHalfW = 0.70;
+                    hitHalfH = 1.15;
+                    break;
+                case "ground":
+                    hitHalfW = 0.45;
+                    hitHalfH = 0.80;
+                    break;
+                case "switch":
+                case "spst":
+                    hitHalfW = 0.45;
+                    hitHalfH = 1.15;
+                    break;
+                case "spdt":
+                    hitHalfW = 1.15;
+                    hitHalfH = 1.15;
+                    break;
+                default:
+                    var desc = DeviceRegistry.GetDescriptor(d);
+                    hitHalfW = (desc?.BoundingBoxSize.Width ?? 2.0) / 2.0 + 0.10;
+                    hitHalfH = (desc?.BoundingBoxSize.Height ?? 2.0) / 2.0 + 0.10;
+                    break;
+            }
+
+            return Math.Abs(localX) <= hitHalfW && Math.Abs(localY) <= hitHalfH;
         });
     }
 

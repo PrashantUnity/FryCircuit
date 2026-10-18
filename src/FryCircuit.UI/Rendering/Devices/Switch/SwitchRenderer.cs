@@ -12,15 +12,8 @@ public class SwitchRenderer : IDeviceRenderer
         double u = unitSize;
         double z = renderContext.Zoom;
 
-        var strokeBrush = renderContext.IsPlacingGhost
-            ? new SolidColorBrush(Color.FromArgb(140, 0, 240, 255))
-            : new SolidColorBrush(Color.FromRgb(240, 246, 255));
-
-        var strokePen = new Pen(strokeBrush, 2.8 * z)
-        {
-            LineCap = PenLineCap.Round,
-            LineJoin = PenLineJoin.Round
-        };
+        var strokeBrush = renderContext.GetStrokeBrush();
+        var strokePen = renderContext.GetStrokePen(2.8);
 
         bool isClosed = (device as SwitchDevice)?.IsClosed ?? false;
         bool isSpdt = device.Type.Equals("spdt", StringComparison.OrdinalIgnoreCase) || device.Pins.Count >= 3;
