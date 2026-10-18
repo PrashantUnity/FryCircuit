@@ -209,5 +209,79 @@ public sealed class CircuitPluginTests
 
         vm.Dispose();
     }
+
+    [Fact]
+    public void MainWindowViewModel_InspectorPanel_CollapsesAndExpands()
+    {
+        var vm = new FryCircuit.UI.ViewModels.MainWindowViewModel();
+        Assert.True(vm.IsInspectorOpen);
+        Assert.Equal(315, vm.InspectorColumnWidth.Value);
+
+        // Collapse Inspector
+        vm.ToggleInspectorCommand.Execute(null);
+        Assert.False(vm.IsInspectorOpen);
+        Assert.Equal(0, vm.InspectorColumnWidth.Value);
+
+        // Re-open Inspector
+        vm.ToggleInspectorCommand.Execute(null);
+        Assert.True(vm.IsInspectorOpen);
+        Assert.Equal(315, vm.InspectorColumnWidth.Value);
+
+        // Direct property change also updates column width
+        vm.IsInspectorOpen = false;
+        Assert.Equal(0, vm.InspectorColumnWidth.Value);
+
+        vm.Dispose();
+    }
+
+    [Fact]
+    public void MainWindowViewModel_Oscilloscope_CollapsesExpandsAndMaximizes()
+    {
+        var vm = new FryCircuit.UI.ViewModels.MainWindowViewModel();
+        Assert.True(vm.IsOscilloscopeOpen);
+        Assert.False(vm.IsOscilloscopeMaximized);
+        Assert.Equal(185, vm.ScopeRowHeight.Value);
+        Assert.True(vm.CanvasRowHeight.IsStar);
+        Assert.Equal("Maximize", vm.MaximizeOscilloscopeLabel);
+
+        // 1. Collapse Oscilloscope
+        vm.ToggleOscilloscopeCommand.Execute(null);
+        Assert.False(vm.IsOscilloscopeOpen);
+        Assert.Equal(0, vm.ScopeRowHeight.Value);
+        Assert.True(vm.CanvasRowHeight.IsStar);
+
+        // 2. Expand Oscilloscope
+        vm.ToggleOscilloscopeCommand.Execute(null);
+        Assert.True(vm.IsOscilloscopeOpen);
+        Assert.False(vm.IsOscilloscopeMaximized);
+        Assert.Equal(185, vm.ScopeRowHeight.Value);
+        Assert.True(vm.CanvasRowHeight.IsStar);
+
+        // 3. Maximize Oscilloscope
+        vm.ToggleMaximizeOscilloscopeCommand.Execute(null);
+        Assert.True(vm.IsOscilloscopeOpen);
+        Assert.True(vm.IsOscilloscopeMaximized);
+        Assert.Equal(0, vm.CanvasRowHeight.Value);
+        Assert.True(vm.ScopeRowHeight.IsStar);
+        Assert.Equal("Restore", vm.MaximizeOscilloscopeLabel);
+
+        // 4. Restore Oscilloscope from maximized state
+        vm.ToggleMaximizeOscilloscopeCommand.Execute(null);
+        Assert.True(vm.IsOscilloscopeOpen);
+        Assert.False(vm.IsOscilloscopeMaximized);
+        Assert.True(vm.CanvasRowHeight.IsStar);
+        Assert.Equal(185, vm.ScopeRowHeight.Value);
+        Assert.Equal("Maximize", vm.MaximizeOscilloscopeLabel);
+
+        // 5. Maximize, then toggle collapse drops maximize
+        vm.ToggleMaximizeOscilloscopeCommand.Execute(null);
+        Assert.True(vm.IsOscilloscopeMaximized);
+        vm.ToggleOscilloscopeCommand.Execute(null);
+        Assert.False(vm.IsOscilloscopeMaximized);
+        Assert.True(vm.IsOscilloscopeOpen);
+        Assert.Equal(185, vm.ScopeRowHeight.Value);
+
+        vm.Dispose();
+    }
 }
 

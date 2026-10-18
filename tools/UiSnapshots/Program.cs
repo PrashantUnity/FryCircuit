@@ -42,6 +42,13 @@ public static class Program
             return;
         }
 
+        if (args.Length > 0 && args[0].Equals("layout", StringComparison.OrdinalIgnoreCase))
+        {
+            CaptureLayoutStates(outDir);
+            Console.WriteLine("Layout snapshots captured successfully!");
+            return;
+        }
+
         string[] presetsToCapture = new[]
         {
             "Half-Wave Rectifier",
@@ -123,14 +130,14 @@ public static class Program
             }
         }
 
-        var osc = window.FindControl<FryCircuit.UI.Controls.OscilloscopeControl>("Oscilloscope");
+        var osc = studio.FindControl<FryCircuit.UI.Controls.OscilloscopeControl>("Oscilloscope");
         if (osc != null)
         {
             osc.DisplayMode = isFft ? FryCircuit.UI.Controls.OscilloscopeDisplayMode.FftSpectrum : FryCircuit.UI.Controls.OscilloscopeDisplayMode.TimeDomain;
             osc.ShowCursors = showCursors;
         }
 
-        var canvas = window.FindControl<FryCircuit.UI.Controls.CircuitCanvas>("CanvasControl");
+        var canvas = studio.FindControl<FryCircuit.UI.Controls.CircuitCanvas>("CanvasControl");
         if (canvas != null)
         {
             canvas.ShowCurrentAnnotations = true;
@@ -199,7 +206,7 @@ public static class Program
             }
         }
 
-        var canvas = window.FindControl<FryCircuit.UI.Controls.CircuitCanvas>("CanvasControl");
+        var canvas = studio.FindControl<FryCircuit.UI.Controls.CircuitCanvas>("CanvasControl");
         if (canvas != null)
         {
             canvas.ShowCurrentAnnotations = true;
@@ -210,6 +217,88 @@ public static class Program
         window.Show();
 
         string filename = Path.Combine(outDir, "led_inspector_color_selection.png");
+        var frame = window.CaptureRenderedFrame();
+#pragma warning disable CS0618
+        if (frame != null)
+        {
+            frame.Save(filename);
+            Console.WriteLine($"Saved snapshot: {filename}");
+        }
+        else
+        {
+            var pixelSize = new PixelSize(1380, 850);
+            using var rtb = new RenderTargetBitmap(pixelSize, new Vector(96, 96));
+            rtb.Render(window);
+            rtb.Save(filename);
+            Console.WriteLine($"Saved snapshot (via RTB): {filename}");
+        }
+#pragma warning restore CS0618
+
+        window.Close();
+    }
+
+    private static void CaptureLayoutStates(string outDir)
+    {
+        // 1. All Panels Open (Default layout)
+        CaptureLayoutVariant(outDir, "layout_all_panels_open.png", vm =>
+        {
+            vm.LoadPreset("Half-Wave Rectifier");
+            for (int i = 0; i < 50; i++) vm.StepSimulationCommand.Execute(null);
+            vm.IsLeftPanelOpen = true;
+            vm.IsInspectorOpen = true;
+            vm.IsOscilloscopeOpen = true;
+            vm.IsOscilloscopeMaximized = false;
+        });
+
+        // 2. Panels Collapsed (Wide Canvas mode)
+        CaptureLayoutVariant(outDir, "layout_panels_collapsed.png", vm =>
+        {
+            vm.LoadPreset("Half-Wave Rectifier");
+            for (int i = 0; i < 50; i++) vm.StepSimulationCommand.Execute(null);
+            vm.IsLeftPanelOpen = false;
+            vm.IsInspectorOpen = false;
+            vm.IsOscilloscopeOpen = false;
+            vm.IsOscilloscopeMaximized = false;
+        });
+
+        // 3. Oscilloscope Maximized
+        CaptureLayoutVariant(outDir, "layout_oscilloscope_maximized.png", vm =>
+        {
+            vm.LoadPreset("Half-Wave Rectifier");
+            for (int i = 0; i < 50; i++) vm.StepSimulationCommand.Execute(null);
+            vm.IsLeftPanelOpen = true;
+            vm.IsInspectorOpen = true;
+            vm.IsOscilloscopeOpen = true;
+            vm.IsOscilloscopeMaximized = true;
+        });
+    }
+
+    private static void CaptureLayoutVariant(string outDir, string filenameOnly, Action<MainWindowViewModel> configure)
+    {
+        var studio = new CircuitStudioView();
+        var vm = new MainWindowViewModel();
+        studio.DataContext = vm;
+        var window = new Window
+        {
+            Width = 1380,
+            Height = 850,
+            DataContext = vm,
+            Content = studio
+        };
+
+        configure(vm);
+
+        var canvas = studio.FindControl<FryCircuit.UI.Controls.CircuitCanvas>("CanvasControl");
+        if (canvas != null)
+        {
+            canvas.ShowCurrentAnnotations = true;
+            canvas.ShowVoltageAnnotations = true;
+            canvas.ZoomToFit();
+        }
+
+        window.Show();
+
+        string filename = Path.Combine(outDir, filenameOnly);
         var frame = window.CaptureRenderedFrame();
 #pragma warning disable CS0618
         if (frame != null)

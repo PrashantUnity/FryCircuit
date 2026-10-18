@@ -341,6 +341,24 @@
                             </StackPanel>
                         </ToggleButton>
 
+                        <!-- Toggle Oscilloscope Bottom Panel -->
+                        <ToggleButton Classes="modebtn" IsChecked="{Binding IsOscilloscopeOpen, Mode=TwoWay}"
+                                      ToolTip.Tip="Toggle Oscilloscope Signal Panel (∿)">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="∿" FontSize="11" Foreground="#00E676"/>
+                                <TextBlock Text="Scope" FontSize="11" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </ToggleButton>
+
+                        <!-- Toggle Inspector Right Panel -->
+                        <ToggleButton Classes="modebtn" IsChecked="{Binding IsInspectorOpen, Mode=TwoWay}"
+                                      ToolTip.Tip="Toggle Circuit Inspector Panel (◧)">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="◧" FontSize="11" Foreground="#FFD700"/>
+                                <TextBlock Text="Inspector" FontSize="11" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </ToggleButton>
+
                         <Separator Background="#242E40" Width="1" Height="18" Margin="3,0"/>
 
                         <Button Classes="modebtn" Classes.active="{Binding IsSelectMode}" Content="↖ Select" Command="{Binding SetToolModeCommand}" CommandParameter="select"/>
@@ -413,7 +431,12 @@
         </Border>
 
         <!-- Main Workspace: Left Library Sidebar + Canvas & Probes + Right Inspector Sidebar -->
-        <Grid Grid.Row="1" ColumnDefinitions="Auto,*,315">
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="{Binding InspectorColumnWidth}" />
+            </Grid.ColumnDefinitions>
 
             <!-- Left Sidebar: Collapsible Component & Device Library -->
             <Border Grid.Column="0" Background="#121620" BorderBrush="#1C2332" BorderThickness="0,0,1,0">
@@ -540,18 +563,48 @@
             </Border>
 
             <!-- Center: Schematic Canvas + Oscilloscope -->
-            <Grid Grid.Column="1" RowDefinitions="*,170">
-                <!-- Circuit Schematic Canvas -->
-                <controls:CircuitCanvas x:Name="CanvasControl" Grid.Row="0" 
-                                        Circuit="{Binding CurrentCircuit}"
-                                        SelectedDevice="{Binding SelectedDevice, Mode=TwoWay}"
-                                        SelectedWire="{Binding SelectedWire, Mode=TwoWay}"
-                                        ToolMode="{Binding ActiveToolMode, Mode=TwoWay}"
-                                        ShowCurrentAnnotations="{Binding ShowCurrentAnnotations}"
-                                        ShowVoltageAnnotations="{Binding ShowVoltageAnnotations}"/>
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="{Binding CanvasRowHeight}" />
+                    <RowDefinition Height="{Binding ScopeRowHeight}" />
+                </Grid.RowDefinitions>
 
-                <!-- Oscilloscope Bottom Panel with Probing Controls -->
-                <Border Grid.Row="1" Background="#0C0E14" BorderBrush="#1C2332" BorderThickness="0,1,0,0">
+                <!-- Circuit Schematic Canvas + Floating Panel Badges -->
+                <Grid Grid.Row="0" IsVisible="{Binding !IsOscilloscopeMaximized}">
+                    <controls:CircuitCanvas x:Name="CanvasControl" 
+                                            Circuit="{Binding CurrentCircuit}"
+                                            SelectedDevice="{Binding SelectedDevice, Mode=TwoWay}"
+                                            SelectedWire="{Binding SelectedWire, Mode=TwoWay}"
+                                            ToolMode="{Binding ActiveToolMode, Mode=TwoWay}"
+                                            ShowCurrentAnnotations="{Binding ShowCurrentAnnotations}"
+                                            ShowVoltageAnnotations="{Binding ShowVoltageAnnotations}"/>
+
+                    <!-- Floating Restore Inspector Badge when collapsed -->
+                    <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,12,0"
+                            IsVisible="{Binding !IsInspectorOpen}">
+                        <Button Classes="chip" Command="{Binding ToggleInspectorCommand}" ToolTip.Tip="Expand Inspector Panel (◀)">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="◀" FontSize="10" Foreground="#FFD700"/>
+                                <TextBlock Text="Inspector" FontSize="11" FontWeight="SemiBold" Foreground="#D0DBE8"/>
+                            </StackPanel>
+                        </Button>
+                    </Border>
+
+                    <!-- Floating Restore Oscilloscope Badge when collapsed -->
+                    <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,16,16"
+                            IsVisible="{Binding !IsOscilloscopeOpen}">
+                        <Button Classes="chip" Command="{Binding ToggleOscilloscopeCommand}" ToolTip.Tip="Expand Oscilloscope Panel (▲)">
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <TextBlock Text="∿" FontSize="12" Foreground="#00E676" FontWeight="Bold"/>
+                                <TextBlock Text="Oscilloscope ▲" FontSize="11" FontWeight="SemiBold" Foreground="#D0DBE8"/>
+                            </StackPanel>
+                        </Button>
+                    </Border>
+                </Grid>
+
+                <!-- Oscilloscope Bottom Panel with Probing Controls (Collapsible & Maximizable) -->
+                <Border Grid.Row="1" Background="#0C0E14" BorderBrush="#1C2332" BorderThickness="0,1,0,0"
+                        IsVisible="{Binding IsOscilloscopeOpen}">
                     <Grid RowDefinitions="Auto,*">
                         <!-- Oscilloscope Probe Control Bar -->
                         <Border Grid.Row="0" Background="#10141D" BorderBrush="#1C2332" BorderThickness="0,0,0,1" Padding="10,4">
@@ -572,7 +625,23 @@
                                     </Button>
                                     <Button Classes="chip" Content="Reset Probes" Command="{Binding ClearProbesCommand}" ToolTip.Tip="Reset to automatic signal probing"/>
                                 </StackPanel>
-                                <TextBlock Grid.Column="3" Text="Interactive Signal Probing • 60 FPS" FontSize="10" Foreground="#4A5B70" VerticalAlignment="Center"/>
+
+                                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                    <TextBlock Text="Interactive Signal Probing • 60 FPS" FontSize="10" Foreground="#4A5B70" VerticalAlignment="Center"/>
+
+                                    <!-- Maximize / Restore Oscilloscope Button -->
+                                    <Button Classes="chip" Command="{Binding ToggleMaximizeOscilloscopeCommand}" ToolTip.Tip="{Binding MaximizeOscilloscopeTooltip}">
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <TextBlock Text="{Binding MaximizeOscilloscopeIcon}" FontSize="11" Foreground="#00F0FF"/>
+                                            <TextBlock Text="{Binding MaximizeOscilloscopeLabel}" FontSize="10" FontWeight="SemiBold" Foreground="#D0DBE8"/>
+                                        </StackPanel>
+                                    </Button>
+
+                                    <!-- Collapse Oscilloscope Button -->
+                                    <Button Classes="chip" Command="{Binding ToggleOscilloscopeCommand}" ToolTip.Tip="Collapse Oscilloscope (▼)">
+                                        <TextBlock Text="▼" FontSize="10" Foreground="#8C9BB0"/>
+                                    </Button>
+                                </StackPanel>
                             </Grid>
                         </Border>
                         <controls:OscilloscopeControl Grid.Row="1" x:Name="Oscilloscope" />
@@ -581,10 +650,15 @@
             </Grid>
 
             <!-- Right Sidebar: Live Electrical Inspector & Tuning Controls -->
-            <Border Grid.Column="2" Background="#121620" BorderBrush="#1C2332" BorderThickness="1,0,0,0" Padding="12,12,6,12">
+            <Border Grid.Column="2" Width="315" IsVisible="{Binding IsInspectorOpen}" Background="#121620" BorderBrush="#1C2332" BorderThickness="1,0,0,0" Padding="12,12,6,12">
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
                     <StackPanel Spacing="10">
-                        <TextBlock Text="CIRCUIT INSPECTOR" FontWeight="Bold" FontSize="11" Foreground="#6C7D93" LetterSpacing="1"/>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" Text="CIRCUIT INSPECTOR" FontWeight="Bold" FontSize="11" Foreground="#6C7D93" LetterSpacing="1" VerticalAlignment="Center"/>
+                            <Button Grid.Column="1" Classes="chip" Command="{Binding ToggleInspectorCommand}" ToolTip.Tip="Collapse Inspector Panel (▶)">
+                                <TextBlock Text="▶" FontSize="10" Foreground="#8C9BB0"/>
+                            </Button>
+                        </Grid>
 
                         <!-- Selected Component Card -->
                         <Border Background="#161B26" BorderBrush="#222B3B" BorderThickness="1" CornerRadius="8" Padding="10">

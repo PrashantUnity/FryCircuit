@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
@@ -189,6 +190,89 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         IsLeftPanelOpen = !IsLeftPanelOpen;
     }
+
+    // Right Inspector Panel State (Collapsible)
+    [ObservableProperty]
+    private bool _isInspectorOpen = true;
+
+    partial void OnIsInspectorOpenChanged(bool value)
+    {
+        OnPropertyChanged(nameof(InspectorColumnWidth));
+    }
+
+    [RelayCommand]
+    public void ToggleInspector()
+    {
+        IsInspectorOpen = !IsInspectorOpen;
+    }
+
+    public GridLength InspectorColumnWidth => IsInspectorOpen 
+        ? new GridLength(315, GridUnitType.Pixel) 
+        : new GridLength(0, GridUnitType.Pixel);
+
+    // Bottom Oscilloscope Panel State (Collapsible & Maximizable)
+    [ObservableProperty]
+    private bool _isOscilloscopeOpen = true;
+
+    partial void OnIsOscilloscopeOpenChanged(bool value)
+    {
+        NotifyScopeLayoutChanged();
+    }
+
+    [ObservableProperty]
+    private bool _isOscilloscopeMaximized = false;
+
+    partial void OnIsOscilloscopeMaximizedChanged(bool value)
+    {
+        NotifyScopeLayoutChanged();
+    }
+
+    public string MaximizeOscilloscopeTooltip => IsOscilloscopeMaximized ? "Restore Oscilloscope (🗗)" : "Maximize Oscilloscope (🗖)";
+    public string MaximizeOscilloscopeIcon => IsOscilloscopeMaximized ? "🗗" : "🗖";
+    public string MaximizeOscilloscopeLabel => IsOscilloscopeMaximized ? "Restore" : "Maximize";
+
+    [RelayCommand]
+    public void ToggleOscilloscope()
+    {
+        if (IsOscilloscopeMaximized)
+        {
+            IsOscilloscopeMaximized = false;
+            IsOscilloscopeOpen = true;
+        }
+        else
+        {
+            IsOscilloscopeOpen = !IsOscilloscopeOpen;
+        }
+    }
+
+    [RelayCommand]
+    public void ToggleMaximizeOscilloscope()
+    {
+        if (!IsOscilloscopeOpen)
+        {
+            IsOscilloscopeOpen = true;
+        }
+        IsOscilloscopeMaximized = !IsOscilloscopeMaximized;
+    }
+
+    private void NotifyScopeLayoutChanged()
+    {
+        OnPropertyChanged(nameof(CanvasRowHeight));
+        OnPropertyChanged(nameof(ScopeRowHeight));
+        OnPropertyChanged(nameof(MaximizeOscilloscopeTooltip));
+        OnPropertyChanged(nameof(MaximizeOscilloscopeIcon));
+        OnPropertyChanged(nameof(MaximizeOscilloscopeLabel));
+    }
+
+    public GridLength CanvasRowHeight => IsOscilloscopeMaximized 
+        ? new GridLength(0, GridUnitType.Pixel) 
+        : new GridLength(1, GridUnitType.Star);
+
+    public GridLength ScopeRowHeight => !IsOscilloscopeOpen 
+        ? new GridLength(0, GridUnitType.Pixel) 
+        : (IsOscilloscopeMaximized 
+            ? new GridLength(1, GridUnitType.Star) 
+            : new GridLength(185, GridUnitType.Pixel));
 
     [ObservableProperty]
     private string _componentSearchQuery = "";
