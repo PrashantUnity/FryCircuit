@@ -7,11 +7,15 @@ using FryCircuit.Core.Models;
 namespace FryCircuit.Core.IO;
 
 /// <summary>
-/// Handles saving and loading circuits using the clean FryCircuit (.frycircuit / .circuit) XML schema.
+/// Universal circuit serializer supporting both the modern LLM-optimized (.fcircuit) JSON format
+/// and the legacy FryCircuit (.frycircuit / .circuit) XML schema, with automatic format detection on load.
 /// </summary>
 public static class CircuitSerializer
 {
     public const string DefaultFileExtension = ".frycircuit";
+    public const string FcircuitFileExtension = ".fcircuit";
+    public const string LlmFileExtension = ".fcircuit";
+    public const string XmlFileExtension = ".frycircuit";
     public const string LegacyFileExtension = ".circuit";
 
     private sealed class Utf8StringWriter : StringWriter
@@ -19,37 +23,123 @@ public static class CircuitSerializer
         public override Encoding Encoding => Encoding.UTF8;
     }
 
+    /// <summary>
+    /// Saves a circuit to disk. Automatically uses .fcircuit JSON or XML based on the file extension.
+    /// </summary>
     public static void SaveToFile(Circuit circuit, string filePath)
     {
+        string ext = Path.GetExtension(filePath).ToLowerInvariant();
+        if (ext is ".fcircuit" or ".json" or ".fcircuit.json")
+        {
+            string json = LlmCircuitSerializer.Serialize(circuit);
+            File.WriteAllText(filePath, json, Encoding.UTF8);
+            return;
+        }
+
         using var stream = File.Create(filePath);
         var doc = BuildDocument(circuit);
         doc.Save(stream);
     }
 
+    /// <summary>
+    /// Loads a circuit from file, automatically detecting .fcircuit JSON, XML, or SPICE netlists.
+    /// </summary>
     public static Circuit LoadFromFile(string filePath)
     {
-        using var stream = File.OpenRead(filePath);
-        return LoadFromStream(stream);
+        string text = File.ReadAllText(filePath, Encoding.UTF8);
+        var circuit = Deserialize(text);
+        if (string.IsNullOrWhiteSpace(circuit.Name) || circuit.Name == "Untitled")
+        {
+            circuit.Name = Path.GetFileNameWithoutExtension(filePath);
+        }
+        return circuit;
     }
 
+    /// <summary>
+    /// Loads a circuit from stream, auto-detecting format.
+    /// </summary>
     public static Circuit LoadFromStream(Stream stream)
     {
-        var doc = XDocument.Load(stream);
-        return DeserializeDocument(doc);
+        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: true);
+        string text = reader.ReadToEnd();
+        return Deserialize(text);
     }
 
-    public static Circuit Deserialize(string xml)
+    /// <summary>
+    /// Deserializes circuit text, automatically detecting .fcircuit JSON, XML, or SPICE syntax.
+    /// </summary>
+    public static Circuit Deserialize(string text)
     {
-        var doc = XDocument.Parse(xml);
-        return DeserializeDocument(doc);
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            throw new FormatException("Cannot deserialize empty circuit text.");
+        }
+
+        string trimmed = text.Trim();
+
+        // Check if JSON / Markdown fence (starts with '{', '[', or '```')
+        if (trimmed.StartsWith("{") || trimmed.StartsWith("[") || trimmed.StartsWith("```") || trimmed.Contains("\"components\""))
+        {
+            try
+            {
+                return LlmCircuitSerializer.Deserialize(trimmed);
+            }
+            catch when (trimmed.Contains("<circuit"))
+            {
+                // Fallback to XML if JSON parsing fails but XML tags exist
+            }
+        }
+
+        // Check if XML
+        if (trimmed.StartsWith("<"))
+        {
+            var doc = XDocument.Parse(trimmed);
+            return DeserializeDocument(doc);
+        }
+
+        // Check if SPICE deck (starts with comment or directive)
+        if (trimmed.StartsWith("*") || trimmed.StartsWith(";") || trimmed.StartsWith("."))
+        {
+            return SpiceNetlistEngine.ImportSpice(trimmed);
+        }
+
+        // Default: Attempt JSON first, then XML
+        try
+        {
+            return LlmCircuitSerializer.Deserialize(trimmed);
+        }
+        catch
+        {
+            var doc = XDocument.Parse(trimmed);
+            return DeserializeDocument(doc);
+        }
     }
 
+    /// <summary>
+    /// Default serialization (uses LLM-friendly .fcircuit JSON).
+    /// </summary>
     public static string Serialize(Circuit circuit)
+    {
+        return LlmCircuitSerializer.Serialize(circuit);
+    }
+
+    /// <summary>
+    /// Explicitly serializes circuit into XML format.
+    /// </summary>
+    public static string SerializeXml(Circuit circuit)
     {
         var doc = BuildDocument(circuit);
         using var writer = new Utf8StringWriter();
         doc.Save(writer);
         return writer.ToString();
+    }
+
+    /// <summary>
+    /// Explicitly serializes circuit into .fcircuit JSON format.
+    /// </summary>
+    public static string SerializeJson(Circuit circuit)
+    {
+        return LlmCircuitSerializer.Serialize(circuit);
     }
 
     public static XDocument BuildDocument(Circuit circuit)
@@ -231,6 +321,7 @@ public static class CircuitSerializer
             circuit.AddDevice(device);
         }
 
+        circuit.EnsureWiresSynthesized();
         return circuit;
     }
 

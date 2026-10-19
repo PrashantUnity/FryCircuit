@@ -75,6 +75,13 @@ public static class Program
             return;
         }
 
+        if (args.Length > 0 && args[0].Equals("ai", StringComparison.OrdinalIgnoreCase))
+        {
+            CaptureWindow("Inverting Op-Amp", outDir, isFft: false, showCursors: false, openLlmDrawer: true, filenameOverride: "ai_circuit_deck_modal.png");
+            Console.WriteLine("AI Deck snapshot captured successfully!");
+            return;
+        }
+
         if (args.Length > 0 && args[0].Equals("preset", StringComparison.OrdinalIgnoreCase) && args.Length > 1)
         {
             string pName = args[1];
@@ -138,10 +145,13 @@ public static class Program
         // Capture Manufacturing Bill of Materials (BOM) Drawer snapshot
         CaptureWindow("Aerospace 3-Phase Drone Inverter", outDir, isFft: false, showCursors: false, openBomDrawer: true, filenameOverride: "manufacturing_bom_modal.png");
 
+        // Capture AI Circuit Deck Drawer snapshot
+        CaptureWindow("Inverting Op-Amp", outDir, isFft: false, showCursors: false, openLlmDrawer: true, filenameOverride: "ai_circuit_deck_modal.png");
+
         Console.WriteLine("All snapshots captured successfully!");
     }
 
-    private static void CaptureWindow(string presetName, string outDir, bool isFft = false, bool showCursors = false, bool openSpiceDrawer = false, bool openBomDrawer = false, string? filenameOverride = null)
+    private static void CaptureWindow(string presetName, string outDir, bool isFft = false, bool showCursors = false, bool openSpiceDrawer = false, bool openBomDrawer = false, bool openLlmDrawer = false, string? filenameOverride = null)
     {
         var studio = new CircuitStudioView();
         var vm = new MainWindowViewModel();
@@ -170,6 +180,10 @@ public static class Program
             if (openBomDrawer)
             {
                 vm.ToggleBomDrawerCommand.Execute(null);
+            }
+            if (openLlmDrawer)
+            {
+                vm.ToggleLlmDrawerCommand.Execute(null);
             }
         }
 

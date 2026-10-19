@@ -455,6 +455,12 @@
                                 <TextBlock Text="BOM" FontSize="{DynamicResource CircuitFontSizeBodySm}" FontWeight="Bold"/>
                             </StackPanel>
                         </Button>
+                        <Button Classes="toolbtn" Command="{Binding ToggleLlmDrawerCommand}" ToolTip.Tip="AI Circuit Assistant: Prompt, Schema &amp; .fcircuit Deck">
+                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                <material:MaterialIcon Kind="AutoFixHigh" Width="13" Height="13" Foreground="{DynamicResource CircuitAccentCyanBrush}"/>
+                                <TextBlock Text="AI DECK" FontSize="{DynamicResource CircuitFontSizeBodySm}" FontWeight="Bold"/>
+                            </StackPanel>
+                        </Button>
 
                         <!-- Simulation Speed Slider -->
                         <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center" Margin="2,0,2,0">
@@ -1364,6 +1370,116 @@
                                     BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
                                     CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="8,4">
                                 <TextBlock Text="Standardized RefDes &amp; SMD Packaging (DigiKey / Mouser / JLCPCB ready)" 
+                                           FontSize="{DynamicResource CircuitFontSizeBodySm}" Foreground="{DynamicResource CircuitTextMutedBrush}" VerticalAlignment="Center"/>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Border>
+
+            <!-- AI / LLM Circuit Assistant Modal Drawer -->
+            <Border Grid.Column="0" Grid.ColumnSpan="3" Background="{DynamicResource CircuitScrimBrush}" IsVisible="{Binding IsLlmDrawerOpen}" ZIndex="100">
+                <Border Width="1100" Height="620" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Background="{DynamicResource CircuitSurfaceBrush}"
+                        BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
+                        CornerRadius="{DynamicResource CircuitRadiusXl}"
+                        BoxShadow="{DynamicResource CircuitModalShadow}" Padding="20">
+                    <Grid RowDefinitions="Auto,Auto,*,Auto">
+                        <!-- Header -->
+                        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,12">
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                <Border Background="{DynamicResource CircuitSurfaceHighBrush}" 
+                                        BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
+                                        CornerRadius="{DynamicResource CircuitRadiusMd}" Padding="8,4">
+                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                        <material:MaterialIcon Kind="AutoFixHigh" Width="14" Height="14" Foreground="{DynamicResource CircuitAccentCyanBrush}"/>
+                                        <TextBlock Text="AI CIRCUIT ARCHITECT" FontSize="{DynamicResource CircuitFontSizeBodySm}" 
+                                                   FontWeight="Bold" Foreground="{DynamicResource CircuitAccentCyanBrush}" FontFamily="{DynamicResource CircuitCodeFont}"/>
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock Text="AI Circuit Deck &amp; Turnkey Prompt Studio (.fcircuit)" 
+                                           FontWeight="Bold" FontSize="{DynamicResource CircuitFontSizeHeading}" 
+                                           Foreground="{DynamicResource CircuitTextWhiteBrush}" VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <Button Grid.Column="2" Classes="chip" Command="{Binding ToggleLlmDrawerCommand}" ToolTip.Tip="Close AI Studio (Esc)">
+                                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                    <material:MaterialIcon Kind="Close" Width="12" Height="12" Foreground="{DynamicResource CircuitDangerBrush}"/>
+                                    <TextBlock Text="Close" FontSize="{DynamicResource CircuitFontSizeBodySm}" Foreground="{DynamicResource CircuitTextBrush}"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+
+                        <!-- Sub-header: Quick Template Chips & Action Buttons -->
+                        <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,10">
+                            <!-- Quick Template Chips -->
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <TextBlock Text="Templates:" FontSize="{DynamicResource CircuitFontSizeBodySm}" 
+                                           Foreground="{DynamicResource CircuitTextDimBrush}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                <Button Classes="chip" Command="{Binding LoadLlmTemplateCommand}" CommandParameter="RC Low-Pass Filter" ToolTip.Tip="Load RC Low-Pass Filter Template">
+                                    <TextBlock Text="RC Filter" FontSize="{DynamicResource CircuitFontSizeBodySm}"/>
+                                </Button>
+                                <Button Classes="chip" Command="{Binding LoadLlmTemplateCommand}" CommandParameter="Inverting Op-Amp" ToolTip.Tip="Load Inverting Op-Amp Template">
+                                    <TextBlock Text="Op-Amp Inverter" FontSize="{DynamicResource CircuitFontSizeBodySm}"/>
+                                </Button>
+                                <Button Classes="chip" Command="{Binding LoadLlmTemplateCommand}" CommandParameter="BJT LED Driver" ToolTip.Tip="Load Transistor Switch Driver">
+                                    <TextBlock Text="BJT Switch" FontSize="{DynamicResource CircuitFontSizeBodySm}"/>
+                                </Button>
+                                <Button Classes="chip" Command="{Binding LoadLlmTemplateCommand}" CommandParameter="555 Timer Oscillator" ToolTip.Tip="Load 555 Pulse Generator">
+                                    <TextBlock Text="555 Timer" FontSize="{DynamicResource CircuitFontSizeBodySm}"/>
+                                </Button>
+                            </StackPanel>
+
+                            <!-- Mode Actions -->
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
+                                <Button Classes="toolbtn" Command="{Binding CopyLlmPromptToClipboardCommand}" ToolTip.Tip="Copy turnkey system prompt with schema &amp; few-shots for ChatGPT/Claude">
+                                    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                        <material:MaterialIcon Kind="ClipboardTextOutline" Width="13" Height="13" Foreground="{DynamicResource CircuitAccentCyanBrush}"/>
+                                        <TextBlock Text="Copy AI Prompt" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Classes="toolbtn" Command="{Binding GenerateLlmDeckCommand}" ToolTip.Tip="Sync current canvas schematic into .fcircuit JSON">
+                                    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                        <material:MaterialIcon Kind="Refresh" Width="13" Height="13" Foreground="{DynamicResource CircuitSecondaryBrush}"/>
+                                        <TextBlock Text="Sync From Canvas" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Code / JSON Editor Container -->
+                        <Border Grid.Row="2" Background="{DynamicResource CircuitSurfaceLowestBrush}" 
+                                BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
+                                CornerRadius="{DynamicResource CircuitRadiusMd}" Padding="2">
+                            <TextBox Text="{Binding LlmCircuitText, Mode=TwoWay}"
+                                     FontFamily="{DynamicResource CircuitCodeFont}" FontSize="{DynamicResource CircuitFontSizeBody}"
+                                     Foreground="{DynamicResource CircuitTextBrush}" Background="Transparent" BorderThickness="0"
+                                     AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap"
+                                     PlaceholderText="Paste .fcircuit JSON or conversational markdown code block from ChatGPT / Claude / Gemini here..."
+                                     Padding="12,10"/>
+                        </Border>
+
+                        <!-- Footer Actions -->
+                        <Grid Grid.Row="3" ColumnDefinitions="Auto,*,Auto" Margin="0,14,0,0">
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                                <Button Classes="toolbtn" Classes.simplay="True" Command="{Binding ImportLlmDeckCommand}" ToolTip.Tip="Parse JSON/markdown, auto-layout (if needed), route wires, and simulate">
+                                    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                        <material:MaterialIcon Kind="LightningBolt" Width="14" Height="14" Foreground="{DynamicResource CircuitTextWhiteBrush}"/>
+                                        <TextBlock Text="Import &amp; Simulate" FontWeight="Bold" Foreground="{DynamicResource CircuitTextWhiteBrush}"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Classes="toolbtn" Command="{Binding CopyLlmJsonToClipboardCommand}" ToolTip.Tip="Copy .fcircuit JSON to clipboard">
+                                    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                        <material:MaterialIcon Kind="ContentCopy" Width="13" Height="13"/>
+                                        <TextBlock Text="Copy JSON" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+
+                            <Border Grid.Column="2" Background="{DynamicResource CircuitSurfaceLowBrush}" 
+                                    BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
+                                    CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="8,4">
+                                <TextBlock Text="Prompt &amp; JSON compatible with Claude 3.7, GPT-4o, Gemini 2.0, DeepSeek, &amp; Ollama" 
                                            FontSize="{DynamicResource CircuitFontSizeBodySm}" Foreground="{DynamicResource CircuitTextMutedBrush}" VerticalAlignment="Center"/>
                             </Border>
                         </Grid>

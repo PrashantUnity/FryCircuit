@@ -1335,9 +1335,21 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                 AllowMultiple = false,
                 FileTypeFilter = new List<FilePickerFileType>
                 {
-                    new("FryCircuit Schematic (*.frycircuit; *.circuit)")
+                    new("Circuit Schematics (*.fcircuit; *.frycircuit; *.json; *.circuit)")
                     {
-                        Patterns = new[] { "*.frycircuit", "*.circuit", "*.xml" }
+                        Patterns = new[] { "*.fcircuit", "*.frycircuit", "*.json", "*.circuit", "*.xml" }
+                    },
+                    new("LLM Circuit Format (*.fcircuit; *.json)")
+                    {
+                        Patterns = new[] { "*.fcircuit", "*.json", "*.fcircuit.json" }
+                    },
+                    new("Native FryCircuit XML (*.frycircuit; *.circuit)")
+                    {
+                        Patterns = new[] { "*.frycircuit", "*.circuit" }
+                    },
+                    new("SPICE Netlists (*.cir; *.sp; *.net)")
+                    {
+                        Patterns = new[] { "*.cir", "*.sp", "*.net" }
                     },
                     new("All Files (*.*)")
                     {
@@ -1390,25 +1402,35 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         try
         {
             string suggested = string.IsNullOrWhiteSpace(CurrentFilePath)
-                ? (string.IsNullOrWhiteSpace(CurrentCircuit.Name) ? "circuit.frycircuit" : $"{CurrentCircuit.Name.Replace(" ", "_").ToLowerInvariant()}.frycircuit")
+                ? (string.IsNullOrWhiteSpace(CurrentCircuit.Name) ? "circuit.fcircuit" : $"{CurrentCircuit.Name.Replace(" ", "_").ToLowerInvariant()}.fcircuit")
                 : Path.GetFileName(CurrentFilePath);
 
-            if (!suggested.EndsWith(".frycircuit", StringComparison.OrdinalIgnoreCase) &&
-                !suggested.EndsWith(".circuit", StringComparison.OrdinalIgnoreCase))
+            if (!suggested.EndsWith(".fcircuit", StringComparison.OrdinalIgnoreCase) &&
+                !suggested.EndsWith(".frycircuit", StringComparison.OrdinalIgnoreCase) &&
+                !suggested.EndsWith(".circuit", StringComparison.OrdinalIgnoreCase) &&
+                !suggested.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
             {
-                suggested += ".frycircuit";
+                suggested += ".fcircuit";
             }
 
             var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
                 Title = "Save Circuit As",
-                DefaultExtension = "frycircuit",
+                DefaultExtension = "fcircuit",
                 SuggestedFileName = suggested,
                 FileTypeChoices = new List<FilePickerFileType>
                 {
-                    new("FryCircuit File (*.frycircuit)")
+                    new("LLM Circuit Format (*.fcircuit)")
+                    {
+                        Patterns = new[] { "*.fcircuit" }
+                    },
+                    new("FryCircuit XML File (*.frycircuit)")
                     {
                         Patterns = new[] { "*.frycircuit" }
+                    },
+                    new("JSON Circuit (*.json)")
+                    {
+                        Patterns = new[] { "*.json" }
                     },
                     new("Legacy Circuit File (*.circuit)")
                     {
@@ -1420,16 +1442,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             if (file != null)
             {
                 string localPath = file.Path.LocalPath;
-                string xml = CircuitSerializer.Serialize(CurrentCircuit);
-                await using (var stream = await file.OpenWriteAsync())
-                await using (var writer = new StreamWriter(stream, System.Text.Encoding.UTF8))
-                {
-                    await writer.WriteAsync(xml);
-                }
-
-                CurrentFilePath = localPath;
-                IsDirty = false;
-                StatusText = $"Saved circuit to {Path.GetFileName(localPath)}";
+                SaveCircuit(localPath);
             }
         }
         catch (Exception ex)
@@ -1604,6 +1617,109 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
         catch { }
         StatusText = "BOM ready to copy.";
+    }
+
+    [ObservableProperty]
+    private bool _isLlmDrawerOpen = false;
+
+    [ObservableProperty]
+    private string _llmCircuitText = "";
+
+    [ObservableProperty]
+    private string _llmPromptText = "";
+
+    [ObservableProperty]
+    private int _llmDrawerTab = 0; // 0 = JSON deck, 1 = Turnkey AI prompt
+
+    [RelayCommand]
+    public void ToggleLlmDrawer()
+    {
+        IsLlmDrawerOpen = !IsLlmDrawerOpen;
+        if (IsLlmDrawerOpen && CurrentCircuit != null)
+        {
+            GenerateLlmDeck();
+        }
+    }
+
+    [RelayCommand]
+    public void GenerateLlmDeck()
+    {
+        if (CurrentCircuit == null) return;
+        LlmCircuitText = LlmCircuitSerializer.Serialize(CurrentCircuit);
+        LlmPromptText = LlmPromptGenerator.GenerateCircuitInspectionPrompt(CurrentCircuit);
+        StatusText = $"Generated AI .fcircuit deck ({CurrentCircuit.Devices.Count} components)";
+    }
+
+    [RelayCommand]
+    public async Task CopyLlmJsonToClipboard()
+    {
+        if (string.IsNullOrEmpty(LlmCircuitText)) return;
+        try
+        {
+            if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                var topLevel = desktop.MainWindow;
+                if (topLevel?.Clipboard != null)
+                {
+                    await topLevel.Clipboard.SetTextAsync(LlmCircuitText);
+                    StatusText = ".fcircuit JSON copied to clipboard!";
+                    return;
+                }
+            }
+        }
+        catch { }
+        StatusText = ".fcircuit JSON ready to copy.";
+    }
+
+    [RelayCommand]
+    public async Task CopyLlmPromptToClipboard()
+    {
+        if (string.IsNullOrEmpty(LlmPromptText))
+        {
+            LlmPromptText = CurrentCircuit != null
+                ? LlmPromptGenerator.GenerateCircuitInspectionPrompt(CurrentCircuit)
+                : LlmPromptGenerator.GenerateSystemPrompt();
+        }
+        try
+        {
+            if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                var topLevel = desktop.MainWindow;
+                if (topLevel?.Clipboard != null)
+                {
+                    await topLevel.Clipboard.SetTextAsync(LlmPromptText);
+                    StatusText = "Turnkey AI Circuit Prompt copied to clipboard!";
+                    return;
+                }
+            }
+        }
+        catch { }
+        StatusText = "AI Circuit Prompt ready to copy.";
+    }
+
+    [RelayCommand]
+    public void ImportLlmDeck()
+    {
+        if (string.IsNullOrWhiteSpace(LlmCircuitText)) return;
+        try
+        {
+            var imported = LlmCircuitSerializer.Deserialize(LlmCircuitText, "AI Generated Circuit");
+            SetCircuit(imported);
+            IsLlmDrawerOpen = false;
+            StatusText = $"Successfully imported AI circuit ({imported.Devices.Count} components)";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"AI deck import error: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    public void LoadLlmTemplate(string templateName)
+    {
+        LlmCircuitText = LlmPromptGenerator.GetSampleTemplate(templateName);
+        LlmDrawerTab = 0;
+        StatusText = $"Loaded template '{templateName}'. Click 'Import & Simulate' to run.";
     }
 
     private void SetCircuit(Circuit circuit)

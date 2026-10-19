@@ -205,6 +205,16 @@ public class CircuitPlugin : IFryPlugin
             Command = new RelayCommand(OpenOverlay)
         });
 
+        ctx.RegisterCommand(new CommandPaletteDescriptor
+        {
+            Id = "cmd.circuit.ai",
+            Title = "AI Circuit Architect (.fcircuit)",
+            Subtitle = "Open AI Circuit Deck & Turnkey Prompt Studio for LLM-assisted schematic CAD",
+            Category = "Engineering & Simulation",
+            IconKind = "AutoFixHigh",
+            Command = new RelayCommand(NavigateToStudio)
+        });
+
         // 4. Status Bar Widget (⚡ Circuit)
         ctx.RegisterStatusBarWidget(new StatusBarWidgetDescriptor
         {
@@ -239,7 +249,7 @@ public class CircuitPlugin : IFryPlugin
                     Id = "fryworld.ribbon.circuit.file.open",
                     GroupId = "file",
                     Label = "Open",
-                    Tooltip = "Open .frycircuit / .circuit file",
+                    Tooltip = "Open .fcircuit / .frycircuit file",
                     IconKind = "FolderOpenOutline",
                     Order = 2,
                     Command = new RelayCommand(NavigateToStudio)
@@ -263,6 +273,16 @@ public class CircuitPlugin : IFryPlugin
                     IconKind = "DockWindow",
                     Order = 20,
                     Command = new RelayCommand(OpenOverlay)
+                },
+                new RibbonActionDescriptor
+                {
+                    Id = "fryworld.ribbon.circuit.ai",
+                    GroupId = "ai",
+                    Label = "AI Deck",
+                    Tooltip = "Open AI Circuit Assistant & .fcircuit JSON Deck",
+                    IconKind = "AutoFixHigh",
+                    Order = 30,
+                    Command = new RelayCommand(NavigateToStudio)
                 }
             }
         });
