@@ -21,6 +21,7 @@ public enum CircuitToolMode
     Wire,
     Cut,
     Pan,
+    Probe,
     ProbeCh1,
     ProbeCh2
 }
@@ -113,8 +114,33 @@ public partial class CircuitCanvas : Control
     public UndoRedoManager? HistoryManager { get; set; }
 
     // Oscilloscope Interactive Probing
-    public int? ProbedNodeCh1 { get; set; }
-    public int? ProbedNodeCh2 { get; set; }
+    public System.Collections.ObjectModel.ObservableCollection<OscilloscopeChannel>? ProbedChannels { get; set; }
+    public int ActiveProbingChannelIndex { get; set; } = 1;
+
+    public int? ProbedNodeCh1
+    {
+        get => ProbedChannels?.FirstOrDefault(c => c.ChannelIndex == 1)?.TargetNodeId ?? _legacyProbedNodeCh1;
+        set
+        {
+            _legacyProbedNodeCh1 = value;
+            var ch = ProbedChannels?.FirstOrDefault(c => c.ChannelIndex == 1);
+            if (ch != null) ch.TargetNodeId = value;
+        }
+    }
+    private int? _legacyProbedNodeCh1;
+
+    public int? ProbedNodeCh2
+    {
+        get => ProbedChannels?.FirstOrDefault(c => c.ChannelIndex == 2)?.TargetNodeId ?? _legacyProbedNodeCh2;
+        set
+        {
+            _legacyProbedNodeCh2 = value;
+            var ch = ProbedChannels?.FirstOrDefault(c => c.ChannelIndex == 2);
+            if (ch != null) ch.TargetNodeId = value;
+        }
+    }
+    private int? _legacyProbedNodeCh2;
+
     public Action<int, int>? OnNodeProbed { get; set; }
     private (double Wx, double Wy) _probeCursorPos;
 

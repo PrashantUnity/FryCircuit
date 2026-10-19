@@ -69,6 +69,13 @@ public static class Program
             return;
         }
 
+        if (args.Length > 0 && args[0].Equals("scope", StringComparison.OrdinalIgnoreCase))
+        {
+            CaptureOscilloscopeStates(outDir);
+            Console.WriteLine("Oscilloscope multi-channel snapshots captured successfully!");
+            return;
+        }
+
         if (args.Length > 0 && args[0].Equals("layout", StringComparison.OrdinalIgnoreCase))
         {
             CaptureLayoutStates(outDir);
@@ -456,7 +463,85 @@ public static class Program
         });
     }
 
-    private static void CaptureLayoutVariant(string outDir, string filenameOnly, Action<MainWindowViewModel> configure, int windowWidth = 1380, int windowHeight = 850)
+    private static void CaptureOscilloscopeStates(string outDir)
+    {
+        // 1. 4-Channel Oscilloscope in Overlay Mode
+        CaptureLayoutVariant(outDir, "scope_4channel_overlay.png", vm =>
+        {
+            vm.LoadPreset("Aerospace 3-Phase Drone Inverter");
+            vm.SetProbedNode(1, 2); // Phase U (Amber)
+            vm.SetProbedNode(2, 3); // Phase V (Cyan)
+            vm.SetProbedNode(3, 4); // Gate U (Pink)
+            vm.SetProbedNode(4, 1); // DC Bus 14.8V (Green)
+            vm.IsOscilloscopeOpen = true;
+            vm.IsOscilloscopeMaximized = false;
+            for (int i = 0; i < 150; i++) vm.StepSimulationCommand.Execute(null);
+            vm.AutoSetScopeCommand.Execute(null);
+        });
+
+        // 2. 4-Channel Oscilloscope in Stacked Panes Mode
+        CaptureLayoutVariant(outDir, "scope_4channel_stacked.png", vm =>
+        {
+            vm.LoadPreset("Aerospace 3-Phase Drone Inverter");
+            vm.SetProbedNode(1, 2); // Phase U
+            vm.SetProbedNode(2, 3); // Phase V
+            vm.SetProbedNode(3, 4); // Gate U
+            vm.SetProbedNode(4, 1); // DC Bus
+            vm.IsOscilloscopeOpen = true;
+            vm.IsOscilloscopeMaximized = true;
+            vm.ToggleScopeLayoutCommand.Execute(null);
+            for (int i = 0; i < 150; i++) vm.StepSimulationCommand.Execute(null);
+        });
+
+        // 3. Lissajous XY Display Mode
+        CaptureLayoutVariant(outDir, "scope_xy_lissajous.png", vm =>
+        {
+            vm.LoadPreset("RLC Resonant Tank");
+            vm.SetProbedNode(1, 1);
+            vm.SetProbedNode(2, 2);
+            vm.IsOscilloscopeOpen = true;
+            vm.IsOscilloscopeMaximized = true;
+            for (int i = 0; i < 150; i++) vm.StepSimulationCommand.Execute(null);
+        }, configureStudio: (vm, studio) =>
+        {
+            var osc = studio.FindControl<FryCircuit.UI.Controls.OscilloscopeControl>("Oscilloscope");
+            if (osc != null)
+            {
+                osc.DisplayLayout = FryCircuit.UI.Controls.OscilloscopeDisplayLayout.XY;
+            }
+        });
+
+        // 4. Panned and Zoomed Oscilloscope (Horizontal time scrub + Vertical ground offsets)
+        CaptureLayoutVariant(outDir, "scope_panned_zoomed.png", vm =>
+        {
+            vm.LoadPreset("Aerospace 3-Phase Drone Inverter");
+            vm.SetProbedNode(1, 2); // Phase U
+            vm.SetProbedNode(2, 3); // Phase V
+            vm.SetProbedNode(3, 4); // Gate U
+            vm.SetProbedNode(4, 1); // DC Bus
+            vm.IsOscilloscopeOpen = true;
+            vm.IsOscilloscopeMaximized = true;
+            for (int i = 0; i < 150; i++) vm.StepSimulationCommand.Execute(null);
+        }, configureStudio: (vm, studio) =>
+        {
+            var osc = studio.FindControl<FryCircuit.UI.Controls.OscilloscopeControl>("Oscilloscope");
+            if (osc != null)
+            {
+                osc.TimeOffsetDivs = 2.4;
+                osc.TimebaseZoom = 1.8;
+                if (osc.Channels.Count > 0) osc.Channels[0].VerticalOffsetDivs = 1.2;
+                if (osc.Channels.Count > 1) osc.Channels[1].VerticalOffsetDivs = -1.5;
+            }
+        });
+    }
+
+    private static void CaptureLayoutVariant(
+        string outDir,
+        string filenameOnly,
+        Action<MainWindowViewModel> configure,
+        int windowWidth = 1380,
+        int windowHeight = 850,
+        Action<MainWindowViewModel, CircuitStudioView>? configureStudio = null)
     {
         var studio = new CircuitStudioView();
         var vm = new MainWindowViewModel();
@@ -469,7 +554,10 @@ public static class Program
             Content = studio
         };
 
+        window.Show();
+
         configure(vm);
+        configureStudio?.Invoke(vm, studio);
 
         var canvas = studio.FindControl<FryCircuit.UI.Controls.CircuitCanvas>("CanvasControl");
         if (canvas != null)
@@ -478,8 +566,6 @@ public static class Program
             canvas.ShowVoltageAnnotations = true;
             canvas.ZoomToFit();
         }
-
-        window.Show();
 
         string filename = Path.Combine(outDir, filenameOnly);
         var frame = window.CaptureRenderedFrame();

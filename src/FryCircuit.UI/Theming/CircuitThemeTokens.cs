@@ -118,6 +118,24 @@ public sealed record CircuitThemeTokens
     public Color ScopeCh2 { get; init; }
     public IBrush ScopeCh2Brush => new ImmutableSolidColorBrush(ScopeCh2);
 
+    public Color ScopeCh3 { get; init; }
+    public IBrush ScopeCh3Brush => new ImmutableSolidColorBrush(ScopeCh3);
+
+    public Color ScopeCh4 { get; init; }
+    public IBrush ScopeCh4Brush => new ImmutableSolidColorBrush(ScopeCh4);
+
+    public Color ScopeCh5 { get; init; }
+    public IBrush ScopeCh5Brush => new ImmutableSolidColorBrush(ScopeCh5);
+
+    public Color ScopeCh6 { get; init; }
+    public IBrush ScopeCh6Brush => new ImmutableSolidColorBrush(ScopeCh6);
+
+    public Color ScopeCh7 { get; init; }
+    public IBrush ScopeCh7Brush => new ImmutableSolidColorBrush(ScopeCh7);
+
+    public Color ScopeCh8 { get; init; }
+    public IBrush ScopeCh8Brush => new ImmutableSolidColorBrush(ScopeCh8);
+
     // Hardware Controls
     public Color KnobTrack { get; init; }
     public IBrush KnobTrackBrush => new ImmutableSolidColorBrush(KnobTrack);
@@ -166,6 +184,12 @@ public sealed record CircuitThemeTokens
         ScopeTick = Color.FromRgb(0x28, 0x42, 0x63),
         ScopeCh1 = Color.FromRgb(0xF5, 0x9E, 0x0B),
         ScopeCh2 = Color.FromRgb(0x06, 0xB6, 0xD4),
+        ScopeCh3 = Color.FromRgb(0xEC, 0x48, 0x99),
+        ScopeCh4 = Color.FromRgb(0x10, 0xB9, 0x81),
+        ScopeCh5 = Color.FromRgb(0x8B, 0x5C, 0xF6),
+        ScopeCh6 = Color.FromRgb(0xF9, 0x73, 0x16),
+        ScopeCh7 = Color.FromRgb(0x3B, 0x82, 0xF6),
+        ScopeCh8 = Color.FromRgb(0x84, 0xCC, 0x16),
 
         KnobTrack = Color.FromRgb(0x16, 0x20, 0x32),
         KnobBezel = Color.FromRgb(0x24, 0x32, 0x48),
@@ -212,10 +236,32 @@ public sealed record CircuitThemeTokens
         ScopeTick = Color.FromRgb(0x38, 0x54, 0x72),
         ScopeCh1 = Color.FromRgb(0xF5, 0x9E, 0x0B),
         ScopeCh2 = Color.FromRgb(0x00, 0xB4, 0xD8),
+        ScopeCh3 = Color.FromRgb(0xEC, 0x48, 0x99),
+        ScopeCh4 = Color.FromRgb(0x10, 0xB9, 0x81),
+        ScopeCh5 = Color.FromRgb(0x8B, 0x5C, 0xF6),
+        ScopeCh6 = Color.FromRgb(0xF9, 0x73, 0x16),
+        ScopeCh7 = Color.FromRgb(0x3B, 0x82, 0xF6),
+        ScopeCh8 = Color.FromRgb(0x84, 0xCC, 0x16),
 
         KnobTrack = Color.FromRgb(0xDC, 0xE4, 0xEC),
         KnobBezel = Color.FromRgb(0xCA, 0xD6, 0xE2),
     };
+
+    public static Color GetDefaultChannelColor(int channelIndex)
+    {
+        return (channelIndex % 8) switch
+        {
+            1 => Color.FromRgb(245, 158, 11),  // CH1 Amber Gold
+            2 => Color.FromRgb(6, 182, 212),   // CH2 Precision Cyan
+            3 => Color.FromRgb(236, 72, 153),  // CH3 Magenta Pink
+            4 => Color.FromRgb(16, 185, 129),  // CH4 Emerald Green
+            5 => Color.FromRgb(139, 92, 246),  // CH5 Violet Purple
+            6 => Color.FromRgb(249, 115, 22),  // CH6 Vivid Orange
+            7 => Color.FromRgb(59, 130, 246),  // CH7 Electric Blue
+            0 => Color.FromRgb(132, 204, 22),  // CH8 Lime Green
+            _ => Color.FromRgb(245, 158, 11)
+        };
+    }
 
     public Dictionary<object, object?> ToDictionary()
     {
@@ -271,6 +317,12 @@ public sealed record CircuitThemeTokens
         Put("CircuitScopeTick", ScopeTick);
         Put("CircuitScopeCh1", ScopeCh1);
         Put("CircuitScopeCh2", ScopeCh2);
+        Put("CircuitScopeCh3", ScopeCh3);
+        Put("CircuitScopeCh4", ScopeCh4);
+        Put("CircuitScopeCh5", ScopeCh5);
+        Put("CircuitScopeCh6", ScopeCh6);
+        Put("CircuitScopeCh7", ScopeCh7);
+        Put("CircuitScopeCh8", ScopeCh8);
 
         Put("CircuitKnobTrack", KnobTrack);
         Put("CircuitKnobBezel", KnobBezel);

@@ -7,6 +7,7 @@ using FryCircuit.Core.Devices;
 using FryCircuit.Core.Devices.Battery;
 using FryCircuit.Core.Models;
 using FryCircuit.Core.Simulation;
+using FryCircuit.UI.Theming;
 
 namespace FryCircuit.UI.Controls;
 
@@ -15,6 +16,22 @@ public partial class CircuitCanvas
     private void DrawProbeBadges(DrawingContext context)
     {
         if (Circuit == null) return;
+
+        if (ProbedChannels != null && ProbedChannels.Count > 0)
+        {
+            foreach (var ch in ProbedChannels)
+            {
+                if (ch.TargetNodeId.HasValue)
+                {
+                    var pt = FindNodeDisplayPosition(ch.TargetNodeId.Value);
+                    if (pt.HasValue)
+                    {
+                        DrawChannelBadge(context, pt.Value, ch.Name, ch.Color);
+                    }
+                }
+            }
+            return;
+        }
 
         if (ProbedNodeCh1.HasValue)
         {
@@ -158,12 +175,18 @@ public partial class CircuitCanvas
 
     private void DrawProbeCursor(DrawingContext context)
     {
-        if (ToolMode != CircuitToolMode.ProbeCh1 && ToolMode != CircuitToolMode.ProbeCh2) return;
+        if (ToolMode != CircuitToolMode.Probe && ToolMode != CircuitToolMode.ProbeCh1 && ToolMode != CircuitToolMode.ProbeCh2) return;
 
         var center = WorldToScreen(_probeCursorPos.Wx, _probeCursorPos.Wy);
-        bool isCh1 = ToolMode == CircuitToolMode.ProbeCh1;
-        var probeColor = isCh1 ? Color.FromRgb(245, 158, 11) : Color.FromRgb(6, 182, 212);
-        string chLabel = isCh1 ? "PROBE CH 1" : "PROBE CH 2";
+        int ch = ToolMode switch
+        {
+            CircuitToolMode.ProbeCh1 => 1,
+            CircuitToolMode.ProbeCh2 => 2,
+            _ => ActiveProbingChannelIndex
+        };
+        var activeCh = ProbedChannels?.FirstOrDefault(c => c.ChannelIndex == ch);
+        var probeColor = activeCh?.Color ?? CircuitThemeTokens.GetDefaultChannelColor(ch);
+        string chLabel = activeCh?.Name != null ? $"PROBE {activeCh.Name.ToUpperInvariant()}" : $"PROBE CH {ch}";
 
         // Interactive Target Acquisition: snap to pin or wire under probe cursor
         int targetNode = -1;

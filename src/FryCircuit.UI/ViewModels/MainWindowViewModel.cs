@@ -74,10 +74,35 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private int? _probedNodeCh2;
 
     [ObservableProperty]
+    private int? _probedNodeCh3;
+
+    [ObservableProperty]
+    private int? _probedNodeCh4;
+
+    [ObservableProperty]
     private string _probedCh1Label = "CH1: Auto (Input)";
+    partial void OnProbedNodeCh1Changed(int? value) => OnPropertyChanged(nameof(ProbedCh1ShortLabel));
+    public string ProbedCh1ShortLabel => ProbedNodeCh1.HasValue ? $"CH1 #{ProbedNodeCh1.Value}" : "CH1";
 
     [ObservableProperty]
     private string _probedCh2Label = "CH2: Auto (Output)";
+    partial void OnProbedNodeCh2Changed(int? value) => OnPropertyChanged(nameof(ProbedCh2ShortLabel));
+    public string ProbedCh2ShortLabel => ProbedNodeCh2.HasValue ? $"CH2 #{ProbedNodeCh2.Value}" : "CH2";
+
+    [ObservableProperty]
+    private string _probedCh3Label = "CH3: Auto";
+    partial void OnProbedNodeCh3Changed(int? value) => OnPropertyChanged(nameof(ProbedCh3ShortLabel));
+    public string ProbedCh3ShortLabel => ProbedNodeCh3.HasValue ? $"CH3 #{ProbedNodeCh3.Value}" : "CH3";
+
+    [ObservableProperty]
+    private string _probedCh4Label = "CH4: Auto";
+    partial void OnProbedNodeCh4Changed(int? value) => OnPropertyChanged(nameof(ProbedCh4ShortLabel));
+    public string ProbedCh4ShortLabel => ProbedNodeCh4.HasValue ? $"CH4 #{ProbedNodeCh4.Value}" : "CH4";
+
+    public System.Collections.ObjectModel.ObservableCollection<OscilloscopeChannel> ScopeChannels { get; } = new();
+
+    [ObservableProperty]
+    private int _activeProbingChannel = 1;
 
     [ObservableProperty]
     private Circuit? _currentCircuit;
@@ -114,8 +139,10 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public bool IsSelectMode => ActiveToolMode == CircuitToolMode.Select;
     public bool IsWireMode => ActiveToolMode == CircuitToolMode.Wire;
     public bool IsCutMode => ActiveToolMode == CircuitToolMode.Cut;
-    public bool IsProbingCh1 => ActiveToolMode == CircuitToolMode.ProbeCh1;
-    public bool IsProbingCh2 => ActiveToolMode == CircuitToolMode.ProbeCh2;
+    public bool IsProbingCh1 => ActiveToolMode == CircuitToolMode.ProbeCh1 || (ActiveToolMode == CircuitToolMode.Probe && ActiveProbingChannel == 1);
+    public bool IsProbingCh2 => ActiveToolMode == CircuitToolMode.ProbeCh2 || (ActiveToolMode == CircuitToolMode.Probe && ActiveProbingChannel == 2);
+    public bool IsProbingCh3 => ActiveToolMode == CircuitToolMode.Probe && ActiveProbingChannel == 3;
+    public bool IsProbingCh4 => ActiveToolMode == CircuitToolMode.Probe && ActiveProbingChannel == 4;
 
     partial void OnActiveToolModeChanged(CircuitToolMode value)
     {
@@ -124,6 +151,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsCutMode));
         OnPropertyChanged(nameof(IsProbingCh1));
         OnPropertyChanged(nameof(IsProbingCh2));
+        OnPropertyChanged(nameof(IsProbingCh3));
+        OnPropertyChanged(nameof(IsProbingCh4));
     }
 
     [ObservableProperty]
@@ -668,6 +697,11 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             }
         }
 
+        ScopeChannels.Add(OscilloscopeChannel.CreateDefault(1));
+        ScopeChannels.Add(OscilloscopeChannel.CreateDefault(2));
+        ScopeChannels.Add(OscilloscopeChannel.CreateDefault(3));
+        ScopeChannels.Add(OscilloscopeChannel.CreateDefault(4));
+
         LoadPreset(initialPreset);
         _timer.Start();
     }
@@ -682,9 +716,17 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         if (oscilloscope != null)
         {
             _oscilloscope = oscilloscope;
+            foreach (var ch in _oscilloscope.Channels)
+            {
+                if (!ScopeChannels.Any(c => c.ChannelIndex == ch.ChannelIndex))
+                {
+                    ScopeChannels.Add(ch);
+                }
+            }
         }
 
         canvas.HistoryManager = History;
+        canvas.ProbedChannels = _oscilloscope?.Channels ?? ScopeChannels;
         canvas.OnNodeProbed = (ch, node) =>
         {
             SetProbedNode(ch, node);
@@ -1109,45 +1151,58 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         if (_oscilloscope == null || CurrentCircuit == null) return;
 
-        // Channel 1: Probed node or input voltage/node 1
-        double ch1 = 0.0;
-        if (ProbedNodeCh1.HasValue && CurrentCircuit.Nodes.TryGetValue(ProbedNodeCh1.Value, out var pn1))
+        var channels = _oscilloscope.Channels;
+        if (channels.Count == 0) return;
+
+        foreach (var ch in channels)
         {
-            ch1 = pn1.Voltage;
-        }
-        else
-        {
-            var vsrc = CurrentCircuit.Devices.OfType<VoltageSourceDevice>().FirstOrDefault();
-            if (vsrc != null)
+            if (!ch.IsEnabled) continue;
+
+            double val = 0.0;
+            if (ch.TargetNodeId.HasValue && CurrentCircuit.Nodes.TryGetValue(ch.TargetNodeId.Value, out var targetNode))
             {
-                ch1 = vsrc.VoltageDrop;
+                val = targetNode.Voltage;
+                if (ch.ReferenceNodeId.HasValue && CurrentCircuit.Nodes.TryGetValue(ch.ReferenceNodeId.Value, out var refNode))
+                {
+                    val -= refNode.Voltage;
+                }
             }
-            else if (CurrentCircuit.Nodes.TryGetValue(1, out var n1))
+            else
             {
-                ch1 = n1.Voltage;
+                val = GetAutoChannelSample(ch.ChannelIndex);
             }
+
+            ch.AddSample(val);
         }
 
-        // Channel 2: Probed node or output voltage/node 2
-        double ch2 = 0.0;
-        if (ProbedNodeCh2.HasValue && CurrentCircuit.Nodes.TryGetValue(ProbedNodeCh2.Value, out var pn2))
-        {
-            ch2 = pn2.Voltage;
-        }
-        else
-        {
-            var loadRes = CurrentCircuit.Devices.OfType<ResistorDevice>().LastOrDefault();
-            if (loadRes != null)
-            {
-                ch2 = loadRes.VoltageDrop;
-            }
-            else if (CurrentCircuit.Nodes.TryGetValue(2, out var n2))
-            {
-                ch2 = n2.Voltage;
-            }
-        }
+        _oscilloscope.InvalidateVisual();
+    }
 
-        _oscilloscope.PushSamples(ch1, ch2);
+    private double GetAutoChannelSample(int channelIndex)
+    {
+        if (CurrentCircuit == null) return 0.0;
+        return channelIndex switch
+        {
+            1 => (ProbedNodeCh1.HasValue && CurrentCircuit.Nodes.TryGetValue(ProbedNodeCh1.Value, out var pn1))
+                ? pn1.Voltage
+                : CurrentCircuit.Devices.OfType<VoltageSourceDevice>().FirstOrDefault()?.VoltageDrop
+                  ?? (CurrentCircuit.Nodes.TryGetValue(1, out var n1) ? n1.Voltage : 0.0),
+            2 => (ProbedNodeCh2.HasValue && CurrentCircuit.Nodes.TryGetValue(ProbedNodeCh2.Value, out var pn2))
+                ? pn2.Voltage
+                : CurrentCircuit.Devices.OfType<ResistorDevice>().LastOrDefault()?.VoltageDrop
+                  ?? (CurrentCircuit.Nodes.TryGetValue(2, out var n2) ? n2.Voltage : 0.0),
+            3 => (ProbedNodeCh3.HasValue && CurrentCircuit.Nodes.TryGetValue(ProbedNodeCh3.Value, out var pn3))
+                ? pn3.Voltage
+                : (CurrentCircuit.Nodes.TryGetValue(3, out var n3)
+                    ? n3.Voltage
+                    : CurrentCircuit.Devices.OfType<DiodeDevice>().FirstOrDefault()?.VoltageDrop ?? 0.0),
+            4 => (ProbedNodeCh4.HasValue && CurrentCircuit.Nodes.TryGetValue(ProbedNodeCh4.Value, out var pn4))
+                ? pn4.Voltage
+                : (CurrentCircuit.Nodes.TryGetValue(4, out var n4)
+                    ? n4.Voltage
+                    : CurrentCircuit.Devices.OfType<CapacitorDevice>().FirstOrDefault()?.VoltageDrop ?? 0.0),
+            _ => CurrentCircuit.Nodes.TryGetValue(channelIndex, out var n) ? n.Voltage : 0.0
+        };
     }
 
     [RelayCommand]
@@ -1181,10 +1236,18 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public void StartProbing(string ch)
     {
-        var mode = ch == "1" ? CircuitToolMode.ProbeCh1 : CircuitToolMode.ProbeCh2;
+        int chIdx = int.TryParse(ch, out int parsed) ? parsed : 1;
+        ActiveProbingChannel = chIdx;
+        var mode = chIdx switch
+        {
+            1 => CircuitToolMode.ProbeCh1,
+            2 => CircuitToolMode.ProbeCh2,
+            _ => CircuitToolMode.Probe
+        };
         ActiveToolMode = mode;
         foreach (var c in AllCanvases)
         {
+            c.ActiveProbingChannelIndex = chIdx;
             c.ToolMode = mode;
             c.PlacingDeviceType = null;
         }
@@ -1196,8 +1259,27 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         ProbedNodeCh1 = null;
         ProbedNodeCh2 = null;
+        ProbedNodeCh3 = null;
+        ProbedNodeCh4 = null;
         ProbedCh1Label = "CH1: Auto (Input)";
         ProbedCh2Label = "CH2: Auto (Output)";
+        ProbedCh3Label = "CH3: Auto";
+        ProbedCh4Label = "CH4: Auto";
+
+        if (_oscilloscope != null)
+        {
+            foreach (var ch in _oscilloscope.Channels)
+            {
+                ch.TargetNodeId = null;
+                ch.Name = $"CH{ch.ChannelIndex}";
+            }
+        }
+        foreach (var ch in ScopeChannels)
+        {
+            ch.TargetNodeId = null;
+            ch.Name = $"CH{ch.ChannelIndex}";
+        }
+
         foreach (var c in AllCanvases)
         {
             c.ProbedNodeCh1 = null;
@@ -1210,18 +1292,43 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     public void SetProbedNode(int channel, int nodeId)
     {
+        var targetCh = _oscilloscope?.Channels.FirstOrDefault(c => c.ChannelIndex == channel)
+                       ?? ScopeChannels.FirstOrDefault(c => c.ChannelIndex == channel);
+        if (targetCh != null)
+        {
+            targetCh.TargetNodeId = nodeId;
+            targetCh.Name = $"CH{channel}: #{nodeId}";
+        }
+
         if (channel == 1)
         {
             ProbedNodeCh1 = nodeId;
             ProbedCh1Label = $"CH1: Net #{nodeId}";
             StatusText = $"Oscilloscope CH1 attached to Net #{nodeId}";
         }
-        else
+        else if (channel == 2)
         {
             ProbedNodeCh2 = nodeId;
             ProbedCh2Label = $"CH2: Net #{nodeId}";
             StatusText = $"Oscilloscope CH2 attached to Net #{nodeId}";
         }
+        else if (channel == 3)
+        {
+            ProbedNodeCh3 = nodeId;
+            ProbedCh3Label = $"CH3: Net #{nodeId}";
+            StatusText = $"Oscilloscope CH3 attached to Net #{nodeId}";
+        }
+        else if (channel == 4)
+        {
+            ProbedNodeCh4 = nodeId;
+            ProbedCh4Label = $"CH4: Net #{nodeId}";
+            StatusText = $"Oscilloscope CH4 attached to Net #{nodeId}";
+        }
+        else
+        {
+            StatusText = $"Oscilloscope CH{channel} attached to Net #{nodeId}";
+        }
+
         if (!IsOscilloscopeOpen)
         {
             IsOscilloscopeOpen = true;
@@ -1233,6 +1340,134 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             c.InvalidateVisual();
         }
         NotifySelectedWireProbeProperties();
+    }
+
+    [ObservableProperty]
+    private bool _isScopeBoxZoomActive;
+
+    [ObservableProperty]
+    private bool _isScopeCursorsActive;
+
+    [RelayCommand]
+    public void ToggleScopeCursors()
+    {
+        if (_oscilloscope == null) return;
+        _oscilloscope.ShowCursors = !_oscilloscope.ShowCursors;
+        IsScopeCursorsActive = _oscilloscope.ShowCursors;
+        StatusText = _oscilloscope.ShowCursors ? "Oscilloscope Cursors Enabled" : "Oscilloscope Cursors Disabled";
+    }
+
+    [RelayCommand]
+    public void AutoSetScope()
+    {
+        _oscilloscope?.AutoSet();
+        StatusText = "Oscilloscope Auto-Set completed";
+    }
+
+    [RelayCommand]
+    public void ResetScopePan()
+    {
+        _oscilloscope?.ResetPanAndZoom();
+        IsScopeBoxZoomActive = false;
+        StatusText = "Oscilloscope Pan & Zoom reset to center";
+    }
+
+    [RelayCommand]
+    public void ScopeZoomInTime()
+    {
+        _oscilloscope?.ZoomInTime();
+        StatusText = $"Time Zoom: {_oscilloscope?.TimebaseZoom:F1}x";
+    }
+
+    [RelayCommand]
+    public void ScopeZoomOutTime()
+    {
+        _oscilloscope?.ZoomOutTime();
+        StatusText = $"Time Zoom: {_oscilloscope?.TimebaseZoom:F1}x";
+    }
+
+    [RelayCommand]
+    public void ScopePanLeftTime()
+    {
+        _oscilloscope?.PanTime(-1.0);
+        StatusText = $"Time Offset: {_oscilloscope?.TimeOffsetDivs:+0.0;-0.0;0.0} divs";
+    }
+
+    [RelayCommand]
+    public void ScopePanRightTime()
+    {
+        _oscilloscope?.PanTime(1.0);
+        StatusText = $"Time Offset: {_oscilloscope?.TimeOffsetDivs:+0.0;-0.0;0.0} divs";
+    }
+
+    [RelayCommand]
+    public void ScopeZoomInVoltage()
+    {
+        _oscilloscope?.ZoomInVoltage();
+        var ch = _oscilloscope?.Channels.FirstOrDefault(c => c.ChannelIndex == _oscilloscope.ActiveChannelIndex);
+        StatusText = $"CH{_oscilloscope?.ActiveChannelIndex} Volts/Div: {ch?.VoltsPerDiv:G3} V/div";
+    }
+
+    [RelayCommand]
+    public void ScopeZoomOutVoltage()
+    {
+        _oscilloscope?.ZoomOutVoltage();
+        var ch = _oscilloscope?.Channels.FirstOrDefault(c => c.ChannelIndex == _oscilloscope.ActiveChannelIndex);
+        StatusText = $"CH{_oscilloscope?.ActiveChannelIndex} Volts/Div: {ch?.VoltsPerDiv:G3} V/div";
+    }
+
+    [RelayCommand]
+    public void ScopePanUpVoltage()
+    {
+        _oscilloscope?.PanVoltage(0.5);
+        var ch = _oscilloscope?.Channels.FirstOrDefault(c => c.ChannelIndex == _oscilloscope.ActiveChannelIndex);
+        StatusText = $"CH{_oscilloscope?.ActiveChannelIndex} Offset: {ch?.VerticalOffsetDivs:+0.0;-0.0;0.0} divs";
+    }
+
+    [RelayCommand]
+    public void ScopePanDownVoltage()
+    {
+        _oscilloscope?.PanVoltage(-0.5);
+        var ch = _oscilloscope?.Channels.FirstOrDefault(c => c.ChannelIndex == _oscilloscope.ActiveChannelIndex);
+        StatusText = $"CH{_oscilloscope?.ActiveChannelIndex} Offset: {ch?.VerticalOffsetDivs:+0.0;-0.0;0.0} divs";
+    }
+
+    [RelayCommand]
+    public void ScopeToggleBoxZoom()
+    {
+        if (_oscilloscope == null) return;
+        _oscilloscope.ToggleBoxZoom();
+        IsScopeBoxZoomActive = _oscilloscope.IsBoxZoomMode;
+        StatusText = _oscilloscope.IsBoxZoomMode
+            ? "Box Zoom: Drag a rectangle over the waveform to zoom"
+            : "Box Zoom Deactivated";
+    }
+
+    [RelayCommand]
+    public void ToggleScopeLayout()
+    {
+        if (_oscilloscope == null) return;
+        _oscilloscope.DisplayLayout = _oscilloscope.DisplayLayout == OscilloscopeDisplayLayout.Overlay
+            ? OscilloscopeDisplayLayout.Stacked
+            : OscilloscopeDisplayLayout.Overlay;
+        OnPropertyChanged(nameof(ScopeLayoutLabel));
+        StatusText = $"Oscilloscope Layout set to {_oscilloscope.DisplayLayout}";
+    }
+
+    public string ScopeLayoutLabel => (_oscilloscope?.DisplayLayout == OscilloscopeDisplayLayout.Stacked) ? "Stacked" : "Overlay";
+
+    [RelayCommand]
+    public void AddScopeChannel()
+    {
+        if (_oscilloscope == null) return;
+        int nextIdx = _oscilloscope.Channels.Count + 1;
+        var newCh = OscilloscopeChannel.CreateDefault(nextIdx);
+        _oscilloscope.Channels.Add(newCh);
+        if (!ScopeChannels.Any(c => c.ChannelIndex == nextIdx))
+        {
+            ScopeChannels.Add(newCh);
+        }
+        StatusText = $"Added Oscilloscope Channel {nextIdx}";
     }
 
     [RelayCommand]

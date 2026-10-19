@@ -124,22 +124,21 @@ public partial class CircuitCanvas
             bool isGround = node?.IsGround == true;
 
             bool isHovered = wire == _hoveredWire;
-            bool isProbedCh1 = ProbedNodeCh1.HasValue && wire.NodeId == ProbedNodeCh1.Value;
-            bool isProbedCh2 = ProbedNodeCh2.HasValue && wire.NodeId == ProbedNodeCh2.Value;
+            var probedChannel = ProbedChannels?.FirstOrDefault(c => c.TargetNodeId.HasValue && c.TargetNodeId.Value == wire.NodeId);
+            bool isProbed = probedChannel != null || (ProbedNodeCh1.HasValue && wire.NodeId == ProbedNodeCh1.Value) || (ProbedNodeCh2.HasValue && wire.NodeId == ProbedNodeCh2.Value);
+            Color probedColor = probedChannel?.Color ?? (ProbedNodeCh1.HasValue && wire.NodeId == ProbedNodeCh1.Value ? Color.FromRgb(245, 158, 11) : Color.FromRgb(6, 182, 212));
 
             var (glowColor, coreColor) = isSelected
                 ? (Color.FromArgb(80, 56, 189, 248), Color.FromRgb(56, 189, 248))
-                : isProbedCh1
-                    ? (Color.FromArgb(90, 245, 158, 11), Color.FromRgb(245, 158, 11))
-                    : isProbedCh2
-                        ? (Color.FromArgb(90, 6, 182, 212), Color.FromRgb(6, 182, 212))
-                        : isHovered
-                            ? (Color.FromArgb(70, 56, 189, 248), Color.FromRgb(186, 230, 253))
-                            : GetVoltageColors(voltage, isGround);
+                : isProbed
+                    ? (Color.FromArgb(90, probedColor.R, probedColor.G, probedColor.B), probedColor)
+                    : isHovered
+                        ? (Color.FromArgb(70, 56, 189, 248), Color.FromRgb(186, 230, 253))
+                        : GetVoltageColors(voltage, isGround);
 
-            bool hasAura = isSelected || isProbedCh1 || isProbedCh2 || isHovered;
-            double glowWidth = (isSelected || isProbedCh1 || isProbedCh2 ? 4.5 : 3.5) * Zoom;
-            double coreWidth = (isSelected || isProbedCh1 || isProbedCh2 ? 2.3 : 1.9) * Zoom;
+            bool hasAura = isSelected || isProbed || isHovered;
+            double glowWidth = (isSelected || isProbed ? 4.5 : 3.5) * Zoom;
+            double coreWidth = (isSelected || isProbed ? 2.3 : 1.9) * Zoom;
 
             var glowPen = hasAura ? new Pen(new SolidColorBrush(glowColor), glowWidth)
             {
@@ -271,12 +270,12 @@ public partial class CircuitCanvas
             {
                 var screenPt = WorldToScreen(key.X, key.Y);
                 int jNodeId = junctionNodeIds.GetValueOrDefault(key, -1);
-                bool isJuncProbedCh1 = ProbedNodeCh1.HasValue && jNodeId == ProbedNodeCh1.Value;
-                bool isJuncProbedCh2 = ProbedNodeCh2.HasValue && jNodeId == ProbedNodeCh2.Value;
+                var juncProbedCh = ProbedChannels?.FirstOrDefault(c => c.TargetNodeId.HasValue && c.TargetNodeId.Value == jNodeId);
+                bool isJuncProbed = juncProbedCh != null || (ProbedNodeCh1.HasValue && jNodeId == ProbedNodeCh1.Value) || (ProbedNodeCh2.HasValue && jNodeId == ProbedNodeCh2.Value);
+                Color ringCol = juncProbedCh?.Color ?? (ProbedNodeCh1.HasValue && jNodeId == ProbedNodeCh1.Value ? Color.FromRgb(245, 158, 11) : Color.FromRgb(6, 182, 212));
 
-                if (isJuncProbedCh1 || isJuncProbedCh2)
+                if (isJuncProbed)
                 {
-                    var ringCol = isJuncProbedCh1 ? Color.FromRgb(245, 158, 11) : Color.FromRgb(6, 182, 212);
                     context.DrawEllipse(new SolidColorBrush(Color.FromArgb(70, ringCol.R, ringCol.G, ringCol.B)), null, screenPt, 7.5 * Zoom, 7.5 * Zoom);
                     context.DrawEllipse(new SolidColorBrush(Color.FromArgb(235, 15, 23, 42)), new Pen(new SolidColorBrush(ringCol), 1.8 * Zoom), screenPt, 5.0 * Zoom, 5.0 * Zoom);
                     context.DrawEllipse(new SolidColorBrush(ringCol), null, screenPt, 2.8 * Zoom, 2.8 * Zoom);

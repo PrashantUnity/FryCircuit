@@ -162,6 +162,32 @@
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Foreground" Value="{DynamicResource CircuitAccentBrush}"/>
         </Style>
+        <Style Selector="Button.chip.probing3">
+            <Setter Property="Background" Value="{DynamicResource CircuitSurfaceHoverBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderLightBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{DynamicResource CircuitScopeCh3Brush}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="Button.chip.probing3 /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource CircuitSurfaceHoverBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderLightBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{DynamicResource CircuitScopeCh3Brush}"/>
+        </Style>
+        <Style Selector="Button.chip.probing4">
+            <Setter Property="Background" Value="{DynamicResource CircuitSurfaceHoverBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderLightBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{DynamicResource CircuitScopeCh4Brush}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="Button.chip.probing4 /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource CircuitSurfaceHoverBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderLightBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{DynamicResource CircuitScopeCh4Brush}"/>
+        </Style>
 
         <!-- Parameter Scale Selection Chip -->
         <Style Selector="Button.scale-chip">
@@ -863,51 +889,132 @@
                         <Border Grid.Row="0" Background="{DynamicResource CircuitSurfaceLowBrush}" 
                                 BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="0,0,0,1" Padding="10,4">
                             <Grid ColumnDefinitions="Auto,Auto,*,Auto">
-                                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
                                     <Border Background="{DynamicResource CircuitSurfaceHighBrush}" 
                                             BorderBrush="{DynamicResource CircuitBorderBrush}" BorderThickness="1" 
-                                            CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="6,2" VerticalAlignment="Center">
-                                        <StackPanel Orientation="Horizontal" Spacing="4">
-                                            <material:MaterialIcon Kind="SineWave" Width="11" Height="11" Foreground="{DynamicResource CircuitSecondaryBrush}"/>
-                                            <TextBlock Text="CHANNELS" FontSize="{DynamicResource CircuitFontSizeSmall}" FontWeight="Bold" 
-                                                       Foreground="{DynamicResource CircuitTextDimBrush}" FontFamily="{DynamicResource CircuitCodeFont}"/>
-                                        </StackPanel>
+                                            CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="5,2" VerticalAlignment="Center">
+                                        <material:MaterialIcon Kind="SineWave" Width="11" Height="11" Foreground="{DynamicResource CircuitSecondaryBrush}"/>
                                     </Border>
-                                    <Button Classes="chip" Classes.probing="{Binding IsProbingCh1}" Command="{Binding StartProbingCommand}" CommandParameter="1" ToolTip.Tip="Channel 1 (Amber) - Click to enter probe placement mode">
-                                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                            <material:MaterialIcon Kind="Eye" Width="12" Height="12" Foreground="{DynamicResource CircuitScopeCh1Brush}"/>
-                                            <TextBlock Text="{Binding ProbedCh1Label}" FontSize="{DynamicResource CircuitFontSizeBodySm}" Foreground="{DynamicResource CircuitScopeCh1Brush}" FontWeight="Bold"/>
+                                    <Button Classes="chip" Classes.probing="{Binding IsProbingCh1}" Command="{Binding StartProbingCommand}" CommandParameter="1" ToolTip.Tip="{Binding ProbedCh1Label}" Padding="6,2">
+                                        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                            <material:MaterialIcon Kind="Eye" Width="11" Height="11" Foreground="{DynamicResource CircuitScopeCh1Brush}"/>
+                                            <TextBlock Text="{Binding ProbedCh1ShortLabel}" FontSize="{DynamicResource CircuitFontSizeBodySm}" Foreground="{DynamicResource CircuitScopeCh1Brush}" FontWeight="Bold"/>
                                         </StackPanel>
                                     </Button>
-                                    <Button Classes="chip" Classes.probing2="{Binding IsProbingCh2}" Command="{Binding StartProbingCommand}" CommandParameter="2" ToolTip.Tip="Channel 2 (Cyan) - Click to enter probe placement mode">
-                                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                            <material:MaterialIcon Kind="Eye" Width="12" Height="12" Foreground="{DynamicResource CircuitScopeCh2Brush}"/>
-                                            <TextBlock Text="{Binding ProbedCh2Label}" FontSize="{DynamicResource CircuitFontSizeBodySm}" Foreground="{DynamicResource CircuitScopeCh2Brush}" FontWeight="Bold"/>
+                                    <Button Classes="chip" Classes.probing2="{Binding IsProbingCh2}" Command="{Binding StartProbingCommand}" CommandParameter="2" ToolTip.Tip="{Binding ProbedCh2Label}" Padding="6,2">
+                                        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                            <material:MaterialIcon Kind="Eye" Width="11" Height="11" Foreground="{DynamicResource CircuitScopeCh2Brush}"/>
+                                            <TextBlock Text="{Binding ProbedCh2ShortLabel}" FontSize="{DynamicResource CircuitFontSizeBodySm}" Foreground="{DynamicResource CircuitScopeCh2Brush}" FontWeight="Bold"/>
                                         </StackPanel>
                                     </Button>
-                                    <Button Classes="chip" Command="{Binding ClearProbesCommand}" ToolTip.Tip="Reset to automatic signal probing">
-                                        <StackPanel Orientation="Horizontal" Spacing="4">
-                                            <material:MaterialIcon Kind="Restart" Width="11" Height="11" Foreground="{DynamicResource CircuitTextDimBrush}"/>
-                                            <TextBlock Text="Reset Auto" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitTextDimBrush}"/>
+                                    <Button Classes="chip" Classes.probing3="{Binding IsProbingCh3}" Command="{Binding StartProbingCommand}" CommandParameter="3" ToolTip.Tip="{Binding ProbedCh3Label}" Padding="6,2">
+                                        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                            <material:MaterialIcon Kind="Eye" Width="11" Height="11" Foreground="{DynamicResource CircuitScopeCh3Brush}"/>
+                                            <TextBlock Text="{Binding ProbedCh3ShortLabel}" FontSize="{DynamicResource CircuitFontSizeBodySm}" Foreground="{DynamicResource CircuitScopeCh3Brush}" FontWeight="Bold"/>
                                         </StackPanel>
+                                    </Button>
+                                    <Button Classes="chip" Classes.probing4="{Binding IsProbingCh4}" Command="{Binding StartProbingCommand}" CommandParameter="4" ToolTip.Tip="{Binding ProbedCh4Label}" Padding="6,2">
+                                        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                            <material:MaterialIcon Kind="Eye" Width="11" Height="11" Foreground="{DynamicResource CircuitScopeCh4Brush}"/>
+                                            <TextBlock Text="{Binding ProbedCh4ShortLabel}" FontSize="{DynamicResource CircuitFontSizeBodySm}" Foreground="{DynamicResource CircuitScopeCh4Brush}" FontWeight="Bold"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Classes="chip" Command="{Binding AddScopeChannelCommand}" ToolTip.Tip="Add another oscilloscope channel (CH5+)" Padding="5,2">
+                                        <material:MaterialIcon Kind="Plus" Width="11" Height="11" Foreground="{DynamicResource CircuitTextDimBrush}"/>
+                                    </Button>
+                                    <Button Classes="chip" Command="{Binding ClearProbesCommand}" ToolTip.Tip="Reset to automatic signal probing" Padding="5,2">
+                                        <material:MaterialIcon Kind="Restart" Width="11" Height="11" Foreground="{DynamicResource CircuitTextDimBrush}"/>
                                     </Button>
                                 </StackPanel>
 
-                                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                                    <TextBlock Text="Interactive Signal Probing • 60 FPS" FontSize="{DynamicResource CircuitFontSizeSmall}" 
-                                               Foreground="{DynamicResource CircuitTextMutedBrush}" VerticalAlignment="Center"/>
+                                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                                    <!-- Horizontal Timebase Pan & Zoom Cluster -->
+                                    <Border Background="{DynamicResource CircuitSurfaceHighBrush}" 
+                                            BorderBrush="{DynamicResource CircuitBorderBrush}" BorderThickness="1" 
+                                            CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="3,1" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal" Spacing="1" VerticalAlignment="Center">
+                                            <material:MaterialIcon Kind="ClockOutline" Width="10" Height="10" Foreground="{DynamicResource CircuitSecondaryBrush}" Margin="2,0,1,0"/>
+                                            <TextBlock Text="TIME" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold" 
+                                                       Foreground="{DynamicResource CircuitTextDimBrush}" FontFamily="{DynamicResource CircuitCodeFont}" VerticalAlignment="Center" Margin="0,0,2,0"/>
+                                            <Button Classes="chip" Command="{Binding ScopePanLeftTimeCommand}" ToolTip.Tip="Pan Time Left (◀) / Earlier time" Padding="3,1">
+                                                <material:MaterialIcon Kind="ChevronLeft" Width="11" Height="11" Foreground="{DynamicResource CircuitTextBrush}"/>
+                                            </Button>
+                                            <Button Classes="chip" Command="{Binding ScopeZoomInTimeCommand}" ToolTip.Tip="Zoom In Time (+)" Padding="3,1">
+                                                <material:MaterialIcon Kind="Plus" Width="10" Height="10" Foreground="{DynamicResource CircuitSecondaryBrush}"/>
+                                            </Button>
+                                            <Button Classes="chip" Command="{Binding ScopeZoomOutTimeCommand}" ToolTip.Tip="Zoom Out Time (-)" Padding="3,1">
+                                                <material:MaterialIcon Kind="Minus" Width="10" Height="10" Foreground="{DynamicResource CircuitSecondaryBrush}"/>
+                                            </Button>
+                                            <Button Classes="chip" Command="{Binding ScopePanRightTimeCommand}" ToolTip.Tip="Pan Time Right (▶) / Later time" Padding="3,1">
+                                                <material:MaterialIcon Kind="ChevronRight" Width="11" Height="11" Foreground="{DynamicResource CircuitTextBrush}"/>
+                                            </Button>
+                                        </StackPanel>
+                                    </Border>
 
-                                    <!-- Maximize / Restore Oscilloscope Button -->
-                                    <Button Classes="chip" Command="{Binding ToggleMaximizeOscilloscopeCommand}" ToolTip.Tip="{Binding MaximizeOscilloscopeTooltip}">
-                                        <StackPanel Orientation="Horizontal" Spacing="4">
-                                            <material:MaterialIcon Kind="WindowMaximize" Width="11" Height="11" Foreground="{DynamicResource CircuitAccentBrush}"/>
-                                            <TextBlock Text="{Binding MaximizeOscilloscopeLabel}" FontSize="{DynamicResource CircuitFontSizeSmall}" 
-                                                       FontWeight="SemiBold" Foreground="{DynamicResource CircuitTextBrush}"/>
+                                    <!-- Vertical Voltage Pan & Zoom Cluster (Active Channel) -->
+                                    <Border Background="{DynamicResource CircuitSurfaceHighBrush}" 
+                                            BorderBrush="{DynamicResource CircuitBorderBrush}" BorderThickness="1" 
+                                            CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="3,1" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal" Spacing="1" VerticalAlignment="Center">
+                                            <material:MaterialIcon Kind="AxisZArrow" Width="10" Height="10" Foreground="{DynamicResource CircuitAccentBrush}" Margin="2,0,1,0"/>
+                                            <TextBlock Text="VOLTS" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold" 
+                                                       Foreground="{DynamicResource CircuitTextDimBrush}" FontFamily="{DynamicResource CircuitCodeFont}" VerticalAlignment="Center" Margin="0,0,2,0"/>
+                                            <Button Classes="chip" Command="{Binding ScopePanDownVoltageCommand}" ToolTip.Tip="Pan Voltage Down (▼)" Padding="3,1">
+                                                <material:MaterialIcon Kind="ChevronDown" Width="11" Height="11" Foreground="{DynamicResource CircuitTextBrush}"/>
+                                            </Button>
+                                            <Button Classes="chip" Command="{Binding ScopeZoomInVoltageCommand}" ToolTip.Tip="Zoom In Volts (+) / Increase Waveform Height" Padding="3,1">
+                                                <material:MaterialIcon Kind="Plus" Width="10" Height="10" Foreground="{DynamicResource CircuitAccentBrush}"/>
+                                            </Button>
+                                            <Button Classes="chip" Command="{Binding ScopeZoomOutVoltageCommand}" ToolTip.Tip="Zoom Out Volts (-) / Decrease Waveform Height" Padding="3,1">
+                                                <material:MaterialIcon Kind="Minus" Width="10" Height="10" Foreground="{DynamicResource CircuitAccentBrush}"/>
+                                            </Button>
+                                            <Button Classes="chip" Command="{Binding ScopePanUpVoltageCommand}" ToolTip.Tip="Pan Voltage Up (▲)" Padding="3,1">
+                                                <material:MaterialIcon Kind="ChevronUp" Width="11" Height="11" Foreground="{DynamicResource CircuitTextBrush}"/>
+                                            </Button>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Box / Marquee Zoom Toggle -->
+                                    <Button Classes="chip" Classes.active="{Binding IsScopeBoxZoomActive}" Command="{Binding ScopeToggleBoxZoomCommand}" ToolTip.Tip="Box Zoom: Drag a rectangle over the waveform to zoom" Padding="5,2">
+                                        <StackPanel Orientation="Horizontal" Spacing="3">
+                                            <material:MaterialIcon Kind="CropFree" Width="11" Height="11" Foreground="{DynamicResource CircuitSecondaryBrush}"/>
+                                            <TextBlock Text="Box" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitTextBrush}"/>
                                         </StackPanel>
                                     </Button>
 
+                                    <!-- 1:1 Fit Button -->
+                                    <Button Classes="chip" Command="{Binding ResetScopePanCommand}" ToolTip.Tip="1:1 Fit: Reset Zoom to 1.0x and Pan to zero" Padding="5,2">
+                                        <StackPanel Orientation="Horizontal" Spacing="3">
+                                            <material:MaterialIcon Kind="ImageFilterCenterFocus" Width="11" Height="11" Foreground="{DynamicResource CircuitTextDimBrush}"/>
+                                            <TextBlock Text="1:1" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitTextBrush}"/>
+                                        </StackPanel>
+                                    </Button>
+
+                                    <!-- AutoSet Button -->
+                                    <Button Classes="chip" Command="{Binding AutoSetScopeCommand}" ToolTip.Tip="Auto-Scale Volts/Div and zero offsets" Padding="5,2">
+                                        <StackPanel Orientation="Horizontal" Spacing="3">
+                                            <material:MaterialIcon Kind="AutoFix" Width="11" Height="11" Foreground="{DynamicResource CircuitAccentBrush}"/>
+                                            <TextBlock Text="Auto" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitTextBrush}"/>
+                                        </StackPanel>
+                                    </Button>
+
+                                    <!-- Cursors Toggle Button -->
+                                    <Button Classes="chip" Classes.active="{Binding IsScopeCursorsActive}" Command="{Binding ToggleScopeCursorsCommand}" ToolTip.Tip="Toggle Dual Time &amp; Voltage Measurement Cursors" Padding="5,2">
+                                        <material:MaterialIcon Kind="RayStartEnd" Width="11" Height="11" Foreground="{DynamicResource CircuitAccentBrush}"/>
+                                    </Button>
+
+                                    <!-- Layout Button (Stacked / Overlay) -->
+                                    <Button Classes="chip" Command="{Binding ToggleScopeLayoutCommand}" ToolTip.Tip="Toggle Stacked / Overlay Display" Padding="5,2">
+                                        <material:MaterialIcon Kind="ViewAgendaOutline" Width="11" Height="11" Foreground="{DynamicResource CircuitSecondaryBrush}"/>
+                                    </Button>
+
+                                    <!-- Maximize / Restore Oscilloscope Button -->
+                                    <Button Classes="chip" Command="{Binding ToggleMaximizeOscilloscopeCommand}" ToolTip.Tip="{Binding MaximizeOscilloscopeTooltip}" Padding="5,2">
+                                        <material:MaterialIcon Kind="WindowMaximize" Width="11" Height="11" Foreground="{DynamicResource CircuitAccentBrush}"/>
+                                    </Button>
+
                                     <!-- Collapse Oscilloscope Button -->
-                                    <Button Classes="chip" Command="{Binding ToggleOscilloscopeCommand}" ToolTip.Tip="Collapse Oscilloscope">
+                                    <Button Classes="chip" Command="{Binding ToggleOscilloscopeCommand}" ToolTip.Tip="Collapse Oscilloscope" Padding="5,2">
                                         <material:MaterialIcon Kind="ChevronDown" Width="11" Height="11" Foreground="{DynamicResource CircuitTextDimBrush}"/>
                                     </Button>
                                 </StackPanel>

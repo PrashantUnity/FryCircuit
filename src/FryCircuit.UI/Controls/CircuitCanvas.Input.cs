@@ -112,7 +112,7 @@ public partial class CircuitCanvas
         if (point.Properties.IsLeftButtonPressed && Circuit != null)
         {
             // 0. OSCILLOSCOPE PROBE MODE
-            if (ToolMode == CircuitToolMode.ProbeCh1 || ToolMode == CircuitToolMode.ProbeCh2)
+            if (ToolMode == CircuitToolMode.Probe || ToolMode == CircuitToolMode.ProbeCh1 || ToolMode == CircuitToolMode.ProbeCh2)
             {
                 int targetNode = -1;
                 var pTest = Circuit.FindPinAt(wx, wy, tolerance: 0.6);
@@ -139,9 +139,21 @@ public partial class CircuitCanvas
 
                 if (targetNode >= 0)
                 {
-                    int ch = (ToolMode == CircuitToolMode.ProbeCh1) ? 1 : 2;
+                    int ch = ToolMode switch
+                    {
+                        CircuitToolMode.ProbeCh1 => 1,
+                        CircuitToolMode.ProbeCh2 => 2,
+                        _ => ActiveProbingChannelIndex
+                    };
+
+                    var channel = ProbedChannels?.FirstOrDefault(c => c.ChannelIndex == ch);
+                    if (channel != null)
+                    {
+                        channel.TargetNodeId = targetNode;
+                    }
+
                     if (ch == 1) ProbedNodeCh1 = targetNode;
-                    else ProbedNodeCh2 = targetNode;
+                    else if (ch == 2) ProbedNodeCh2 = targetNode;
 
                     OnNodeProbed?.Invoke(ch, targetNode);
                     ToolMode = CircuitToolMode.Select;
@@ -591,7 +603,7 @@ public partial class CircuitCanvas
             return;
         }
 
-        if (ToolMode == CircuitToolMode.ProbeCh1 || ToolMode == CircuitToolMode.ProbeCh2)
+        if (ToolMode == CircuitToolMode.Probe || ToolMode == CircuitToolMode.ProbeCh1 || ToolMode == CircuitToolMode.ProbeCh2)
         {
             _probeCursorPos = (wx, wy);
             _hoveredPin = Circuit?.FindPinAt(wx, wy, tolerance: 0.6);
