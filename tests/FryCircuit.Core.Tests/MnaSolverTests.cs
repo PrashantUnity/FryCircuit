@@ -391,5 +391,98 @@ public class MnaSolverTests
         Assert.Equal(0.0, circuit.Nodes[2].Voltage, precision: 4);
         Assert.InRange(circuit.Nodes[1].Voltage, 4.10, 4.25);
     }
+
+    [Theory]
+    [InlineData(1e-14)] // Standard 10 fA
+    [InlineData(1e-10)] // 100 pA (reproduction of bug scenario)
+    [InlineData(1e-7)]  // High saturation current
+    public void Diode_ForwardConduction_ConvergesWithoutLimitCycleOscillation(double isat)
+    {
+        // 5V DC Source -> Diode -> 10.1 Ohm Resistor -> Ground
+        var circuit = new Circuit("Diode_ForwardConduction");
+        circuit.GetOrCreateNode(0, isGround: true);
+        circuit.GetOrCreateNode(1);
+        circuit.GetOrCreateNode(2);
+
+        var vs = new VoltageSourceDevice(1, voltage: 5.0);
+        vs.Pins[0].NodeId = 1; // +
+        vs.Pins[1].NodeId = 0; // GND
+        circuit.AddDevice(vs);
+
+        var diode = new DiodeDevice(2)
+        {
+            SaturationCurrent = isat,
+            EmissionCoefficient = 1.0
+        };
+        diode.Pins[0].NodeId = 1; // Anode
+        diode.Pins[1].NodeId = 2; // Cathode
+        circuit.AddDevice(diode);
+
+        var res = new ResistorDevice(3, resistance: 10.1);
+        res.Pins[0].NodeId = 2;
+        res.Pins[1].NodeId = 0;
+        circuit.AddDevice(res);
+
+        var solver = new MnaSolver(circuit);
+
+        // Step over several time steps to ensure transient stability
+        for (int i = 0; i < 20; i++)
+        {
+            solver.Step(1e-4);
+        }
+
+        // Positive rail must remain rock solid at 5.0 V
+        Assert.Equal(5.0, circuit.Nodes[1].Voltage, precision: 3);
+
+        // Cathode voltage must be physical (~3.5V - 4.8V depending on Is), NEVER kV range
+        double vCathode = circuit.Nodes[2].Voltage;
+        Assert.InRange(vCathode, 3.5, 4.8);
+
+        // Diode forward drop should be physical (~0.2V - 1.5V)
+        Assert.InRange(diode.VoltageDrop, 0.2, 1.5);
+
+        // Currents through all components in series must balance and be in ~0.3 - 0.5 A range
+        Assert.InRange(diode.Current, 0.3, 0.5);
+        Assert.Equal(diode.Current, res.Current, precision: 3);
+        Assert.Equal(diode.Current, vs.Current, precision: 3);
+    }
+
+    [Fact]
+    public void Diode_ReverseBias_BlocksCurrent()
+    {
+        // 5V DC Source -> Reverse Diode (Cathode to +5V, Anode to Resistor) -> 10 Ohm Resistor -> Ground
+        var circuit = new Circuit("Diode_ReverseBias");
+        circuit.GetOrCreateNode(0, isGround: true);
+        circuit.GetOrCreateNode(1);
+        circuit.GetOrCreateNode(2);
+
+        var vs = new VoltageSourceDevice(1, voltage: 5.0);
+        vs.Pins[0].NodeId = 1; // +
+        vs.Pins[1].NodeId = 0; // GND
+        circuit.AddDevice(vs);
+
+        var diode = new DiodeDevice(2)
+        {
+            SaturationCurrent = 1e-14
+        };
+        diode.Pins[0].NodeId = 2; // Anode
+        diode.Pins[1].NodeId = 1; // Cathode connected to +5V (reverse bias)
+        circuit.AddDevice(diode);
+
+        var res = new ResistorDevice(3, resistance: 10.0);
+        res.Pins[0].NodeId = 2;
+        res.Pins[1].NodeId = 0;
+        circuit.AddDevice(res);
+
+        var solver = new MnaSolver(circuit);
+        for (int i = 0; i < 10; i++)
+        {
+            solver.Step(1e-4);
+        }
+
+        // Leakage current should be minute (< 1 uA)
+        Assert.InRange(Math.Abs(diode.Current), 0.0, 1e-6);
+        Assert.InRange(Math.Abs(circuit.Nodes[2].Voltage), 0.0, 1e-4);
+    }
 }
 

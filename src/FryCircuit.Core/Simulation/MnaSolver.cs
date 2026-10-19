@@ -80,7 +80,7 @@ public class MnaSolver
         }
 
         // High-precision Newton-Raphson iteration with convergence tolerance
-        const int maxIterations = 12;
+        const int maxIterations = 24;
         const double voltageTolerance = 1e-6; // 1 µV
         double[] solution = new double[matrixSize];
         double[] prevSolution = new double[matrixSize];

@@ -140,6 +140,70 @@ public class DiodeDevice : Device, IDeviceSimulation
         }
     }
 
+    private double _lastIterVd = 0.0;
+    private int _lastIter = -1;
+
+    /// <summary>
+    /// Standard SPICE pnjlim algorithm: limits junction voltage step per iteration
+    /// to prevent exponential divergence and limit-cycle oscillation.
+    /// </summary>
+    public static double PnjLim(double vnew, double vold, double vt, double vcrit)
+    {
+        if (vnew > vcrit && Math.Abs(vnew - vold) > (2.0 * vt))
+        {
+            if (vold > 0.0)
+            {
+                double arg = 1.0 + (vnew - vold) / vt;
+                vnew = arg > 0.0 ? (vold + vt * Math.Log(arg)) : vcrit;
+            }
+            else
+            {
+                vnew = vt * Math.Log(Math.Max(1.0, vnew / vt));
+            }
+        }
+        else if (vnew < 0.0)
+        {
+            double arg = vold > 0.0 ? (-1.0 + vnew / vt) : ((vnew - vold) / vt);
+            if (arg <= -0.5)
+            {
+                vnew = vold - vt * 0.5;
+            }
+        }
+        return vnew;
+    }
+
+    /// <summary>
+    /// Evaluates diode current and differential small-signal conductance with C1 continuous extension.
+    /// </summary>
+    public static (double Id, double Gd) EvaluateConduction(double vd, double vt, double isat)
+    {
+        const double xMax = 35.0;
+        double vMax = xMax * vt;
+        double expMax = Math.Exp(xMax);
+        double iMax = isat * (expMax - 1.0);
+        double gMax = Math.Clamp((isat / vt) * expMax, 1e-12, 1e5);
+
+        if (vd > vMax)
+        {
+            // C1 continuous linear tangent extension: exact matching at boundary
+            double gd = gMax;
+            double id = iMax + gd * (vd - vMax);
+            return (id, gd);
+        }
+        else if (vd >= -5.0 * vt)
+        {
+            double expVal = Math.Exp(vd / vt);
+            double id = isat * (expVal - 1.0);
+            double gd = Math.Clamp((isat / vt) * expVal, 1e-12, 1e5);
+            return (id, gd);
+        }
+        else
+        {
+            // Reverse saturation regime
+            return (-isat, 1e-12);
+        }
+    }
+
     public virtual void StampNonLinear(MnaContext ctx)
     {
         if (Pins.Count < 2) return;
@@ -147,32 +211,21 @@ public class DiodeDevice : Device, IDeviceSimulation
         int n0 = Pins[0].NodeId;
         int n1 = Pins[1].NodeId;
 
-        double vd = ctx.GetNodeVoltage(n0) - ctx.GetNodeVoltage(n1);
         double vt = Math.Max(0.0001, ctx.ThermalVoltage * EmissionCoefficient);
         double isat = GetTemperatureAdjustedIs(ctx.TemperatureKelvin);
+        double vcrit = vt * Math.Log(Math.Max(1.0, vt / (Math.Sqrt(2.0) * isat)));
 
-        double id, gd;
+        if (ctx.Iteration == 0 || ctx.Iteration <= _lastIter)
+        {
+            _lastIterVd = StateVoltage;
+        }
+        _lastIter = ctx.Iteration;
 
-        // Shockley diode equation with smooth limiting to avoid numerical overflow
-        if (vd > 0.8)
-        {
-            // Linearized forward conduction in series-resistance dominated region
-            gd = 0.2; // 5 Ω dynamic resistance
-            double idKnee = isat * Math.Exp(0.8 / vt);
-            id = idKnee + gd * (vd - 0.8);
-        }
-        else if (vd >= -5.0 * vt)
-        {
-            double expVal = Math.Exp(Math.Clamp(vd / vt, -20.0, 35.0));
-            id = isat * (expVal - 1.0);
-            gd = Math.Clamp((isat / vt) * expVal, 1e-12, 100.0);
-        }
-        else
-        {
-            // Reverse saturation regime
-            id = -isat;
-            gd = 1e-12;
-        }
+        double rawVd = ctx.GetNodeVoltage(n0) - ctx.GetNodeVoltage(n1);
+        double vd = PnjLim(rawVd, _lastIterVd, vt, vcrit);
+        _lastIterVd = vd;
+
+        var (id, gd) = EvaluateConduction(vd, vt, isat);
 
         // Newton-Raphson companion linearization:
         // Current injected into RHS: I_eq = id - gd * vd
@@ -193,19 +246,7 @@ public class DiodeDevice : Device, IDeviceSimulation
         double vt = Math.Max(0.0001, ctx.ThermalVoltage * EmissionCoefficient);
         double isat = GetTemperatureAdjustedIs(ctx.TemperatureKelvin);
 
-        double id, gd;
-        if (vd > 0.8)
-        {
-            gd = 0.2;
-            double idKnee = isat * Math.Exp(0.8 / vt);
-            id = idKnee + gd * (vd - 0.8);
-        }
-        else
-        {
-            double expVal = Math.Exp(Math.Clamp(vd / vt, -20.0, 35.0));
-            id = isat * (expVal - 1.0);
-            gd = Math.Clamp((isat / vt) * expVal, 1e-12, 100.0);
-        }
+        var (id, gd) = EvaluateConduction(vd, vt, isat);
 
         // Update capacitive companion history
         double cTotal = ComputeCapacitance(vd, gd);
