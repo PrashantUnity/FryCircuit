@@ -10,12 +10,25 @@ public partial class CircuitStudioView : UserControl
     {
         InitializeComponent();
         AttachedToVisualTree += OnAttachedToVisualTree;
+        DetachedFromVisualTree += OnDetachedFromVisualTree;
         DataContextChanged += OnDataContextChanged;
     }
 
     private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
     {
         AttachIfReady();
+    }
+
+    private void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            var canvas = this.FindControl<Controls.CircuitCanvas>("CanvasControl");
+            if (canvas != null)
+            {
+                vm.DetachControls(canvas);
+            }
+        }
     }
 
     private void OnDataContextChanged(object? sender, System.EventArgs e)
@@ -30,6 +43,8 @@ public partial class CircuitStudioView : UserControl
             return;
         }
 
+        MainWindowViewModel.ActiveInstance = vm;
+
         var topLevel = TopLevel.GetTopLevel(this);
         if (topLevel != null)
         {
@@ -39,7 +54,7 @@ public partial class CircuitStudioView : UserControl
         var canvas = this.FindControl<Controls.CircuitCanvas>("CanvasControl");
         var scope = this.FindControl<Controls.OscilloscopeControl>("Oscilloscope");
 
-        if (canvas != null && scope != null)
+        if (canvas != null)
         {
             vm.AttachControls(canvas, scope);
         }

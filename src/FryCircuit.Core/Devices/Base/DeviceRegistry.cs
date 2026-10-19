@@ -138,7 +138,7 @@ public static class DeviceRegistry
         Register(new CapacitorDescriptor(), "capacitor", "c");
         Register(new InductorDescriptor(), "inductor", "l");
         Register(new GroundDescriptor(), "ground", "gnd");
-        Register(new VoltageSourceDescriptor(), "vsource", "vsrc");
+        Register(new VoltageSourceDescriptor(), "vsource", "vsrc", "vcc", "vdc");
         Register(new CurrentSourceDescriptor(), "csource", "isrc");
         Register(new DiodeDescriptor(), "diode", "d");
         Register(new ZenerDiodeDescriptor(), "zener");

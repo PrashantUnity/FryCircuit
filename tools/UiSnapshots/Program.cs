@@ -40,6 +40,14 @@ public static class Program
 
         Console.WriteLine($"Capturing snapshots to: {outDir}");
 
+        if (args.Length > 0 && args[0].Equals("ai-test", StringComparison.OrdinalIgnoreCase))
+        {
+            string artifactDir = args.Length > 1 ? args[1] : outDir;
+            CaptureAiInteractionTest(artifactDir);
+            Console.WriteLine("AI interaction test snapshots captured successfully!");
+            return;
+        }
+
         if (args.Length > 0 && args[0].Equals("led", StringComparison.OrdinalIgnoreCase))
         {
             CaptureLedInspector(outDir);
@@ -404,5 +412,177 @@ public static class Program
 #pragma warning restore CS0618
 
         window.Close();
+    }
+
+    private static void CaptureAiInteractionTest(string outDir)
+    {
+        Directory.CreateDirectory(outDir);
+
+        var studio = new CircuitStudioView();
+        var vm = new MainWindowViewModel();
+        studio.DataContext = vm;
+        var window = new Window
+        {
+            Width = 1380,
+            Height = 850,
+            DataContext = vm,
+            Content = studio
+        };
+        FryCircuit.UI.Theming.CircuitThemeService.Instance.TrackResourceRoot(window);
+        window.Show();
+
+        // 1. Snapshot Initial (Default Half-Wave Rectifier)
+        SaveFrame(window, Path.Combine(outDir, "step1_initial_half_wave.png"));
+        Console.WriteLine("Step 1 Captured: Initial Half-Wave Rectifier");
+
+        // 2. Initialize CircuitAiTools and perform Live AI Interaction
+        var aiTools = new FryCircuit.UI.AI.CircuitAiTools(() => vm, null);
+
+        // Load Preset via AI
+        aiTools.LoadPreset("555 Timer Oscillator").GetAwaiter().GetResult();
+        aiTools.ControlSimulation("start", 1.5).GetAwaiter().GetResult();
+        aiTools.StepSimulation(100);
+        aiTools.ZoomToFit().GetAwaiter().GetResult();
+
+        SaveFrame(window, Path.Combine(outDir, "step2_ai_loaded_555_timer.png"));
+        Console.WriteLine("Step 2 Captured: AI Loaded 555 Timer Oscillator");
+
+        // 3. Modify component parameter via AI
+        aiTools.ModifyComponent("3", "resistance", 33000.0).GetAwaiter().GetResult();
+        aiTools.StepSimulation(50);
+
+        SaveFrame(window, Path.Combine(outDir, "step3_ai_modified_resistor.png"));
+        Console.WriteLine("Step 3 Captured: AI Modified Timing Resistor to 33k");
+
+        // 4. Load Custom 555 Timer Astable LED Flasher Schematic via AI LoadSchematic
+        string ledFlasherJson = """
+        {
+          "$schema": "https://codefrydev.in/fryworld/schemas/frycircuit.v1.json",
+          "version": 1,
+          "name": "555 Timer Astable LED Flasher",
+          "description": "555 Timer configured in astable multivibrator mode driving a current-limited LED.",
+          "components": [
+            {
+              "id": "V1",
+              "type": "vsource",
+              "value": "5V",
+              "x": 2.0,
+              "y": 5.0,
+              "pins": { "+": "vcc", "-": "gnd" }
+            },
+            {
+              "id": "U1",
+              "type": "timer555",
+              "value": "20Ω",
+              "x": 10.0,
+              "y": 6.0,
+              "pins": {
+                "gnd": "gnd",
+                "trig": "timing",
+                "out": "out",
+                "reset": "vcc",
+                "ctrl": "ctrl",
+                "thresh": "timing",
+                "disch": "disch",
+                "vcc": "vcc"
+              }
+            },
+            {
+              "id": "R1",
+              "type": "resistor",
+              "value": "1kΩ",
+              "x": 6.0,
+              "y": 4.0,
+              "nodes": ["vcc", "disch"]
+            },
+            {
+              "id": "R2",
+              "type": "resistor",
+              "value": "10kΩ",
+              "x": 6.0,
+              "y": 6.0,
+              "nodes": ["disch", "timing"]
+            },
+            {
+              "id": "C1",
+              "type": "capacitor",
+              "value": "10uF",
+              "x": 6.0,
+              "y": 8.0,
+              "nodes": ["timing", "gnd"]
+            },
+            {
+              "id": "C2",
+              "type": "capacitor",
+              "value": "10nF",
+              "x": 12.0,
+              "y": 8.0,
+              "nodes": ["ctrl", "gnd"]
+            },
+            {
+              "id": "Rload",
+              "type": "resistor",
+              "value": "470Ω",
+              "x": 14.0,
+              "y": 5.0,
+              "nodes": ["out", "led_anode"]
+            },
+            {
+              "id": "LED1",
+              "type": "led",
+              "value": "650nm",
+              "x": 14.0,
+              "y": 7.0,
+              "nodes": ["led_anode", "gnd"]
+            },
+            {
+              "id": "GND1",
+              "type": "ground",
+              "x": 10.0,
+              "y": 9.5,
+              "pins": { "gnd": "gnd" }
+            }
+          ]
+        }
+        """;
+
+        string loadResult = aiTools.LoadSchematic(ledFlasherJson).GetAwaiter().GetResult();
+        Console.WriteLine($"LoadSchematic Result: {loadResult}");
+        aiTools.ControlSimulation("start", 1.5).GetAwaiter().GetResult();
+        aiTools.StepSimulation(200);
+        aiTools.ZoomToFit().GetAwaiter().GetResult();
+
+        SaveFrame(window, Path.Combine(outDir, "step4_ai_loaded_555_led_flasher.png"));
+        Console.WriteLine("Step 4 Captured: AI Loaded 555 Timer Astable LED Flasher via LoadSchematic");
+
+        // 5. Load Inverting Op-Amp via AI
+        aiTools.LoadPreset("Inverting Op-Amp").GetAwaiter().GetResult();
+        aiTools.StepSimulation(100);
+        aiTools.ZoomToFit().GetAwaiter().GetResult();
+
+        SaveFrame(window, Path.Combine(outDir, "step5_ai_loaded_opamp.png"));
+        Console.WriteLine("Step 5 Captured: AI Loaded Inverting Op-Amp");
+
+        window.Close();
+    }
+
+    private static void SaveFrame(Window window, string filename)
+    {
+        var frame = window.CaptureRenderedFrame();
+#pragma warning disable CS0618
+        if (frame != null)
+        {
+            frame.Save(filename);
+            Console.WriteLine($"Saved snapshot: {filename}");
+        }
+        else
+        {
+            var pixelSize = new PixelSize(1380, 850);
+            using var rtb = new RenderTargetBitmap(pixelSize, new Vector(96, 96));
+            rtb.Render(window);
+            rtb.Save(filename);
+            Console.WriteLine($"Saved snapshot (via RTB): {filename}");
+        }
+#pragma warning restore CS0618
     }
 }

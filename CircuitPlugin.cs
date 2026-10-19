@@ -2,13 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.Input;
+using FryCircuit.UI.AI;
 using FryCircuit.UI.ViewModels;
 using FryCircuit.UI.Views;
+using FryWorld.Sdk.AI;
 using FryWorld.Sdk.Descriptors;
 using FryWorld.Sdk.Models;
 using FryWorld.Sdk.Plugins;
 using FryWorld.Sdk.Services;
+using Microsoft.Extensions.AI;
 
 namespace FryCircuit.Plugin;
 
@@ -119,10 +123,22 @@ public class CircuitPlugin : IFryPlugin
             hostThemeService.ThemeChanged += t => FryCircuit.UI.Theming.CircuitThemeService.Instance.SetTheme(t);
         }
 
+        MainWindowViewModel? activeViewModel = null;
+
+        MainWindowViewModel GetViewModel()
+        {
+            if (activeViewModel == null)
+            {
+                activeViewModel = MainWindowViewModel.ActiveInstance ?? new MainWindowViewModel(ctx);
+                ctx.RegisterDisposable(activeViewModel);
+            }
+            MainWindowViewModel.ActiveInstance = activeViewModel;
+            return activeViewModel;
+        }
+
         CircuitStudioView CreateStudioView()
         {
-            var vm = new MainWindowViewModel(ctx);
-            ctx.RegisterDisposable(vm);
+            var vm = GetViewModel();
             var view = new CircuitStudioView { DataContext = vm };
 
             if (ctx.TryGetService<FryWorld.Sdk.Theming.IThemeManager>(out var tm))
@@ -358,6 +374,182 @@ public class CircuitPlugin : IFryPlugin
             KeyGesture = "Mod+Shift+Z",
             Scope = Id,
             Category = "Edit"
+        });
+
+        // 7. Context-Aware AI Subsystem Integration
+        var aiContextProvider = new CircuitAiContextProvider(() => GetViewModel());
+        ctx.RegisterAiContextProvider(aiContextProvider);
+
+        // 8. Circuit Tools for In-App AI Copilot and External MCP Agents
+        var circuitTools = new CircuitAiTools(() => GetViewModel(), NavigateToStudio);
+
+        ctx.RegisterAiTool(new AiToolDescriptor
+        {
+            Name = "circuit_get_schematic",
+            Description = "Returns the complete schematic currently open in Circuit Studio formatted as .fcircuit JSON with topology, components, values, and netlists.",
+            Category = "Circuit Engineering",
+            Function = AIFunctionFactory.Create(circuitTools.GetSchematic, "circuit_get_schematic", "Returns the complete schematic currently open in Circuit Studio formatted as .fcircuit JSON with topology, components, values, and netlists.")
+        });
+
+        ctx.RegisterAiTool(new AiToolDescriptor
+        {
+            Name = "circuit_load_schematic",
+            Description = "Loads or updates a circuit schematic in Circuit Studio using .fcircuit JSON format. Automatically positions components and performs wiring.",
+            Category = "Circuit Engineering",
+            RequiresConfirmation = false,
+            Function = AIFunctionFactory.Create(circuitTools.LoadSchematic, "circuit_load_schematic", "Loads or updates a circuit schematic in Circuit Studio using .fcircuit JSON format. Automatically positions components and performs wiring.")
+        });
+
+        ctx.RegisterAiTool(new AiToolDescriptor
+        {
+            Name = "circuit_step_simulation",
+            Description = "Advances the real-time SPICE-grade MNA circuit simulation engine by the specified number of steps.",
+            Category = "Circuit Engineering",
+            Function = AIFunctionFactory.Create(circuitTools.StepSimulation, "circuit_step_simulation", "Advances the real-time SPICE-grade MNA circuit simulation engine by the specified number of steps.")
+        });
+
+        ctx.RegisterAiTool(new AiToolDescriptor
+        {
+            Name = "circuit_get_readings",
+            Description = "Queries live node voltages and branch current readings across all components in the active circuit.",
+            Category = "Circuit Engineering",
+            Function = AIFunctionFactory.Create(circuitTools.GetReadings, "circuit_get_readings", "Queries live node voltages and branch current readings across all components in the active circuit.")
+        });
+
+        ctx.RegisterAiTool(new AiToolDescriptor
+        {
+            Name = "circuit_new_schematic",
+            Description = "Creates a new blank schematic canvas in Circuit Studio with a default ground node.",
+            Category = "Circuit Engineering",
+            RequiresConfirmation = false,
+            Function = AIFunctionFactory.Create(circuitTools.NewSchematic, "circuit_new_schematic", "Creates a new blank circuit schematic canvas.")
+        });
+
+        ctx.RegisterAiTool(new AiToolDescriptor
+        {
+            Name = "circuit_open_file",
+            Description = "Opens and loads a circuit schematic file (.fcircuit JSON or .frycircuit binary) from local disk into Circuit Studio.",
+            Category = "Circuit Engineering",
+            RequiresConfirmation = false,
+            Function = AIFunctionFactory.Create(circuitTools.OpenFile, "circuit_open_file", "Opens a schematic file from disk.")
+        });
+
+        ctx.RegisterAiTool(new AiToolDescriptor
+        {
+            Name = "circuit_save_file",
+            Description = "Saves the active circuit schematic to a file (.fcircuit JSON or .frycircuit binary) on disk.",
+            Category = "Circuit Engineering",
+            RequiresConfirmation = false,
+            Function = AIFunctionFactory.Create(circuitTools.SaveFile, "circuit_save_file", "Saves the active schematic to disk.")
+        });
+
+        ctx.RegisterAiTool(new AiToolDescriptor
+        {
+            Name = "circuit_export",
+            Description = "Exports the active schematic to industry formats: 'spice' netlist (.cir), 'bom' markdown, or 'fcircuit' JSON.",
+            Category = "Circuit Engineering",
+            RequiresConfirmation = false,
+            Function = AIFunctionFactory.Create(circuitTools.Export, "circuit_export", "Exports the active schematic.")
+        });
+
+        ctx.RegisterAiTool(new AiToolDescriptor
+        {
+            Name = "circuit_list_presets",
+            Description = "Lists all 21 built-in pure C# engineering circuit presets.",
+            Category = "Circuit Engineering",
+            RequiresConfirmation = false,
+            Function = AIFunctionFactory.Create(circuitTools.ListPresets, "circuit_list_presets", "Lists all built-in circuit presets.")
+        });
+
+        ctx.RegisterAiTool(new AiToolDescriptor
+        {
+            Name = "circuit_load_preset",
+            Description = "Loads one of the built-in pure C# engineering circuit presets directly into Circuit Studio by name.",
+            Category = "Circuit Engineering",
+            RequiresConfirmation = false,
+            Function = AIFunctionFactory.Create(circuitTools.LoadPreset, "circuit_load_preset", "Loads a built-in circuit preset by name.")
+        });
+
+        ctx.RegisterAiTool(new AiToolDescriptor
+        {
+            Name = "circuit_set_tool_mode",
+            Description = "Sets the active interactive canvas tool mode in Circuit Studio ('Select', 'Wire', 'Cut', 'Pan', 'ProbeCh1', 'ProbeCh2').",
+            Category = "Circuit Engineering",
+            RequiresConfirmation = false,
+            Function = AIFunctionFactory.Create(circuitTools.SetToolMode, "circuit_set_tool_mode", "Sets the active canvas tool mode.")
+        });
+
+        ctx.RegisterAiTool(new AiToolDescriptor
+        {
+            Name = "circuit_control_simulation",
+            Description = "Controls the real-time SPICE-grade MNA simulation: 'start', 'pause', 'toggle', 'reset', or sets time speed multiplier (0.1 to 4.0).",
+            Category = "Circuit Engineering",
+            RequiresConfirmation = false,
+            Function = AIFunctionFactory.Create(circuitTools.ControlSimulation, "circuit_control_simulation", "Controls the real-time circuit simulation engine.")
+        });
+
+        ctx.RegisterAiTool(new AiToolDescriptor
+        {
+            Name = "circuit_zoom_to_fit",
+            Description = "Automatically centers and scales the canvas viewport to fit all schematic components.",
+            Category = "Circuit Engineering",
+            RequiresConfirmation = false,
+            Function = AIFunctionFactory.Create(circuitTools.ZoomToFit, "circuit_zoom_to_fit", "Centers and fits the canvas viewport.")
+        });
+
+        ctx.RegisterAiTool(new AiToolDescriptor
+        {
+            Name = "circuit_modify_component",
+            Description = "Modifies a parameter value of an existing component in the circuit (e.g. resistance of 'r1', frequency of 'vsrc').",
+            Category = "Circuit Engineering",
+            RequiresConfirmation = false,
+            Function = AIFunctionFactory.Create(circuitTools.ModifyComponent, "circuit_modify_component", "Modifies a component parameter in the active circuit.")
+        });
+
+        ctx.RegisterAiTool(new AiToolDescriptor
+        {
+            Name = "circuit_undo",
+            Description = "Undoes the last canvas schematic editing action.",
+            Category = "Circuit Engineering",
+            RequiresConfirmation = false,
+            Function = AIFunctionFactory.Create(circuitTools.Undo, "circuit_undo", "Undoes the last canvas edit.")
+        });
+
+        ctx.RegisterAiTool(new AiToolDescriptor
+        {
+            Name = "circuit_redo",
+            Description = "Redoes the last undone canvas schematic editing action.",
+            Category = "Circuit Engineering",
+            RequiresConfirmation = false,
+            Function = AIFunctionFactory.Create(circuitTools.Redo, "circuit_redo", "Redoes the last undone canvas edit.")
+        });
+
+        // 9. Turnkey Engineering Prompts
+        ctx.RegisterAiPrompt(new AiPromptDescriptor
+        {
+            Id = "circuit.design_opamp",
+            Title = "Design Inverting Op-Amp",
+            Description = "Design an active inverting operational amplifier with specific gain and rails.",
+            Category = "Circuit Engineering",
+            Template = "Design an inverting op-amp circuit using the .fcircuit schema with a gain of -10, input resistor of 10kΩ, feedback resistor of 100kΩ, and dual ±15V supply rails. Ensure all ground nodes and pins are connected correctly."
+        });
+
+        ctx.RegisterAiPrompt(new AiPromptDescriptor
+        {
+            Id = "circuit.design_lowpass",
+            Title = "Design Butterworth Low-Pass Filter",
+            Description = "Calculate and generate a 2nd-order Sallen-Key low-pass RC filter.",
+            Category = "Circuit Engineering",
+            Template = "Generate a 2nd-order active low-pass Sallen-Key RC filter circuit with a cutoff frequency fc = 1 kHz and Q = 0.707 (Butterworth response). Return valid .fcircuit JSON and explain the component choices."
+        });
+
+        ctx.RegisterAiPrompt(new AiPromptDescriptor
+        {
+            Id = "circuit.analyze_simulation",
+            Title = "Analyze Simulation Readings",
+            Description = "Inspect current operating point, node voltages, and branch currents to diagnose errors or power dissipation.",
+            Category = "Circuit Engineering",
+            Template = "Analyze the current circuit schematic and live simulation readings. Verify if any component exceeds typical voltage/current ratings, check if the circuit is in steady state, and suggest optimizations."
         });
 
         return Task.CompletedTask;

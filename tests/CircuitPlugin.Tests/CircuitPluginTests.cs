@@ -4,6 +4,8 @@ using FryCircuit.Plugin;
 using FryWorld.Sdk.Testing;
 using Xunit;
 
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
+
 namespace FryCircuit.Plugin.Tests;
 
 public sealed class CircuitPluginTests
@@ -333,6 +335,104 @@ public sealed class CircuitPluginTests
         Assert.Equal(FryCircuit.UI.Controls.CircuitToolMode.Select, vm.ActiveToolMode);
 
         vm.Dispose();
+        await host.AssertCleanUnmountAsync();
+    }
+
+    [Fact]
+    public async Task MountAsync_RegistersAiContextProviderToolsAndPrompts()
+    {
+        await using var host = await FryPluginTestHost.MountAsync<CircuitPlugin>();
+
+        var contextProviders = host.Context.GetRegisteredAiContextProviders();
+        Assert.Contains(contextProviders, p => p.PluginId == "com.fryworld.circuit");
+
+        var tools = host.Context.GetRegisteredAiTools();
+        Assert.Contains(tools, t => t.Name == "circuit_get_schematic");
+        Assert.Contains(tools, t => t.Name == "circuit_load_schematic");
+        Assert.Contains(tools, t => t.Name == "circuit_step_simulation");
+        Assert.Contains(tools, t => t.Name == "circuit_get_readings");
+
+        var prompts = host.Context.GetRegisteredAiPrompts();
+        Assert.Contains(prompts, p => p.Id == "circuit.design_opamp");
+        Assert.Contains(prompts, p => p.Id == "circuit.design_lowpass");
+        Assert.Contains(prompts, p => p.Id == "circuit.analyze_simulation");
+
+        await host.AssertCleanUnmountAsync();
+    }
+
+    [Fact]
+    public async Task AiTools_CanQuerySchematicAndReadings()
+    {
+        await using var host = await FryPluginTestHost.MountAsync<CircuitPlugin>();
+
+        var tools = host.Context.GetRegisteredAiTools();
+        var getSchematic = tools.First(t => t.Name == "circuit_get_schematic");
+        var result = await getSchematic.Function.InvokeAsync();
+        Assert.NotNull(result);
+
+        var getReadings = tools.First(t => t.Name == "circuit_get_readings");
+        var readings = await getReadings.Function.InvokeAsync();
+        Assert.NotNull(readings);
+
+        await host.AssertCleanUnmountAsync();
+    }
+
+    [Fact]
+    public async Task AiTools_CanLoadAndSimulateCustomCircuit()
+    {
+        await using var host = await FryPluginTestHost.MountAsync<CircuitPlugin>();
+
+        var tools = host.Context.GetRegisteredAiTools();
+        var loadTool = tools.First(t => t.Name == "circuit_load_schematic");
+        var stepTool = tools.First(t => t.Name == "circuit_step_simulation");
+        var readingsTool = tools.First(t => t.Name == "circuit_get_readings");
+        var getSchematicTool = tools.First(t => t.Name == "circuit_get_schematic");
+
+        // 1. Create a custom RC filter circuit via JSON
+        var customCircuitJson = """
+        {
+          "name": "Custom Test Filter",
+          "components": [
+            { "id": "V1", "type": "vsource", "value": "5V", "parameters": { "waveform": "dc", "amplitude": "5V" }, "pins": { "+": "in", "-": "gnd" } },
+            { "id": "R1", "type": "resistor", "value": "1kΩ", "nodes": [ "in", "out" ] },
+            { "id": "C1", "type": "capacitor", "value": "100nF", "nodes": [ "out", "gnd" ] },
+            { "id": "G1", "type": "ground", "pins": { "gnd": "gnd" } }
+          ]
+        }
+        """;
+
+        var loadArgs = new Microsoft.Extensions.AI.AIFunctionArguments(new Dictionary<string, object?>
+        {
+            ["fcircuitJson"] = customCircuitJson
+        });
+
+        var loadResult = await loadTool.Function.InvokeAsync(loadArgs);
+        Assert.NotNull(loadResult);
+        Assert.Contains("Successfully loaded", loadResult.ToString());
+
+        // 2. Step the simulation forward
+        var stepArgs = new Microsoft.Extensions.AI.AIFunctionArguments(new Dictionary<string, object?>
+        {
+            ["steps"] = 25
+        });
+
+        var stepResult = await stepTool.Function.InvokeAsync(stepArgs);
+        Assert.NotNull(stepResult);
+        Assert.Contains("Simulated 25 steps", stepResult.ToString());
+
+        // 3. Inspect readings
+        var readingsResult = await readingsTool.Function.InvokeAsync();
+        Assert.NotNull(readingsResult);
+        var readingsText = readingsResult.ToString()!;
+        Assert.Contains("Custom Test Filter", readingsText);
+        Assert.Contains("resistor", readingsText);
+        Assert.Contains("capacitor", readingsText);
+
+        // 4. Verify exported schematic matches
+        var schematicResult = await getSchematicTool.Function.InvokeAsync();
+        Assert.NotNull(schematicResult);
+        Assert.Contains("Custom Test Filter", schematicResult.ToString());
+
         await host.AssertCleanUnmountAsync();
     }
 }

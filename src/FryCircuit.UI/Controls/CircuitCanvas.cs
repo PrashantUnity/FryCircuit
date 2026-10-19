@@ -98,7 +98,7 @@ public partial class CircuitCanvas : Control
     public double Zoom { get; set; } = 1.0;
     public double GridSize { get; set; } = 50.0;
 
-    private bool _needsZoomToFit = true;
+    internal bool _needsZoomToFit = true;
     private bool _isPanning;
     private Point _lastPanPoint;
 
@@ -160,13 +160,86 @@ public partial class CircuitCanvas : Control
             PlacingDeviceTypeProperty,
             ShowCurrentAnnotationsProperty,
             ShowVoltageAnnotationsProperty);
+
+        CircuitProperty.Changed.AddClassHandler<CircuitCanvas>((canvas, e) =>
+        {
+            var newCircuit = e.GetNewValue<Circuit?>();
+            if (newCircuit != null)
+            {
+                void Update()
+                {
+                    canvas.ParticleEngine.SyncWithCircuit(newCircuit);
+                    canvas._needsZoomToFit = true;
+                    canvas.ZoomToFit();
+                    canvas.InvalidateVisual();
+                }
+
+                if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+                {
+                    Update();
+                }
+                else
+                {
+                    Avalonia.Threading.Dispatcher.UIThread.Post(Update);
+                }
+            }
+        });
     }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == CircuitProperty)
+        {
+            var newCircuit = change.GetNewValue<Circuit?>();
+            if (newCircuit != null)
+            {
+                void Update()
+                {
+                    ParticleEngine.SyncWithCircuit(newCircuit);
+                    _needsZoomToFit = true;
+                    ZoomToFit();
+                    InvalidateVisual();
+                }
+
+                if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+                {
+                    Update();
+                }
+                else
+                {
+                    Avalonia.Threading.Dispatcher.UIThread.Post(Update);
+                }
+            }
+        }
+    }
+
+    public static HashSet<CircuitCanvas> ActiveCanvases { get; } = new();
 
     public CircuitCanvas()
     {
         ClipToBounds = true;
         Focusable = true;
         FryCircuit.UI.Theming.CircuitThemeService.Instance.TokensChanged += _ => InvalidateVisual();
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        ActiveCanvases.Add(this);
+        if (Circuit != null)
+        {
+            ParticleEngine.SyncWithCircuit(Circuit);
+            _needsZoomToFit = true;
+            ZoomToFit();
+            InvalidateVisual();
+        }
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        ActiveCanvases.Remove(this);
     }
 
     protected override void OnSizeChanged(SizeChangedEventArgs e)

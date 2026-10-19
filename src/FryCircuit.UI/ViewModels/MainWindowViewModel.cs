@@ -17,6 +17,7 @@ using FryCircuit.Core.Models;
 using FryCircuit.Core.Simulation;
 using FryCircuit.UI.Controls;
 using FryWorld.Sdk.Plugins;
+using FryWorld.Sdk.Services;
 using FryWorld.Sdk.Shortcuts;
 using Material.Icons;
 
@@ -24,6 +25,12 @@ namespace FryCircuit.UI.ViewModels;
 
 public partial class MainWindowViewModel : ObservableObject, IDisposable
 {
+    /// <summary>
+    /// The globally active ViewModel instance connected to the visible UI.
+    /// MCP and external AI copilots use this to guarantee updates reflect on the live canvas.
+    /// </summary>
+    public static MainWindowViewModel? ActiveInstance { get; set; }
+
     private readonly DispatcherTimer _timer;
     private readonly FryWorld.Sdk.Plugins.IFryPluginContext? _pluginContext;
     private readonly EventHandler? _historyHandler;
@@ -31,7 +38,9 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly List<IDisposable> _shortcutRegistrations = new();
     private bool _disposed;
     private MnaSolver? _solver;
-    private CircuitCanvas? _canvas;
+    public MnaSolver? Solver => _solver;
+    private readonly List<CircuitCanvas> _activeCanvases = new();
+    private CircuitCanvas? _canvas => _activeCanvases.LastOrDefault();
     private OscilloscopeControl? _oscilloscope;
 
     public UndoRedoManager History { get; } = new();
@@ -62,6 +71,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private Circuit? _currentCircuit;
+
+    private bool _isSwitchingCircuit;
 
     [ObservableProperty]
     private Device? _selectedDevice;
@@ -409,6 +420,80 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     public ObservableCollection<string> AvailablePresets { get; } = new();
 
+    // AI / MCP Activity HUD Snackbar Notification
+    [ObservableProperty]
+    private bool _isAiActivityVisible;
+
+    [ObservableProperty]
+    private string _aiActivityTitle = "AI Agent Action";
+
+    [ObservableProperty]
+    private string _aiActivityMessage = "";
+
+    [ObservableProperty]
+    private string? _aiActivityDetail;
+
+    public bool HasAiActivityDetail => !string.IsNullOrEmpty(AiActivityDetail);
+
+    partial void OnAiActivityDetailChanged(string? value)
+    {
+        OnPropertyChanged(nameof(HasAiActivityDetail));
+    }
+
+    [ObservableProperty]
+    private string _aiActivityIconKind = "AutoFixHigh";
+
+    [ObservableProperty]
+    private string _aiActivityTimeText = "Just now";
+
+    private DispatcherTimer? _aiActivityTimer;
+
+    [RelayCommand]
+    public void DismissAiActivity()
+    {
+        IsAiActivityVisible = false;
+        _aiActivityTimer?.Stop();
+    }
+
+    public void ShowAiActivity(string title, string message, string? detail = null, string iconKind = "AutoFixHigh", int durationMs = 4500)
+    {
+        void Update()
+        {
+            AiActivityTitle = title;
+            AiActivityMessage = message;
+            AiActivityDetail = detail;
+            AiActivityIconKind = iconKind;
+            AiActivityTimeText = DateTime.Now.ToString("HH:mm:ss");
+            IsAiActivityVisible = true;
+
+            _aiActivityTimer?.Stop();
+            _aiActivityTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(durationMs)
+            };
+            _aiActivityTimer.Tick += (s, e) =>
+            {
+                _aiActivityTimer?.Stop();
+                IsAiActivityVisible = false;
+            };
+            _aiActivityTimer.Start();
+
+            if (_pluginContext != null && _pluginContext.TryGetService<INotificationService>(out var notif))
+            {
+                notif.ShowToast(message, $"⚡ AI: {title}", iconKind);
+            }
+        }
+
+        if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+        {
+            Update();
+        }
+        else
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(Update);
+        }
+    }
+
     // Environmental Operating Temperature & Physical Physics
     [ObservableProperty]
     private string _selectedTemperaturePreset = "Room Temp (25 °C)";
@@ -455,6 +540,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     public MainWindowViewModel(FryWorld.Sdk.Plugins.IFryPluginContext? context = null)
     {
+        ActiveInstance = this;
         _pluginContext = context;
 
         _historyHandler = (s, e) =>
@@ -553,23 +639,37 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         _timer.Start();
     }
 
-    public void AttachControls(CircuitCanvas canvas, OscilloscopeControl oscilloscope)
+    public void AttachControls(CircuitCanvas canvas, OscilloscopeControl? oscilloscope)
     {
-        _canvas = canvas;
-        _oscilloscope = oscilloscope;
+        ActiveInstance = this;
+        if (!_activeCanvases.Contains(canvas))
+        {
+            _activeCanvases.Add(canvas);
+        }
+        if (oscilloscope != null)
+        {
+            _oscilloscope = oscilloscope;
+        }
 
-        _canvas.HistoryManager = History;
-        _canvas.OnNodeProbed = (ch, node) =>
+        canvas.HistoryManager = History;
+        canvas.OnNodeProbed = (ch, node) =>
         {
             SetProbedNode(ch, node);
         };
 
         if (CurrentCircuit != null)
         {
-            _canvas.Circuit = CurrentCircuit;
-            _canvas.ParticleEngine.SyncWithCircuit(CurrentCircuit);
-            _canvas.ZoomToFit();
+            canvas.Circuit = CurrentCircuit;
+            canvas.ParticleEngine.SyncWithCircuit(CurrentCircuit);
+            canvas._needsZoomToFit = true;
+            canvas.ZoomToFit();
+            canvas.InvalidateVisual();
         }
+    }
+
+    public void DetachControls(CircuitCanvas canvas)
+    {
+        _activeCanvases.Remove(canvas);
     }
 
     public bool IsVoltageSourceSelected => SelectedDevice != null && (SelectedDevice.Type == "vsource" || SelectedDevice.Type == "ac_source" || SelectedDevice.Type == "dc_source");
@@ -1249,7 +1349,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private void ResetSimulation()
+    public void ResetSimulation()
     {
         _solver?.Reset();
         _canvas?.InvalidateVisual();
@@ -1265,7 +1365,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     partial void OnSelectedPresetChanged(string? value)
     {
-        if (!string.IsNullOrEmpty(value) && value != CurrentCircuit?.Name)
+        if (_isSwitchingCircuit) return;
+        if (!string.IsNullOrEmpty(value) && value != CurrentCircuit?.Name && FryCircuit.Core.Presets.CircuitPresets.PresetNames.Contains(value))
         {
             LoadPreset(value);
         }
@@ -1456,7 +1557,15 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         if (CurrentCircuit == null) return;
         try
         {
-            CircuitSerializer.SaveToFile(CurrentCircuit, filePath);
+            if (filePath.EndsWith(".fcircuit", StringComparison.OrdinalIgnoreCase) || filePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            {
+                var json = LlmCircuitSerializer.Serialize(CurrentCircuit);
+                File.WriteAllText(filePath, json);
+            }
+            else
+            {
+                CircuitSerializer.SaveToFile(CurrentCircuit, filePath);
+            }
             CurrentFilePath = filePath;
             IsDirty = false;
             StatusText = $"Saved circuit to {Path.GetFileName(filePath)}";
@@ -1471,7 +1580,16 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         try
         {
-            var circuit = CircuitSerializer.LoadFromFile(filePath);
+            Circuit circuit;
+            if (filePath.EndsWith(".fcircuit", StringComparison.OrdinalIgnoreCase) || filePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            {
+                var json = File.ReadAllText(filePath);
+                circuit = LlmCircuitSerializer.Deserialize(json, Path.GetFileNameWithoutExtension(filePath));
+            }
+            else
+            {
+                circuit = CircuitSerializer.LoadFromFile(filePath);
+            }
             CurrentFilePath = filePath;
             SetCircuit(circuit);
             IsDirty = false;
@@ -1707,10 +1825,12 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             SetCircuit(imported);
             IsLlmDrawerOpen = false;
             StatusText = $"Successfully imported AI circuit ({imported.Devices.Count} components)";
+            ShowAiActivity("Imported AI Deck", $"Loaded '{imported.Name}' ({imported.Devices.Count} components)", "Imported from AI Circuit Deck Studio", "AutoFixHigh");
         }
         catch (Exception ex)
         {
             StatusText = $"AI deck import error: {ex.Message}";
+            ShowAiActivity("Import Error", ex.Message, null, "AlertCircle");
         }
     }
 
@@ -1722,23 +1842,95 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         StatusText = $"Loaded template '{templateName}'. Click 'Import & Simulate' to run.";
     }
 
+    /// <summary>
+    /// Loads an AI-generated .fcircuit JSON schematic into the studio canvas and reinitializes solver.
+    /// </summary>
+    public void LoadCircuitFromLlmJson(string json)
+    {
+        var imported = LlmCircuitSerializer.Deserialize(json, "AI Generated Circuit");
+        CurrentFilePath = null;
+        SetCircuit(imported);
+        IsLlmDrawerOpen = false;
+        CurrentFileName = string.IsNullOrWhiteSpace(imported.Name) ? "ai_circuit.fcircuit" : $"{imported.Name.Trim()}.fcircuit";
+        CircuitTitle = $"FryCircuit - {imported.Name}";
+        StatusText = $"Successfully imported AI circuit '{imported.Name}' ({imported.Devices.Count} components)";
+        ShowAiActivity("AI Schematic Loaded", $"Synthesized '{imported.Name}' ({imported.Devices.Count} components)", "Auto-routed netlists & placed components", "AutoFixHigh");
+    }
+
+    /// <summary>
+    /// Serializes the currently loaded circuit schematic to .fcircuit JSON.
+    /// </summary>
+    public string ExportCircuitToLlmJson()
+    {
+        return CurrentCircuit != null ? LlmCircuitSerializer.Serialize(CurrentCircuit) : string.Empty;
+    }
+
+    /// <summary>
+    /// Advances the MNA simulation engine by specified steps.
+    /// </summary>
+    public void StepSimulation(int steps = 10, double dt = 0.0001)
+    {
+        if (_solver == null || CurrentCircuit == null) return;
+        for (int i = 0; i < steps; i++)
+        {
+            _solver.Step(dt);
+        }
+        var canvases = _activeCanvases.Concat(CircuitCanvas.ActiveCanvases).Distinct().ToList();
+        foreach (var c in canvases)
+        {
+            c.ParticleEngine.Update(dt * steps, SimulationSpeed);
+            c.InvalidateVisual();
+        }
+        UpdateOscilloscope();
+        StatusText = $"Simulation stepped to {_solver.CurrentTime * 1000.0:F2} ms";
+    }
+
     private void SetCircuit(Circuit circuit)
     {
-        CurrentCircuit = circuit;
-        circuit.EnsureWiresSynthesized();
-        SelectedPreset = circuit.Name;
-        _solver = new MnaSolver(circuit)
+        _isSwitchingCircuit = true;
+        try
+        {
+            if (!string.IsNullOrEmpty(circuit.Name) && !AvailablePresets.Contains(circuit.Name))
+            {
+                AvailablePresets.Insert(0, circuit.Name);
+            }
+            CurrentCircuit = circuit;
+            circuit.EnsureWiresSynthesized();
+            SelectedPreset = circuit.Name;
+            _solver = new MnaSolver(circuit)
+            {
+                TemperatureKelvin = OperatingTemperatureKelvin
+            };
+            var canvases = _activeCanvases.Concat(CircuitCanvas.ActiveCanvases).Distinct().ToList();
+            foreach (var c in canvases)
+            {
+                c.Circuit = circuit;
+                c.ParticleEngine.SyncWithCircuit(circuit);
+                c.ZoomToFit();
+                c.InvalidateVisual();
+            }
+            SelectedDevice = circuit.Devices.FirstOrDefault(d => d.Type != "ground") ?? circuit.Devices.FirstOrDefault();
+            UpdateTitle();
+        }
+        finally
+        {
+            _isSwitchingCircuit = false;
+        }
+    }
+
+    public void ReinitializeSolver()
+    {
+        if (CurrentCircuit == null) return;
+        _solver = new MnaSolver(CurrentCircuit)
         {
             TemperatureKelvin = OperatingTemperatureKelvin
         };
-        if (_canvas != null)
+        var canvases = _activeCanvases.Concat(CircuitCanvas.ActiveCanvases).Distinct().ToList();
+        foreach (var c in canvases)
         {
-            _canvas.Circuit = circuit;
-            _canvas.ParticleEngine.SyncWithCircuit(circuit);
-            _canvas.ZoomToFit();
+            c.ParticleEngine.SyncWithCircuit(CurrentCircuit);
+            c.InvalidateVisual();
         }
-        SelectedDevice = circuit.Devices.FirstOrDefault(d => d.Type != "ground") ?? circuit.Devices.FirstOrDefault();
-        UpdateTitle();
     }
 
     private void LoadDefaultCircuit()
@@ -1760,8 +1952,14 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         if (_disposed) return;
         _disposed = true;
 
+        if (ActiveInstance == this)
+        {
+            ActiveInstance = null;
+        }
+
         _timer.Stop();
         _timer.Tick -= OnSimulationTick;
+        _aiActivityTimer?.Stop();
         FryCircuit.UI.Theming.CircuitThemeService.Instance.ThemeChanged -= OnThemeChanged;
 
         if (_historyHandler != null)
@@ -1787,7 +1985,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
         _shortcutRegistrations.Clear();
 
-        _canvas = null;
+        _activeCanvases.Clear();
         _oscilloscope = null;
     }
 }

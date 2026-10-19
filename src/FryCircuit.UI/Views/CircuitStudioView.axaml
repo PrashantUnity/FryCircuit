@@ -756,6 +756,60 @@
                         <controls:OscilloscopeControl Grid.Row="1" x:Name="Oscilloscope" />
                     </Grid>
                 </Border>
+
+                <!-- ============================================== -->
+                <!-- FLOATING AI / MCP ACTIVITY HUD SNACKBAR       -->
+                <!-- ============================================== -->
+                <Border Grid.RowSpan="2" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,24"
+                        ZIndex="200"
+                        IsVisible="{Binding IsAiActivityVisible}"
+                        Background="#F011151E"
+                        BorderBrush="{DynamicResource CircuitSecondaryBrush}"
+                        BorderThickness="1.5"
+                        CornerRadius="12"
+                        Padding="14,10,14,10"
+                        BoxShadow="0 10 36 0 #80000000">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" VerticalAlignment="Center">
+                        <!-- Left: Glowing AI Badge with Icon -->
+                        <Border Grid.Column="0" Width="36" Height="36" CornerRadius="18"
+                                Background="#2600F0FF"
+                                BorderBrush="{DynamicResource CircuitSecondaryBrush}"
+                                BorderThickness="1"
+                                VerticalAlignment="Center">
+                            <material:MaterialIcon Kind="{Binding AiActivityIconKind}" Width="20" Height="20" 
+                                                   Foreground="{DynamicResource CircuitSecondaryBrush}" 
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                        <!-- Center: Title & Description -->
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Border Background="#3300F0FF" CornerRadius="4" Padding="6,1">
+                                    <TextBlock Text="AI COPILOT / MCP" FontSize="9" FontWeight="Bold" 
+                                               Foreground="{DynamicResource CircuitSecondaryBrush}" LetterSpacing="0.5"/>
+                                </Border>
+                                <TextBlock Text="{Binding AiActivityTitle}" FontWeight="Bold" 
+                                           FontSize="{DynamicResource CircuitFontSizeBody}" 
+                                           Foreground="{DynamicResource CircuitTextWhiteBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding AiActivityTimeText}" FontSize="{DynamicResource CircuitFontSizeMicro}" 
+                                           Foreground="{DynamicResource CircuitTextMutedBrush}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding AiActivityMessage}" FontSize="{DynamicResource CircuitFontSizeBodySm}" 
+                                       Foreground="{DynamicResource CircuitTextBrush}" MaxWidth="460" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding AiActivityDetail}" FontSize="{DynamicResource CircuitFontSizeMicro}" 
+                                       Foreground="{DynamicResource CircuitTextMutedBrush}" 
+                                       IsVisible="{Binding HasAiActivityDetail}" 
+                                       MaxWidth="460" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+
+                        <!-- Right: Close Button -->
+                        <Button Grid.Column="2" Classes="toolbtn" Width="26" Height="26" Padding="0" 
+                                Command="{Binding DismissAiActivityCommand}" 
+                                VerticalAlignment="Center" ToolTip.Tip="Dismiss Notification">
+                            <material:MaterialIcon Kind="Close" Width="14" Height="14" Foreground="{DynamicResource CircuitTextDimBrush}"/>
+                        </Button>
+                    </Grid>
+                </Border>
             </Grid>
 
             <!-- Right Sidebar: Live Electrical Inspector & Tuning Controls -->
