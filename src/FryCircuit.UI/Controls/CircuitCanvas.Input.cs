@@ -360,9 +360,15 @@ public partial class CircuitCanvas
                 var devHit = FindDeviceAt(wx, wy);
                 if (devHit != null)
                 {
+                    var affectedNodes = devHit.Pins.Select(p => p.NodeId).Distinct().Where(n => n >= 0).ToList();
                     var attached = Circuit.Wires.Where(w => w.FromDeviceId == devHit.Id || w.ToDeviceId == devHit.Id).ToList();
                     HistoryManager?.Record(new RemoveDeviceAction(Circuit, devHit, attached));
                     Circuit.RemoveDevice(devHit);
+                    foreach (var nid in affectedNodes)
+                    {
+                        Circuit.ResynthesizeNode(nid);
+                    }
+                    Circuit.RouteAllWires();
                     ParticleEngine.SyncWithCircuit(Circuit);
                     InvalidateVisual();
                     e.Handled = true;
@@ -727,13 +733,21 @@ public partial class CircuitCanvas
                     ? (IEnumerable<Device>)SelectedDevices
                     : (_draggedDevice != null ? new[] { _draggedDevice } : Array.Empty<Device>());
 
-                var affectedNodes = movedDevs.SelectMany(d => d.Pins.Select(p => p.NodeId)).Distinct().Where(n => n >= 0);
-                foreach (var nid in affectedNodes)
+                bool anyActuallyMoved = movedDevs.Any(d =>
+                    _multiDragStartPositions.TryGetValue(d, out var startPos)
+                        ? (d.LocationX != startPos.X || d.LocationY != startPos.Y)
+                        : (d.LocationX != _deviceDragStartPos.X || d.LocationY != _deviceDragStartPos.Y));
+
+                if (anyActuallyMoved)
                 {
-                    Circuit.ResynthesizeNode(nid);
+                    var affectedNodes = movedDevs.SelectMany(d => d.Pins.Select(p => p.NodeId)).Distinct().Where(n => n >= 0);
+                    foreach (var nid in affectedNodes)
+                    {
+                        Circuit.ResynthesizeNode(nid);
+                    }
+                    Circuit.RouteAllWires();
+                    ParticleEngine.SyncWithCircuit(Circuit);
                 }
-                Circuit.RouteAllWires();
-                ParticleEngine.SyncWithCircuit(Circuit);
             }
             InvalidateVisual();
 

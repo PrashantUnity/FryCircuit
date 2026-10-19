@@ -678,6 +678,94 @@ public class CircuitBuilderAndDeviceTests
             if (File.Exists(tempFile)) File.Delete(tempFile);
         }
     }
+
+    [Fact]
+    public void Circuit_DeleteVoltageSourceAndReAdd_PreservesGroundNetWiresOnTouch()
+    {
+        var circuit = FryCircuit.Core.Presets.CircuitPresets.CreateHalfWaveRectifier();
+        circuit.EnsureWiresSynthesized();
+
+        // 1. Delete voltage source (id 1)
+        var vs = circuit.Devices.First(d => d.Id == 1);
+        var attached = circuit.Wires.Where(w => w.FromDeviceId == vs.Id || w.ToDeviceId == vs.Id).ToList();
+        foreach (var w in attached) circuit.RemoveWire(w);
+        circuit.RemoveDevice(vs);
+
+        // 2. Add new voltage source
+        int nextId = (circuit.Devices.Count > 0 ? circuit.Devices.Max(d => d.Id) : 0) + 1;
+        var newVs = DeviceFactory.CreateDevice("vsource", nextId, 2, 5);
+        int maxNodeId = circuit.Nodes.Count > 0 ? circuit.Nodes.Keys.Max() : 0;
+        foreach (var pin in newVs.Pins)
+        {
+            pin.NodeId = ++maxNodeId;
+            circuit.GetOrCreateNode(pin.NodeId, isGround: newVs.Type == "ground");
+        }
+        circuit.AddDevice(newVs);
+
+        // 3. Connect newVs Pin 0 to Diode Pin 0
+        var diode = circuit.Devices.First(d => d.Id == 2);
+        circuit.ConnectPins(newVs, 0, diode, 0);
+
+        // 4. Connect newVs Pin 1 to Ground Pin 0
+        var gnd = circuit.Devices.First(d => d.Id == 4);
+        circuit.ConnectPins(newVs, 1, gnd, 0);
+
+        var res = circuit.Devices.First(d => d.Id == 3);
+
+        // 5. Touch/click devices (triggers ResynthesizeNode)
+        foreach (var p in diode.Pins) circuit.ResynthesizeNode(p.NodeId);
+        foreach (var p in res.Pins) circuit.ResynthesizeNode(p.NodeId);
+        foreach (var p in newVs.Pins) circuit.ResynthesizeNode(p.NodeId);
+
+        // Verify that Resistor (id 3) pin 1 is still connected to Ground (id 4) pin 0
+        bool connectsResToGnd = circuit.Wires.Any(w => w.ConnectsToPin(3, 1) && w.ConnectsToPin(4, 0));
+        bool connectsVsToGnd = circuit.Wires.Any(w => w.ConnectsToPin(newVs.Id, 1) && w.ConnectsToPin(4, 0));
+        bool connectsVsToDiode = circuit.Wires.Any(w => w.ConnectsToPin(newVs.Id, 0) && w.ConnectsToPin(2, 0));
+        bool connectsDiodeToRes = circuit.Wires.Any(w => w.ConnectsToPin(2, 1) && w.ConnectsToPin(3, 0));
+
+        Assert.True(connectsResToGnd, "Resistor must remain connected to Ground");
+        Assert.True(connectsVsToGnd, "New Voltage Source must be connected to Ground");
+        Assert.True(connectsVsToDiode, "New Voltage Source must be connected to Diode");
+        Assert.True(connectsDiodeToRes, "Diode must remain connected to Resistor");
+    }
+
+    [Fact]
+    public void Circuit_ConnectPinToGroundWire_PreservesGroundNodeAndWires()
+    {
+        var circuit = FryCircuit.Core.Presets.CircuitPresets.CreateHalfWaveRectifier();
+        circuit.EnsureWiresSynthesized();
+
+        // Find the ground wire
+        var groundWire = circuit.Wires.First(w => w.NodeId == 0);
+
+        // Add a new resistor
+        var rExtra = DeviceFactory.CreateDevice("resistor", 99, 4, 8);
+        int maxNodeId = circuit.Nodes.Count > 0 ? circuit.Nodes.Keys.Max() : 0;
+        foreach (var pin in rExtra.Pins)
+        {
+            pin.NodeId = ++maxNodeId;
+            circuit.GetOrCreateNode(pin.NodeId);
+        }
+        circuit.AddDevice(rExtra);
+
+        // Connect pin 0 of rExtra to the ground wire
+        var wire = circuit.ConnectPinToWire(rExtra, 0, groundWire);
+        Assert.NotNull(wire);
+        Assert.Equal(0, wire.NodeId);
+        Assert.Equal(0, rExtra.Pins[0].NodeId);
+
+        // Ground node must still be Ground
+        Assert.True(circuit.Nodes[0].IsGround);
+
+        // Touch rExtra and Resistor
+        foreach (var p in rExtra.Pins) circuit.ResynthesizeNode(p.NodeId);
+        var res = circuit.Devices.First(d => d.Id == 3);
+        foreach (var p in res.Pins) circuit.ResynthesizeNode(p.NodeId);
+
+        // Resistor pin 1 must still be connected to ground
+        Assert.Contains(circuit.Wires, w => w.ConnectsToPin(3, 1) && w.ConnectsToPin(4, 0));
+        Assert.Contains(circuit.Wires, w => w.ConnectsToPin(99, 0));
+    }
 }
 
 

@@ -111,8 +111,10 @@ public class Circuit
         int targetNodeId = pin1.NodeId;
         int oldNodeId = pin2.NodeId;
 
-        // If pin1 doesn't have a valid node yet, create one
-        if (targetNodeId <= 0 && oldNodeId <= 0)
+        bool pin1HasNode = pin1.NodeId >= 0 && Nodes.ContainsKey(pin1.NodeId);
+        bool pin2HasNode = pin2.NodeId >= 0 && Nodes.ContainsKey(pin2.NodeId);
+
+        if (!pin1HasNode && !pin2HasNode)
         {
             int nextNode = (Nodes.Count > 0 ? Nodes.Keys.Max() : 0) + 1;
             targetNodeId = nextNode;
@@ -121,22 +123,39 @@ public class Circuit
             pin1.NodeId = targetNodeId;
             pin2.NodeId = targetNodeId;
         }
-        else if (targetNodeId <= 0)
+        else if (!pin1HasNode)
         {
             targetNodeId = oldNodeId;
             pin1.NodeId = targetNodeId;
         }
-        else if (oldNodeId <= 0)
+        else if (!pin2HasNode)
         {
             pin2.NodeId = targetNodeId;
         }
         else if (targetNodeId != oldNodeId)
         {
-            // If oldNodeId was Ground, preserve ground
+            // If either node was Ground, preserve ground
             bool oldIsGround = Nodes.TryGetValue(oldNodeId, out var on) && on.IsGround;
             bool targetIsGround = Nodes.TryGetValue(targetNodeId, out var tn) && tn.IsGround;
 
-            int unifiedNode = (oldIsGround && !targetIsGround) ? oldNodeId : targetNodeId;
+            int unifiedNode;
+            if (oldIsGround && !targetIsGround)
+            {
+                unifiedNode = oldNodeId;
+            }
+            else if (targetIsGround && !oldIsGround)
+            {
+                unifiedNode = targetNodeId;
+            }
+            else if (oldIsGround && targetIsGround)
+            {
+                unifiedNode = (oldNodeId == 0) ? oldNodeId : ((targetNodeId == 0) ? targetNodeId : Math.Min(oldNodeId, targetNodeId));
+            }
+            else
+            {
+                unifiedNode = targetNodeId;
+            }
+
             int replacedNode = (unifiedNode == oldNodeId) ? targetNodeId : oldNodeId;
 
             foreach (var d in Devices)
@@ -164,6 +183,15 @@ public class Circuit
             }
 
             targetNodeId = unifiedNode;
+        }
+
+        var existingWire = Wires.FirstOrDefault(w =>
+            (w.FromDeviceId == dev1.Id && w.FromPinIndex == pinIndex1 && w.ToDeviceId == dev2.Id && w.ToPinIndex == pinIndex2) ||
+            (w.FromDeviceId == dev2.Id && w.FromPinIndex == pinIndex2 && w.ToDeviceId == dev1.Id && w.ToPinIndex == pinIndex1));
+        if (existingWire != null)
+        {
+            existingWire.NodeId = targetNodeId;
+            return existingWire;
         }
 
         int nextWireId = (Wires.Count > 0 ? Wires.Max(w => w.Id) : 0) + 1;

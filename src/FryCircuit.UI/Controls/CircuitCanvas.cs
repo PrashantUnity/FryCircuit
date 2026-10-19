@@ -375,6 +375,8 @@ public partial class CircuitCanvas : Control
             devsToDelete.Add(SelectedDevice);
         }
 
+        var affectedNodes = devsToDelete.SelectMany(d => d.Pins.Select(p => p.NodeId)).Distinct().Where(n => n >= 0).ToList();
+
         foreach (var dev in devsToDelete)
         {
             var attachedWires = Circuit.Wires.Where(w => w.FromDeviceId == dev.Id || w.ToDeviceId == dev.Id).ToList();
@@ -383,6 +385,12 @@ public partial class CircuitCanvas : Control
         }
         SelectedDevices.Clear();
         SelectedDevice = null;
+
+        foreach (var nid in affectedNodes)
+        {
+            Circuit.ResynthesizeNode(nid);
+        }
+        Circuit.RouteAllWires();
 
         if (actions.Count == 1)
             HistoryManager?.Record(actions[0]);

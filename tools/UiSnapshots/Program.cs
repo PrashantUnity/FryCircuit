@@ -55,6 +55,13 @@ public static class Program
             return;
         }
 
+        if (args.Length > 0 && args[0].Equals("reconnect", StringComparison.OrdinalIgnoreCase))
+        {
+            CaptureDeleteAndReconnectWorkflow(outDir);
+            Console.WriteLine("Reconnect workflow snapshots captured successfully!");
+            return;
+        }
+
         if (args.Length > 0 && args[0].Equals("probe", StringComparison.OrdinalIgnoreCase))
         {
             CaptureWireProbingStates(outDir);
@@ -351,6 +358,72 @@ public static class Program
             vm.LoadPreset("Half-Wave Rectifier");
             for (int i = 0; i < 50; i++) vm.StepSimulationCommand.Execute(null);
         }, windowWidth: 1040);
+    }
+
+    private static void CaptureDeleteAndReconnectWorkflow(string outDir)
+    {
+        // 1. Initial Half-Wave Rectifier
+        CaptureLayoutVariant(outDir, "reconnect_workflow_1_initial.png", vm =>
+        {
+            vm.LoadPreset("Half-Wave Rectifier");
+            for (int i = 0; i < 50; i++) vm.StepSimulationCommand.Execute(null);
+        });
+
+        // 2. Voltage Source Deleted
+        CaptureLayoutVariant(outDir, "reconnect_workflow_2_source_deleted.png", vm =>
+        {
+            vm.LoadPreset("Half-Wave Rectifier");
+            var vs = vm.CurrentCircuit?.Devices.FirstOrDefault(d => d.Id == 1);
+            if (vs != null)
+            {
+                vm.SelectedDevice = vs;
+                vm.DeleteSelected();
+            }
+            for (int i = 0; i < 20; i++) vm.StepSimulationCommand.Execute(null);
+        });
+
+        // 3. New DC Voltage Source Added, Reconnected and Touched/Simulated
+        CaptureLayoutVariant(outDir, "reconnect_workflow_3_reconnected_and_touched.png", vm =>
+        {
+            vm.LoadPreset("Half-Wave Rectifier");
+            var vs = vm.CurrentCircuit?.Devices.FirstOrDefault(d => d.Id == 1);
+            if (vs != null)
+            {
+                vm.SelectedDevice = vs;
+                vm.DeleteSelected();
+            }
+
+            // Add DC voltage source at x: 2, y: 5
+            int nextId = (vm.CurrentCircuit!.Devices.Count > 0 ? vm.CurrentCircuit.Devices.Max(d => d.Id) : 0) + 1;
+            var newVs = FryCircuit.Core.Devices.DeviceFactory.CreateDevice("vsource", nextId, 2, 5);
+            int maxNodeId = vm.CurrentCircuit.Nodes.Count > 0 ? vm.CurrentCircuit.Nodes.Keys.Max() : 0;
+            foreach (var pin in newVs.Pins)
+            {
+                pin.NodeId = ++maxNodeId;
+                vm.CurrentCircuit.GetOrCreateNode(pin.NodeId, isGround: newVs.Type == "ground");
+            }
+            vm.CurrentCircuit.AddDevice(newVs);
+
+            // Connect pin 0 to Diode pin 0
+            var diode = vm.CurrentCircuit.Devices.First(d => d.Id == 2);
+            vm.CurrentCircuit.ConnectPins(newVs, 0, diode, 0);
+
+            // Connect pin 1 to Ground pin 0
+            var gnd = vm.CurrentCircuit.Devices.First(d => d.Id == 4);
+            vm.CurrentCircuit.ConnectPins(newVs, 1, gnd, 0);
+
+            // Touch components
+            var res = vm.CurrentCircuit.Devices.First(d => d.Id == 3);
+            vm.SelectedDevice = res;
+            foreach (var p in res.Pins) vm.CurrentCircuit.ResynthesizeNode(p.NodeId);
+            vm.SelectedDevice = diode;
+            foreach (var p in diode.Pins) vm.CurrentCircuit.ResynthesizeNode(p.NodeId);
+            vm.SelectedDevice = newVs;
+            foreach (var p in newVs.Pins) vm.CurrentCircuit.ResynthesizeNode(p.NodeId);
+
+            vm.CurrentCircuit.RouteAllWires();
+            for (int i = 0; i < 50; i++) vm.StepSimulationCommand.Execute(null);
+        });
     }
 
     private static void CaptureWireProbingStates(string outDir)
