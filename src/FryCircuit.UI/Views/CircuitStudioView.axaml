@@ -163,6 +163,68 @@
             <Setter Property="Foreground" Value="{DynamicResource CircuitAccentBrush}"/>
         </Style>
 
+        <!-- Parameter Scale Selection Chip -->
+        <Style Selector="Button.scale-chip">
+            <Setter Property="Background" Value="{DynamicResource CircuitSurfaceHoverBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource CircuitTextDimBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderSubtleBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="{DynamicResource CircuitRadiusSm}"/>
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Height" Value="20"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.12"/>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.12"/>
+                    <BrushTransition Property="Foreground" Duration="0:0:0.12"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.scale-chip:pointerover">
+            <Setter Property="Background" Value="{DynamicResource CircuitSurfaceHighBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderLightBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource CircuitTextWhiteBrush}"/>
+        </Style>
+        <Style Selector="Button.scale-chip.active">
+            <Setter Property="Background" Value="{DynamicResource CircuitAccentSubtleBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CircuitAccentBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource CircuitAccentBrush}"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+        <Style Selector="Button.scale-chip.active /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource CircuitAccentSubtleBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CircuitAccentBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource CircuitAccentBrush}"/>
+        </Style>
+
+        <!-- Parameter Decade Stepper Button (÷10, ×10) -->
+        <Style Selector="Button.scale-step-btn">
+            <Setter Property="Background" Value="{DynamicResource CircuitSurfaceLowestBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource CircuitTextDimBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderSubtleBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="{DynamicResource CircuitRadiusSm}"/>
+            <Setter Property="Padding" Value="5,1"/>
+            <Setter Property="FontSize" Value="9.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Height" Value="20"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.12"/>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.12"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.scale-step-btn:pointerover">
+            <Setter Property="Background" Value="{DynamicResource CircuitSurfaceHoverBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource CircuitTextWhiteBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CircuitBorderLightBrush}"/>
+        </Style>
+
         <!-- Category Tab Buttons (Flat pills, active uses clean neutral surface, NO neon border) -->
         <Style Selector="Button.categoryTab">
             <Setter Property="Background" Value="Transparent"/>
@@ -1122,8 +1184,9 @@
                                              <DataTemplate x:DataType="vm:DeviceParameterViewModel">
                                                  <Border Background="{DynamicResource CircuitSurfaceLowBrush}" 
                                                          BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
-                                                         CornerRadius="{DynamicResource CircuitRadiusMd}" Padding="8,5" Margin="0,2">
-                                                     <StackPanel Spacing="3">
+                                                         CornerRadius="{DynamicResource CircuitRadiusMd}" Padding="8,6" Margin="0,3">
+                                                     <StackPanel Spacing="4">
+                                                         <!-- Top Row: Parameter Label & Direct Engineering Input -->
                                                          <Grid ColumnDefinitions="*,Auto">
                                                              <TextBlock Grid.Column="0" Text="{Binding DisplayLabel}" FontSize="{DynamicResource CircuitFontSizeSmall}" 
                                                                         FontWeight="SemiBold" Foreground="{DynamicResource CircuitTextBrush}" VerticalAlignment="Center"/>
@@ -1135,8 +1198,43 @@
                                                                       CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="5,2" Height="22" MinWidth="75"
                                                                       TextAlignment="Right" VerticalAlignment="Center"/>
                                                          </Grid>
-                                                         <Slider Minimum="{Binding Minimum}" Maximum="{Binding Maximum}" Value="{Binding Value, Mode=TwoWay}"
-                                                                 Margin="0,2,0,0" VerticalAlignment="Center"/>
+
+                                                         <!-- Middle Row: Scale Prefix Chips & Decade Steppers (Visible when scales available) -->
+                                                         <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasScaleOptions}" Margin="0,1,0,1">
+                                                             <ItemsControl Grid.Column="0" ItemsSource="{Binding ScaleOptions}">
+                                                                 <ItemsControl.ItemsPanel>
+                                                                     <ItemsPanelTemplate>
+                                                                         <StackPanel Orientation="Horizontal" Spacing="3"/>
+                                                                     </ItemsPanelTemplate>
+                                                                 </ItemsControl.ItemsPanel>
+                                                                 <ItemsControl.ItemTemplate>
+                                                                     <DataTemplate x:DataType="vm:ParameterScaleOption">
+                                                                         <Button Classes="scale-chip"
+                                                                                 Classes.active="{Binding IsActive}"
+                                                                                 Content="{Binding Label}"
+                                                                                 Command="{Binding $parent[Border].((vm:DeviceParameterViewModel)DataContext).SelectScaleCommand}"
+                                                                                 CommandParameter="{Binding}"
+                                                                                 ToolTip.Tip="{Binding ToolTip}"/>
+                                                                     </DataTemplate>
+                                                                 </ItemsControl.ItemTemplate>
+                                                             </ItemsControl>
+
+                                                             <!-- Decade Stepper Buttons -->
+                                                             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
+                                                                 <Button Classes="scale-step-btn" Content="÷10" 
+                                                                         Command="{Binding StepDecadeDownCommand}" 
+                                                                         ToolTip.Tip="Step down by one decade (÷10)"/>
+                                                                 <Button Classes="scale-step-btn" Content="×10" 
+                                                                         Command="{Binding StepDecadeUpCommand}" 
+                                                                         ToolTip.Tip="Step up by one decade (×10)"/>
+                                                             </StackPanel>
+                                                         </Grid>
+
+                                                         <!-- Precision Scale-Aware Slider -->
+                                                         <Slider Minimum="{Binding ScaledMinimum}" 
+                                                                 Maximum="{Binding ScaledMaximum}" 
+                                                                 Value="{Binding ScaledSliderValue, Mode=TwoWay}"
+                                                                 Margin="0,1,0,0" VerticalAlignment="Center"/>
                                                      </StackPanel>
                                                  </Border>
                                              </DataTemplate>

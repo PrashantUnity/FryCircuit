@@ -8,6 +8,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\CircuitPlugin.csproj" />
+    <ProjectReference Include="..\..\src\FryCircuit.Core\FryCircuit.Core.csproj" />
+    <ProjectReference Include="..\..\src\FryCircuit.UI\FryCircuit.UI.csproj" />
   </ItemGroup>
 
   <ItemGroup>
