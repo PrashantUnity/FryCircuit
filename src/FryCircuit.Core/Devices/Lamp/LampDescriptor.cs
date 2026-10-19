@@ -54,6 +54,17 @@ public class LampDescriptor : DeviceDescriptorBase
             step: 1.0,
             getter: d => d is LampDevice l ? l.NominalVoltage : 12.0,
             setter: (d, v) => { if (d is LampDevice l) l.NominalVoltage = Math.Max(0.1, v); }
+        ),
+        new(
+            "MaxVoltage",
+            "Max Voltage (Burnout)",
+            "V",
+            min: 1.0,
+            max: 300.0,
+            def: 18.0,
+            step: 1.0,
+            getter: d => d is LampDevice l ? l.MaxVoltage : 18.0,
+            setter: (d, v) => { if (d is LampDevice l) l.MaxVoltage = Math.Max(0.5, v); }
         )
     };
 }

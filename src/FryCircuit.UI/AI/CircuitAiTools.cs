@@ -382,6 +382,8 @@ public class CircuitAiTools
             "resistor" => 'R',
             "capacitor" => 'C',
             "inductor" => 'L',
+            "fuse" => 'F',
+            "lamp" => 'B',
             "diode" or "led" or "zener" => 'D',
             "vsource" => 'V',
             "csource" => 'I',

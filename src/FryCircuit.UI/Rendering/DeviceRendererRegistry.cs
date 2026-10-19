@@ -4,6 +4,7 @@ using FryCircuit.UI.Rendering.Devices.Capacitor;
 using FryCircuit.UI.Rendering.Devices.CurrentSource;
 using FryCircuit.UI.Rendering.Devices.Diode;
 using FryCircuit.UI.Rendering.Devices.Display;
+using FryCircuit.UI.Rendering.Devices.Fuse;
 using FryCircuit.UI.Rendering.Devices.Ground;
 using FryCircuit.UI.Rendering.Devices.Inductor;
 using FryCircuit.UI.Rendering.Devices.Lamp;
@@ -78,6 +79,7 @@ public static class DeviceRendererRegistry
         ["ohmmeter"] = new MeterRenderer(),
         ["ohm"] = new MeterRenderer(),
         ["lamp"] = new LampRenderer(),
+        ["fuse"] = new FuseRenderer(),
         ["seg7"] = new SevenSegmentDisplayRenderer(),
         ["7seg"] = new SevenSegmentDisplayRenderer(),
         ["sevensegment"] = new SevenSegmentDisplayRenderer(),

@@ -8,6 +8,7 @@ using FryCircuit.Core.Devices.Base;
 using FryCircuit.Core.History;
 using FryCircuit.Core.Models;
 using FryCircuit.Core.Simulation;
+using FryCircuit.UI.ViewModels;
 
 namespace FryCircuit.UI.Controls;
 
@@ -776,6 +777,13 @@ public partial class CircuitCanvas
             return;
         }
 
+        if (isCtrlOrCmd && e.Key == Key.R)
+        {
+            MainWindowViewModel.ActiveInstance?.ResetSimulation();
+            e.Handled = true;
+            return;
+        }
+
         switch (e.Key)
         {
             case Key.R:
@@ -916,7 +924,12 @@ public partial class CircuitCanvas
             {
                 case "resistor":
                 case "inductor":
+                case "fuse":
                     hitHalfW = 0.48;
+                    hitHalfH = 1.15;
+                    break;
+                case "lamp":
+                    hitHalfW = 0.70;
                     hitHalfH = 1.15;
                     break;
                 case "diode":

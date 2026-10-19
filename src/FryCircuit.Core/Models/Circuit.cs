@@ -69,6 +69,7 @@ public class Circuit
         {
             dev.Current = 0.0;
             dev.VoltageDrop = 0.0;
+            dev.ResetBlown();
         }
     }
 

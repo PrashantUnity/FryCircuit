@@ -196,13 +196,13 @@ public sealed class CircuitPluginTests
     public void MainWindowViewModel_PaletteCatalog_FiltersByCategoryAndSearchQuery()
     {
         var vm = new FryCircuit.UI.ViewModels.MainWindowViewModel();
-        Assert.Equal(37, vm.AllPaletteItems.Count);
-        Assert.Equal(37, vm.FilteredPaletteItems.Count);
+        Assert.Equal(39, vm.AllPaletteItems.Count);
+        Assert.Equal(39, vm.FilteredPaletteItems.Count);
 
         // Filter by category: Passives
         vm.SelectPaletteCategoryCommand.Execute("Passives");
         Assert.Equal("Passives", vm.SelectedPaletteCategory);
-        Assert.Equal(4, vm.FilteredPaletteItems.Count); // resistor, capacitor, inductor, potentiometer
+        Assert.Equal(6, vm.FilteredPaletteItems.Count); // resistor, capacitor, inductor, potentiometer, fuse, lamp
         Assert.All(vm.FilteredPaletteItems, item => Assert.Equal("Passives", item.Category));
 
         // Filter by search query: "ind" while in Passives
@@ -218,7 +218,7 @@ public sealed class CircuitPluginTests
 
         // Clear search
         vm.ComponentSearchQuery = "";
-        Assert.Equal(37, vm.FilteredPaletteItems.Count);
+        Assert.Equal(39, vm.FilteredPaletteItems.Count);
 
         vm.Dispose();
     }

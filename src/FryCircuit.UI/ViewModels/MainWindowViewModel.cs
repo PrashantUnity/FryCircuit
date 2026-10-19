@@ -332,6 +332,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         new() { Code = "capacitor", Name = "Capacitor", Symbol = "C", Category = "Passives", Hotkey = "C", ToolTip = "Passive dual-plate energy storage capacitor" },
         new() { Code = "inductor", Name = "Inductor", Symbol = "L", Category = "Passives", Hotkey = "L", ToolTip = "Passive magnetic flux coil inductor" },
         new() { Code = "potentiometer", Name = "Potentiometer", Symbol = "POT", Category = "Passives", Hotkey = "P", ToolTip = "3-terminal variable voltage divider" },
+        new() { Code = "fuse", Name = "Fuse", Symbol = "FUSE", Category = "Passives", Hotkey = "F", ToolTip = "Fast-acting overcurrent fuse that melts open when rated current is exceeded" },
+        new() { Code = "lamp", Name = "Lamp Bulb", Symbol = "LAMP", Category = "Passives", Hotkey = "B", ToolTip = "Incandescent filament bulb with thermal radiation and burnout protection" },
 
         // Sources & Ground
         new() { Code = "vsource", Name = "DC Voltage", Symbol = "V", Category = "Sources", Hotkey = "V", ToolTip = "Constant DC voltage power source" },
@@ -642,6 +644,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                 _shortcutRegistrations.Add(shortcutManager.RegisterCommandHandler("circuit.edit.delete", () => DeleteSelected()));
                 _shortcutRegistrations.Add(shortcutManager.RegisterCommandHandler("circuit.edit.undo", () => Undo()));
                 _shortcutRegistrations.Add(shortcutManager.RegisterCommandHandler("circuit.edit.redo", () => Redo()));
+                _shortcutRegistrations.Add(shortcutManager.RegisterCommandHandler("circuit.sim.restart", () => ResetSimulation()));
+                _shortcutRegistrations.Add(shortcutManager.RegisterCommandHandler("circuit.sim.toggle", () => ToggleSimulation()));
             }
         }
 
@@ -1274,6 +1278,20 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
+    public void ResetBlownDevice()
+    {
+        if (SelectedDevice != null && SelectedDevice.IsBlown)
+        {
+            SelectedDevice.ResetBlown();
+            StatusText = $"Replaced {SelectedDevice.Type.ToUpperInvariant()} #{SelectedDevice.Id} (Pristine Condition)";
+            foreach (var c in AllCanvases)
+            {
+                c.InvalidateVisual();
+            }
+        }
+    }
+
+    [RelayCommand]
     public void SetInspectorPreset(object? parameter)
     {
         if (parameter is double d)
@@ -1380,8 +1398,28 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public void ResetSimulation()
     {
         _solver?.Reset();
-        InvalidateAllCanvases();
-        StatusText = "Simulation Reset to 0.0 ms";
+
+        // Clear oscilloscope history traces
+        if (_oscilloscope != null)
+        {
+            foreach (var trace in _oscilloscope.Traces)
+            {
+                trace.Clear();
+            }
+            _oscilloscope.InvalidateVisual();
+        }
+
+        // Re-sync particle engines to clear stale current animations and refresh all canvases
+        foreach (var c in AllCanvases)
+        {
+            if (CurrentCircuit != null)
+            {
+                c.ParticleEngine.SyncWithCircuit(CurrentCircuit);
+            }
+            c.InvalidateVisual();
+        }
+
+        StatusText = "Simulation Restarted: t = 0.0 ms, charges cleared & all components restored";
     }
 
     [RelayCommand]

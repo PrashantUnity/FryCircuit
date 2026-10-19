@@ -39,6 +39,11 @@ public class MnaSolver
                 ind.StateCurrent = 0.0;
                 ind.EquivCurrent = 0.0;
             }
+            else if (dev is DiodeDevice diode)
+            {
+                diode.StateVoltage = 0.0;
+                diode.EquivCurrent = 0.0;
+            }
         }
     }
 

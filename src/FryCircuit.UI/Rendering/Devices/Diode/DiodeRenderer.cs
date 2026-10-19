@@ -18,7 +18,7 @@ public class DiodeRenderer : IDeviceRenderer
         bool isLed = device is LedDevice || device.Type == "led";
         string hexColor = (device as LedDevice)?.ColorHex ?? "#00E676";
         var ledColor = Color.Parse(hexColor);
-        bool isEmitting = isLed && device.Current > 0.0005;
+        bool isEmitting = isLed && !device.IsBlown && device.Current > 0.0005;
 
         // Radiant multi-stop emission halo behind LED when conducting
         if (isEmitting)
@@ -35,11 +35,13 @@ public class DiodeRenderer : IDeviceRenderer
             context.DrawEllipse(haloBrush, null, center, u * 1.3, u * 1.3);
         }
 
-        var fillBrush = isEmitting
-            ? new SolidColorBrush(Color.FromArgb(230, ledColor.R, ledColor.G, ledColor.B))
-            : isLed
-                ? new SolidColorBrush(Color.FromArgb(55, ledColor.R, ledColor.G, ledColor.B))
-                : new SolidColorBrush(Color.FromArgb(220, 15, 23, 42));
+        var fillBrush = device.IsBlown
+            ? new SolidColorBrush(Color.FromArgb(235, 45, 18, 18))
+            : isEmitting
+                ? new SolidColorBrush(Color.FromArgb(230, ledColor.R, ledColor.G, ledColor.B))
+                : isLed
+                    ? new SolidColorBrush(Color.FromArgb(55, ledColor.R, ledColor.G, ledColor.B))
+                    : new SolidColorBrush(Color.FromArgb(220, 15, 23, 42));
 
         // Leads from pins to triangle
         context.DrawLine(strokePen, new Point(center.X, center.Y - u), new Point(center.X, center.Y - u * 0.35));
@@ -54,6 +56,18 @@ public class DiodeRenderer : IDeviceRenderer
             g.LineTo(new Point(center.X, center.Y + u * 0.35));
         }
         context.DrawGeometry(fillBrush, strokePen, triGeom);
+
+        // Charred crack / burnout indicator
+        if (device.IsBlown)
+        {
+            var burnPen = new Pen(new SolidColorBrush(Color.FromArgb(240, 255, 60, 60)), 2.2 * z)
+            {
+                LineCap = PenLineCap.Round
+            };
+            double bsz = u * 0.18;
+            context.DrawLine(burnPen, new Point(center.X - bsz, center.Y - bsz), new Point(center.X + bsz, center.Y + bsz));
+            context.DrawLine(burnPen, new Point(center.X - bsz, center.Y + bsz), new Point(center.X + bsz, center.Y - bsz));
+        }
 
         // Cathode bar
         double barY = center.Y + u * 0.35;

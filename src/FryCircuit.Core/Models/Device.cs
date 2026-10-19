@@ -62,6 +62,43 @@ public class Device : INotifyPropertyChanged
     public string FormattedVoltage => FormatEngineering(VoltageDrop, "V");
     public string FormattedPower => FormatEngineering(Power, "W");
 
+    private bool _isBlown;
+    public bool IsBlown
+    {
+        get => _isBlown;
+        set
+        {
+            if (_isBlown != value)
+            {
+                _isBlown = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    private string? _blownReason;
+    public string? BlownReason
+    {
+        get => _blownReason;
+        set
+        {
+            if (_blownReason != value)
+            {
+                _blownReason = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Resets/replaces a blown or fused component back to pristine functional condition.
+    /// </summary>
+    public virtual void ResetBlown()
+    {
+        IsBlown = false;
+        BlownReason = null;
+    }
+
     public static string FormatEngineering(double val, string unit)
     {
         if (double.IsNaN(val) || double.IsInfinity(val)) return $"0.00 {unit}";

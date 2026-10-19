@@ -496,11 +496,14 @@
                                 <TextBlock Text="{Binding PlayPauseButtonText}" FontWeight="Bold"/>
                             </StackPanel>
                         </Button>
+                        <Button Classes="toolbtn" ToolTip.Tip="Restart Simulation: Reset time to 0 ms, clear charges &amp; restore all components (Ctrl+R)" Command="{Binding ResetSimulationCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                <material:MaterialIcon Kind="Restart" Width="13" Height="13" Foreground="{DynamicResource CircuitWarningBrush}"/>
+                                <TextBlock Text="Restart" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Button>
                         <Button Classes="toolbtn" ToolTip.Tip="Single Step (0.25 ms)" Command="{Binding StepSimulationCommand}">
                             <material:MaterialIcon Kind="StepForward" Width="13" Height="13"/>
-                        </Button>
-                        <Button Classes="toolbtn" ToolTip.Tip="Reset Simulation Time" Command="{Binding ResetSimulationCommand}">
-                            <material:MaterialIcon Kind="Restart" Width="13" Height="13"/>
                         </Button>
                         <Button Classes="toolbtn" ToolTip.Tip="Zoom to Fit Canvas" Command="{Binding ZoomToFitCommand}">
                             <material:MaterialIcon Kind="FitToScreenOutline" Width="13" Height="13"/>
@@ -1034,6 +1037,35 @@
                                 </Grid>
 
                                 <Separator Background="{DynamicResource CircuitBorderSubtleBrush}" Height="1"/>
+
+                                <!-- Blown / Overload Fuse Alert Banner -->
+                                <Border Background="#2D1212" BorderBrush="#E53935" BorderThickness="1.2" 
+                                        CornerRadius="{DynamicResource CircuitRadiusMd}" Padding="10,8" Margin="0,2,0,4"
+                                        IsVisible="{Binding SelectedDevice.IsBlown, FallbackValue=False}">
+                                    <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="Auto,*">
+                                        <material:MaterialIcon Grid.Row="0" Grid.Column="0" Kind="AlertDecagram" Width="18" Height="18" 
+                                                               Foreground="#FF5252" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Grid.Row="0" Grid.Column="1" Text="COMPONENT FUSED / BURNED OUT" 
+                                                   FontWeight="Bold" FontSize="{DynamicResource CircuitFontSizeBodySm}" 
+                                                   Foreground="#FF5252" VerticalAlignment="Center"/>
+                                        
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" 
+                                                   Text="{Binding SelectedDevice.BlownReason, FallbackValue='Overload rating exceeded.'}" 
+                                                   FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="#FFB4B4" 
+                                                   Margin="0,4,0,6" TextWrapping="Wrap"/>
+
+                                        <Button Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" 
+                                                Classes="primary" Background="#C62828" Foreground="White"
+                                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                                Command="{Binding ResetBlownDeviceCommand}" 
+                                                ToolTip.Tip="Replace the fused component and restore normal circuit operation">
+                                            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                                <material:MaterialIcon Kind="Restore" Width="14" Height="14"/>
+                                                <TextBlock Text="Replace / Reset Component" FontWeight="SemiBold" FontSize="{DynamicResource CircuitFontSizeBodySm}"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+                                </Border>
 
                                 <!-- Instantaneous Electrical Values -->
                                 <Grid ColumnDefinitions="*,*,*" ColumnSpacing="6" Margin="0,2,0,2" IsVisible="{Binding HasSelectedDevice}">

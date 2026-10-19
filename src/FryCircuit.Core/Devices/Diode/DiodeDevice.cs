@@ -158,7 +158,7 @@ public class DiodeDevice : Device, IDeviceSimulation
             }
             else
             {
-                vnew = vt * Math.Log(Math.Max(1.0, vnew / vt));
+                vnew = vcrit;
             }
         }
         else if (vnew < 0.0)

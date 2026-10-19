@@ -4,6 +4,7 @@ using FryCircuit.Core.Devices.Capacitor;
 using FryCircuit.Core.Devices.CurrentSource;
 using FryCircuit.Core.Devices.Diode;
 using FryCircuit.Core.Devices.Display;
+using FryCircuit.Core.Devices.Fuse;
 using FryCircuit.Core.Devices.Ground;
 using FryCircuit.Core.Devices.Inductor;
 using FryCircuit.Core.Devices.Lamp;
@@ -175,6 +176,7 @@ public static class DeviceRegistry
         Register(new AmmeterDescriptor(), "amperemeter", "ammeter");
         Register(new OhmmeterDescriptor(), "ohmmeter", "ohm");
         Register(new LampDescriptor(), "lamp");
+        Register(new FuseDescriptor(), "fuse");
         Register(new SevenSegmentDisplayDescriptor(), "seg7", "7seg", "sevensegment", "display");
         Register(new BcdTo7SegmentDescriptor(), "bcd7seg", "7448", "7447");
         Register(new BinaryCounterDescriptor(), "counter4", "74193", "counter");

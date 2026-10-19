@@ -177,6 +177,28 @@ public class LedDescriptor : DeviceDescriptorBase
 
     public override IReadOnlyList<DeviceParameterSpec> Parameters => new List<DeviceParameterSpec>
     {
-        PrimaryParameter!
+        PrimaryParameter!,
+        new(
+            "MaxForwardCurrent",
+            "Max Current (Burnout)",
+            "A",
+            min: 0.005,
+            max: 0.200,
+            def: 0.030,
+            step: 0.005,
+            getter: d => d is LedDevice led ? led.MaxForwardCurrent : 0.030,
+            setter: (d, v) => { if (d is LedDevice led) led.MaxForwardCurrent = Math.Max(0.001, v); }
+        ),
+        new(
+            "MaxReverseVoltage",
+            "Max Reverse Voltage",
+            "V",
+            min: 1.0,
+            max: 30.0,
+            def: 5.0,
+            step: 0.5,
+            getter: d => d is LedDevice led ? led.MaxReverseVoltage : 5.0,
+            setter: (d, v) => { if (d is LedDevice led) led.MaxReverseVoltage = Math.Max(0.5, v); }
+        )
     };
 }

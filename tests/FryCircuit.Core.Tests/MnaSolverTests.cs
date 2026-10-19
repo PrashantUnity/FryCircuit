@@ -484,5 +484,188 @@ public class MnaSolverTests
         Assert.InRange(Math.Abs(diode.Current), 0.0, 1e-6);
         Assert.InRange(Math.Abs(circuit.Nodes[2].Voltage), 0.0, 1e-4);
     }
+
+    [Fact]
+    public void Led_Overcurrent_BlowsAndIsolatesCircuit()
+    {
+        // 5V DC Source connected directly across Red LED without series resistor
+        var circuit = new Circuit("Led_Overcurrent");
+        circuit.GetOrCreateNode(0, isGround: true);
+        circuit.GetOrCreateNode(1);
+
+        var vs = new VoltageSourceDevice(1, voltage: 5.0);
+        vs.Pins[0].NodeId = 1;
+        vs.Pins[1].NodeId = 0;
+        circuit.AddDevice(vs);
+
+        var led = new LedDevice(2, wavelength: 650.0) // Red LED, max 30mA
+        {
+            MaxForwardCurrent = 0.030
+        };
+        led.Pins[0].NodeId = 1; // Anode to +5V
+        led.Pins[1].NodeId = 0; // Cathode to GND
+        circuit.AddDevice(led);
+
+        var solver = new MnaSolver(circuit);
+
+        // First step: overcurrent is detected and LED burns out
+        solver.Step(1e-4);
+        Assert.True(led.IsBlown);
+        Assert.NotNull(led.BlownReason);
+        Assert.Contains("Overcurrent", led.BlownReason);
+
+        // Next step: circuit is open, current remains 0
+        solver.Step(1e-4);
+        Assert.Equal(0.0, led.Current, precision: 6);
+
+        // Reset/replace component restores operation
+        led.ResetBlown();
+        Assert.False(led.IsBlown);
+        Assert.Null(led.BlownReason);
+    }
+
+    [Fact]
+    public void Led_ReverseBreakdown_BlowsOnExcessiveReverseVoltage()
+    {
+        // 12V DC Source with LED reverse biased (Cathode to +12V, Anode to GND)
+        var circuit = new Circuit("Led_ReverseOvervoltage");
+        circuit.GetOrCreateNode(0, isGround: true);
+        circuit.GetOrCreateNode(1);
+
+        var vs = new VoltageSourceDevice(1, voltage: 12.0);
+        vs.Pins[0].NodeId = 1;
+        vs.Pins[1].NodeId = 0;
+        circuit.AddDevice(vs);
+
+        var led = new LedDevice(2, wavelength: 650.0)
+        {
+            MaxReverseVoltage = 5.0
+        };
+        led.Pins[0].NodeId = 0; // Anode to GND
+        led.Pins[1].NodeId = 1; // Cathode to +12V (V_drop = -12V)
+        circuit.AddDevice(led);
+
+        var solver = new MnaSolver(circuit);
+        solver.Step(1e-4);
+
+        Assert.True(led.IsBlown);
+        Assert.Contains("Reverse breakdown", led.BlownReason);
+    }
+
+    [Fact]
+    public void Lamp_Overvoltage_BurnsOutFilament()
+    {
+        // 12V nominal Lamp driven by 24V source (exceeding MaxVoltage = 18V)
+        var circuit = new Circuit("Lamp_Overvoltage");
+        circuit.GetOrCreateNode(0, isGround: true);
+        circuit.GetOrCreateNode(1);
+
+        var vs = new VoltageSourceDevice(1, voltage: 24.0);
+        vs.Pins[0].NodeId = 1;
+        vs.Pins[1].NodeId = 0;
+        circuit.AddDevice(vs);
+
+        var lamp = new LampDevice(2, nominalVoltage: 12.0, nominalPower: 60.0);
+        lamp.Pins[0].NodeId = 1;
+        lamp.Pins[1].NodeId = 0;
+        circuit.AddDevice(lamp);
+
+        var solver = new MnaSolver(circuit);
+        solver.Step(1e-4);
+
+        Assert.True(lamp.IsBlown);
+        Assert.NotNull(lamp.BlownReason);
+        Assert.Contains("Filament Burnout", lamp.BlownReason);
+
+        // Next step should have zero current
+        solver.Step(1e-4);
+        Assert.Equal(0.0, lamp.Current, precision: 6);
+
+        // Resetting restores filament
+        lamp.ResetBlown();
+        Assert.False(lamp.IsBlown);
+    }
+
+    [Fact]
+    public void Fuse_Overcurrent_BlowsAndProtectsCircuit()
+    {
+        // 12V source -> 1A Fuse -> 2 Ohm resistor (I would be 6A)
+        var circuit = new Circuit("Fuse_Overcurrent");
+        circuit.GetOrCreateNode(0, isGround: true);
+        circuit.GetOrCreateNode(1);
+        circuit.GetOrCreateNode(2);
+
+        var vs = new VoltageSourceDevice(1, voltage: 12.0);
+        vs.Pins[0].NodeId = 1;
+        vs.Pins[1].NodeId = 0;
+        circuit.AddDevice(vs);
+
+        var fuse = new FuseDevice(2, currentRating: 1.0);
+        fuse.Pins[0].NodeId = 1;
+        fuse.Pins[1].NodeId = 2;
+        circuit.AddDevice(fuse);
+
+        var res = new ResistorDevice(3, resistance: 2.0);
+        res.Pins[0].NodeId = 2;
+        res.Pins[1].NodeId = 0;
+        circuit.AddDevice(res);
+
+        var solver = new MnaSolver(circuit);
+
+        // First step detects 6A > 1A and melts fuse
+        solver.Step(1e-4);
+        Assert.True(fuse.IsBlown);
+        Assert.NotNull(fuse.BlownReason);
+        Assert.Contains("Blown", fuse.BlownReason);
+
+        // Next step: current is zero, protecting resistor
+        solver.Step(1e-4);
+        Assert.Equal(0.0, fuse.Current, precision: 6);
+        Assert.Equal(0.0, res.Current, precision: 6);
+        Assert.Equal(0.0, circuit.Nodes[2].Voltage, precision: 4);
+
+        // Reset fuse
+        fuse.ResetBlown();
+        Assert.False(fuse.IsBlown);
+    }
+
+    [Fact]
+    public void Simulation_Reset_RestoresAllBlownComponentsAndVoltages()
+    {
+        var circuit = new Circuit("ResetTest");
+        circuit.GetOrCreateNode(0, isGround: true);
+        circuit.GetOrCreateNode(1);
+
+        var vs = new VoltageSourceDevice(1, voltage: 5.0);
+        vs.Pins[0].NodeId = 1;
+        vs.Pins[1].NodeId = 0;
+        circuit.AddDevice(vs);
+
+        var fuse = new FuseDevice(2, currentRating: 0.1);
+        fuse.Pins[0].NodeId = 1;
+        fuse.Pins[1].NodeId = 0;
+        fuse.IsBlown = true;
+        fuse.BlownReason = "Blown";
+        circuit.AddDevice(fuse);
+
+        var led = new LedDevice(3, wavelength: 650.0);
+        led.Pins[0].NodeId = 1;
+        led.Pins[1].NodeId = 0;
+        led.IsBlown = true;
+        led.BlownReason = "Burned out";
+        circuit.AddDevice(led);
+
+        circuit.Nodes[1].Voltage = 5.0;
+
+        var solver = new MnaSolver(circuit);
+        solver.Reset();
+
+        Assert.Equal(0.0, solver.CurrentTime);
+        Assert.Equal(0.0, circuit.Nodes[1].Voltage);
+        Assert.False(fuse.IsBlown);
+        Assert.Null(fuse.BlownReason);
+        Assert.False(led.IsBlown);
+        Assert.Null(led.BlownReason);
+    }
 }
 
