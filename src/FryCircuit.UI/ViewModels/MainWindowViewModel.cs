@@ -40,8 +40,18 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private MnaSolver? _solver;
     public MnaSolver? Solver => _solver;
     private readonly List<CircuitCanvas> _activeCanvases = new();
-    private CircuitCanvas? _canvas => _activeCanvases.LastOrDefault();
+    private IEnumerable<CircuitCanvas> AllCanvases =>
+        _activeCanvases.Concat(CircuitCanvas.ActiveCanvases).Distinct();
+    private CircuitCanvas? _canvas => _activeCanvases.LastOrDefault() ?? CircuitCanvas.ActiveCanvases.LastOrDefault();
     private OscilloscopeControl? _oscilloscope;
+
+    private void InvalidateAllCanvases()
+    {
+        foreach (var c in AllCanvases)
+        {
+            c.InvalidateVisual();
+        }
+    }
 
     public UndoRedoManager History { get; } = new();
 
@@ -166,14 +176,14 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private void ToggleCurrentAnnotations()
     {
         ShowCurrentAnnotations = !ShowCurrentAnnotations;
-        _canvas?.InvalidateVisual();
+        InvalidateAllCanvases();
     }
 
     [RelayCommand]
     private void ToggleVoltageAnnotations()
     {
         ShowVoltageAnnotations = !ShowVoltageAnnotations;
-        _canvas?.InvalidateVisual();
+        InvalidateAllCanvases();
     }
 
     [ObservableProperty]
@@ -792,7 +802,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         {
             DeviceParameters.Add(new DeviceParameterViewModel(value, pSpec, () =>
             {
-                _canvas?.InvalidateVisual();
+                InvalidateAllCanvases();
                 var primary = DeviceRegistry.GetPrimaryParameter(value);
                 if (primary != null && primary.ParameterName == pSpec.ParameterName)
                 {
@@ -962,18 +972,18 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         {
             ProbedNodeCh1 = null;
             ProbedCh1Label = "CH1: Auto (Input)";
-            if (_canvas != null) _canvas.ProbedNodeCh1 = null;
+            foreach (var c in AllCanvases) c.ProbedNodeCh1 = null;
         }
         if (ProbedNodeCh2 == nodeId)
         {
             ProbedNodeCh2 = null;
             ProbedCh2Label = "CH2: Auto (Output)";
-            if (_canvas != null) _canvas.ProbedNodeCh2 = null;
+            foreach (var c in AllCanvases) c.ProbedNodeCh2 = null;
         }
 
         StatusText = $"Detached probe from Node #{nodeId}";
         NotifySelectedWireProbeProperties();
-        _canvas?.InvalidateVisual();
+        InvalidateAllCanvases();
     }
 
     [RelayCommand]
@@ -982,7 +992,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         if (SelectedWire == null) return;
         ProbedNodeCh1 = SelectedWire.NodeId;
         ProbedCh1Label = $"CH1: Net #{SelectedWire.NodeId}";
-        if (_canvas != null) _canvas.ProbedNodeCh1 = SelectedWire.NodeId;
+        foreach (var c in AllCanvases) c.ProbedNodeCh1 = SelectedWire.NodeId;
         
         if (!IsOscilloscopeOpen)
         {
@@ -991,7 +1001,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         
         StatusText = $"CH1 (Amber) Probing Net #{SelectedWire.NodeId}";
         NotifySelectedWireProbeProperties();
-        _canvas?.InvalidateVisual();
+        InvalidateAllCanvases();
     }
 
     [RelayCommand]
@@ -1000,7 +1010,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         if (SelectedWire == null) return;
         ProbedNodeCh2 = SelectedWire.NodeId;
         ProbedCh2Label = $"CH2: Net #{SelectedWire.NodeId}";
-        if (_canvas != null) _canvas.ProbedNodeCh2 = SelectedWire.NodeId;
+        foreach (var c in AllCanvases) c.ProbedNodeCh2 = SelectedWire.NodeId;
         
         if (!IsOscilloscopeOpen)
         {
@@ -1009,7 +1019,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         
         StatusText = $"CH2 (Cyan) Probing Net #{SelectedWire.NodeId}";
         NotifySelectedWireProbeProperties();
-        _canvas?.InvalidateVisual();
+        InvalidateAllCanvases();
     }
 
     private void NotifySelectedWireProbeProperties()
@@ -1044,7 +1054,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             NotifyLedPropertiesChanged();
         }
 
-        _canvas?.InvalidateVisual();
+        InvalidateAllCanvases();
     }
 
     private void OnSimulationTick(object? sender, EventArgs e)
@@ -1060,13 +1070,16 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             _solver.Step(subDt);
         }
 
-        _canvas?.ParticleEngine.Update(1.0 / 60.0, SimulationSpeed);
+        foreach (var c in AllCanvases)
+        {
+            c.ParticleEngine.Update(1.0 / 60.0, SimulationSpeed);
+            c.InvalidateVisual();
+        }
         if (HasSelectedWire)
         {
             UpdateSelectedWireMeasurements();
         }
         UpdateOscilloscope();
-        _canvas?.InvalidateVisual();
     }
 
     private void UpdateOscilloscope()
@@ -1119,8 +1132,11 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         if (History.Undo())
         {
-            if (CurrentCircuit != null) _canvas?.ParticleEngine.SyncWithCircuit(CurrentCircuit);
-            _canvas?.InvalidateVisual();
+            foreach (var c in AllCanvases)
+            {
+                if (CurrentCircuit != null) c.ParticleEngine.SyncWithCircuit(CurrentCircuit);
+                c.InvalidateVisual();
+            }
             StatusText = $"Undone: {History.NextRedoDescription ?? "action"}";
         }
     }
@@ -1130,8 +1146,11 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         if (History.Redo())
         {
-            if (CurrentCircuit != null) _canvas?.ParticleEngine.SyncWithCircuit(CurrentCircuit);
-            _canvas?.InvalidateVisual();
+            foreach (var c in AllCanvases)
+            {
+                if (CurrentCircuit != null) c.ParticleEngine.SyncWithCircuit(CurrentCircuit);
+                c.InvalidateVisual();
+            }
             StatusText = $"Redone: {History.NextUndoDescription ?? "action"}";
         }
     }
@@ -1141,10 +1160,10 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         var mode = ch == "1" ? CircuitToolMode.ProbeCh1 : CircuitToolMode.ProbeCh2;
         ActiveToolMode = mode;
-        if (_canvas != null)
+        foreach (var c in AllCanvases)
         {
-            _canvas.ToolMode = mode;
-            _canvas.PlacingDeviceType = null;
+            c.ToolMode = mode;
+            c.PlacingDeviceType = null;
         }
         StatusText = $"Probe Mode: Click any pin, wire or component to attach Oscilloscope Channel {ch}. (Esc to cancel)";
     }
@@ -1156,11 +1175,11 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         ProbedNodeCh2 = null;
         ProbedCh1Label = "CH1: Auto (Input)";
         ProbedCh2Label = "CH2: Auto (Output)";
-        if (_canvas != null)
+        foreach (var c in AllCanvases)
         {
-            _canvas.ProbedNodeCh1 = null;
-            _canvas.ProbedNodeCh2 = null;
-            _canvas.InvalidateVisual();
+            c.ProbedNodeCh1 = null;
+            c.ProbedNodeCh2 = null;
+            c.InvalidateVisual();
         }
         StatusText = "Cleared oscilloscope probes to Auto";
         NotifySelectedWireProbeProperties();
@@ -1185,10 +1204,10 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             IsOscilloscopeOpen = true;
         }
         ActiveToolMode = CircuitToolMode.Select;
-        if (_canvas != null)
+        foreach (var c in AllCanvases)
         {
-            _canvas.ToolMode = CircuitToolMode.Select;
-            _canvas.InvalidateVisual();
+            c.ToolMode = CircuitToolMode.Select;
+            c.InvalidateVisual();
         }
         NotifySelectedWireProbeProperties();
     }
@@ -1207,10 +1226,10 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         };
 
         ActiveToolMode = mode;
-        if (_canvas != null)
+        foreach (var c in AllCanvases)
         {
-            _canvas.ToolMode = mode;
-            _canvas.PlacingDeviceType = null;
+            c.ToolMode = mode;
+            c.PlacingDeviceType = null;
         }
 
         StatusText = mode switch
@@ -1225,10 +1244,10 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public void StartPlacingDevice(string type)
     {
         ActiveToolMode = CircuitToolMode.Select;
-        if (_canvas != null)
+        foreach (var c in AllCanvases)
         {
-            _canvas.ToolMode = CircuitToolMode.Select;
-            _canvas.PlacingDeviceType = type;
+            c.ToolMode = CircuitToolMode.Select;
+            c.PlacingDeviceType = type;
         }
 
         StatusText = $"Placing {type.ToUpperInvariant()} - Click on canvas to drop. Press 'R' to rotate, Esc to cancel.";
@@ -1237,14 +1256,20 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public void RotateSelected()
     {
-        _canvas?.RotateSelected(clockwise: true);
+        foreach (var c in AllCanvases)
+        {
+            c.RotateSelected(clockwise: true);
+        }
         StatusText = "Rotated 90° Clockwise";
     }
 
     [RelayCommand]
     public void DeleteSelected()
     {
-        _canvas?.DeleteSelected();
+        foreach (var c in AllCanvases)
+        {
+            c.DeleteSelected();
+        }
         StatusText = "Deleted selection";
     }
 
@@ -1303,7 +1328,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
         NotifyLedPropertiesChanged();
 
-        _canvas?.InvalidateVisual();
+        InvalidateAllCanvases();
         StatusText = $"Set LED color to {led.ColorName} ({led.Wavelength:F0} nm, Vf ≈ {led.ForwardVoltage:F1} V)";
     }
 
@@ -1320,7 +1345,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                 _ => VoltageWaveformType.Dc
             };
             InspectorLabel = vs.WaveformType == VoltageWaveformType.Sine ? "Amplitude" : "Voltage";
-            _canvas?.InvalidateVisual();
+            InvalidateAllCanvases();
             StatusText = $"Set waveform to {vs.WaveformType}";
         }
     }
@@ -1342,9 +1367,12 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         {
             _solver.Step(subDt);
         }
-        _canvas?.ParticleEngine.Update(0.00025, SimulationSpeed);
+        foreach (var c in AllCanvases)
+        {
+            c.ParticleEngine.Update(0.00025, SimulationSpeed);
+            c.InvalidateVisual();
+        }
         UpdateOscilloscope();
-        _canvas?.InvalidateVisual();
         StatusText = $"Stepped to {_solver.CurrentTime * 1000.0:F2} ms";
     }
 
@@ -1352,14 +1380,18 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public void ResetSimulation()
     {
         _solver?.Reset();
-        _canvas?.InvalidateVisual();
+        InvalidateAllCanvases();
         StatusText = "Simulation Reset to 0.0 ms";
     }
 
     [RelayCommand]
     private void ZoomToFit()
     {
-        _canvas?.ZoomToFit();
+        foreach (var c in AllCanvases)
+        {
+            c.ZoomToFit();
+            c.InvalidateVisual();
+        }
         StatusText = "View centered to fit circuit";
     }
 

@@ -22,6 +22,8 @@ namespace FryCircuit.Plugin;
 /// </summary>
 public class CircuitPlugin : IFryPlugin
 {
+    private static MainWindowViewModel? _sharedViewModel;
+
     public string Id => "com.fryworld.circuit";
     public string Name => "Circuit Studio";
     public Version Version => new(1, 0, 0);
@@ -123,17 +125,15 @@ public class CircuitPlugin : IFryPlugin
             hostThemeService.ThemeChanged += t => FryCircuit.UI.Theming.CircuitThemeService.Instance.SetTheme(t);
         }
 
-        MainWindowViewModel? activeViewModel = null;
-
         MainWindowViewModel GetViewModel()
         {
-            if (activeViewModel == null)
+            if (_sharedViewModel == null)
             {
-                activeViewModel = MainWindowViewModel.ActiveInstance ?? new MainWindowViewModel(ctx);
-                ctx.RegisterDisposable(activeViewModel);
+                _sharedViewModel = MainWindowViewModel.ActiveInstance ?? new MainWindowViewModel(ctx);
+                ctx.RegisterDisposable(_sharedViewModel);
             }
-            MainWindowViewModel.ActiveInstance = activeViewModel;
-            return activeViewModel;
+            MainWindowViewModel.ActiveInstance = _sharedViewModel;
+            return _sharedViewModel;
         }
 
         CircuitStudioView CreateStudioView()
