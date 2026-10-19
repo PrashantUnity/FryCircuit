@@ -26,7 +26,7 @@ public class CircuitPlugin : IFryPlugin
 
     public string Id => "com.fryworld.circuit";
     public string Name => "Circuit Studio";
-    public Version Version => new(1, 0, 0);
+    public Version Version => new(1, 0, 3);
 
     public IReadOnlyList<Type> RequiredServices => Array.Empty<Type>();
 
