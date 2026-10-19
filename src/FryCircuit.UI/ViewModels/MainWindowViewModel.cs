@@ -300,6 +300,25 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             ? new GridLength(1, GridUnitType.Star) 
             : new GridLength(185, GridUnitType.Pixel));
 
+    // Collapsible Secondary CAD Drafting Ribbon State
+    [ObservableProperty]
+    private bool _isCadRibbonOpen = true;
+
+    partial void OnIsCadRibbonOpenChanged(bool value)
+    {
+        OnPropertyChanged(nameof(RibbonToggleIconKind));
+        OnPropertyChanged(nameof(RibbonToggleTooltip));
+    }
+
+    public string RibbonToggleIconKind => IsCadRibbonOpen ? "ChevronUp" : "ChevronDown";
+    public string RibbonToggleTooltip => IsCadRibbonOpen ? "Collapse CAD Ribbon (Ctrl+F1)" : "Expand CAD Ribbon (Ctrl+F1)";
+
+    [RelayCommand]
+    public void ToggleCadRibbon()
+    {
+        IsCadRibbonOpen = !IsCadRibbonOpen;
+    }
+
     [ObservableProperty]
     private string _componentSearchQuery = "";
 

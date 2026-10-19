@@ -336,6 +336,21 @@ public static class Program
             vm.IsOscilloscopeOpen = true;
             vm.IsOscilloscopeMaximized = true;
         });
+
+        // 4. CAD Drafting Ribbon Collapsed (Ultra-clean canvas mode)
+        CaptureLayoutVariant(outDir, "layout_ribbon_collapsed.png", vm =>
+        {
+            vm.LoadPreset("Half-Wave Rectifier");
+            for (int i = 0; i < 50; i++) vm.StepSimulationCommand.Execute(null);
+            vm.IsCadRibbonOpen = false;
+        });
+
+        // 5. Narrow Window (1040px width - test zero-overflow responsiveness)
+        CaptureLayoutVariant(outDir, "layout_narrow_window.png", vm =>
+        {
+            vm.LoadPreset("Half-Wave Rectifier");
+            for (int i = 0; i < 50; i++) vm.StepSimulationCommand.Execute(null);
+        }, windowWidth: 1040);
     }
 
     private static void CaptureWireProbingStates(string outDir)
@@ -368,15 +383,15 @@ public static class Program
         });
     }
 
-    private static void CaptureLayoutVariant(string outDir, string filenameOnly, Action<MainWindowViewModel> configure)
+    private static void CaptureLayoutVariant(string outDir, string filenameOnly, Action<MainWindowViewModel> configure, int windowWidth = 1380, int windowHeight = 850)
     {
         var studio = new CircuitStudioView();
         var vm = new MainWindowViewModel();
         studio.DataContext = vm;
         var window = new Window
         {
-            Width = 1380,
-            Height = 850,
+            Width = windowWidth,
+            Height = windowHeight,
             DataContext = vm,
             Content = studio
         };
@@ -403,7 +418,7 @@ public static class Program
         }
         else
         {
-            var pixelSize = new PixelSize(1380, 850);
+            var pixelSize = new PixelSize(windowWidth, windowHeight);
             using var rtb = new RenderTargetBitmap(pixelSize, new Vector(96, 96));
             rtb.Render(window);
             rtb.Save(filename);

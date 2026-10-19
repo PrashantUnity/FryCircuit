@@ -784,6 +784,13 @@ public partial class CircuitCanvas
             return;
         }
 
+        if (e.Key == Key.F1)
+        {
+            MainWindowViewModel.ActiveInstance?.ToggleCadRibbonCommand.Execute(null);
+            e.Handled = true;
+            return;
+        }
+
         switch (e.Key)
         {
             case Key.R:

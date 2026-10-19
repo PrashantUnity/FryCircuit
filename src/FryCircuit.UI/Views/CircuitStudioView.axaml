@@ -331,22 +331,24 @@
 
     <Grid RowDefinitions="Auto,*,Auto">
 
-        <!-- Top Header & Main Tool Controls -->
-        <Border Grid.Row="0" Background="{DynamicResource CircuitHeaderBgBrush}" 
-                BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="0,0,0,1" Padding="10,6">
-            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+        <!-- Master Command Architecture: Tier 1 (App & Simulation Transport) + Tier 2 (Collapsible Schematic Ribbon) -->
+        <StackPanel Grid.Row="0">
+            <!-- Tier 1: Master Application Header & Simulation Transport Center (Height: ~38px) -->
+            <Border Background="{DynamicResource CircuitHeaderBgBrush}" 
+                    BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="0,0,0,1" Padding="10,5">
+                <Grid ColumnDefinitions="Auto,*,Auto">
                     
-                    <!-- App Title & Logo -->
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="7" VerticalAlignment="Center" Margin="0,0,12,0">
-                        <Border CornerRadius="6" Width="26" Height="26" Background="{DynamicResource CircuitSurfaceHighBrush}"
-                                BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1">
-                            <material:MaterialIcon Kind="LightningBolt" Width="15" Height="15" 
-                                                   Foreground="{DynamicResource CircuitAccentBrush}" 
-                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <StackPanel VerticalAlignment="Center" Spacing="-1">
-                            <StackPanel Orientation="Horizontal" Spacing="5">
+                    <!-- Left: App Identity, File Badge, File Menu, & Presets -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <!-- App Title & Logo -->
+                        <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                            <Border CornerRadius="{DynamicResource CircuitRadiusSm}" Width="26" Height="26" Background="{DynamicResource CircuitSurfaceHighBrush}"
+                                    BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1">
+                                <material:MaterialIcon Kind="LightningBolt" Width="15" Height="15" 
+                                                       Foreground="{DynamicResource CircuitAccentBrush}" 
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                                 <TextBlock Text="FryCircuit" FontSize="{DynamicResource CircuitFontSizeTitle}" 
                                            FontWeight="Bold" Foreground="{DynamicResource CircuitTextWhiteBrush}" VerticalAlignment="Center"/>
                                 <Border Background="{DynamicResource CircuitSurfaceHighBrush}" 
@@ -361,27 +363,24 @@
                         <!-- File Status Badge / Name -->
                         <Border Background="{DynamicResource CircuitSurfaceHighBrush}" 
                                 BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
-                                CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="6,2.5" VerticalAlignment="Center" Margin="2,0,0,0">
-                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                <material:MaterialIcon Kind="FileDocumentOutline" Width="13" Height="13" 
+                                CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="5,3" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                <material:MaterialIcon Kind="FileDocumentOutline" Width="12" Height="12" 
                                                        Foreground="{DynamicResource CircuitTextDimBrush}" VerticalAlignment="Center"/>
-                                <TextBlock Text="{Binding CurrentFileName}" MaxWidth="110" TextTrimming="CharacterEllipsis" 
+                                <TextBlock Text="{Binding CurrentFileName}" MaxWidth="95" TextTrimming="CharacterEllipsis" 
                                            FontSize="{DynamicResource CircuitFontSizeBodySm}" FontWeight="SemiBold" 
                                            Foreground="{DynamicResource CircuitTextBrush}" VerticalAlignment="Center"/>
-                                <Border Width="6" Height="6" CornerRadius="3" Background="{DynamicResource CircuitAccentBrush}" 
-                                        IsVisible="{Binding IsDirty}" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                                <Border Width="5" Height="5" CornerRadius="2.5" Background="{DynamicResource CircuitAccentBrush}" 
+                                        IsVisible="{Binding IsDirty}" VerticalAlignment="Center" Margin="1,0,0,0"/>
                             </StackPanel>
                         </Border>
-                    </StackPanel>
 
-                    <!-- Tool Mode Selector & File Operations -->
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
                         <!-- File Menu Dropdown -->
-                        <Button Classes="modebtn" ToolTip.Tip="File Operations (New, Open, Save)">
-                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                        <Button Classes="toolbtn" Height="28" Padding="6,3" ToolTip.Tip="File Operations (New, Open, Save, Export)">
+                            <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
                                 <material:MaterialIcon Kind="FolderOutline" Width="13" Height="13" Foreground="{DynamicResource CircuitTextDimBrush}"/>
-                                <TextBlock Text="File" FontSize="{DynamicResource CircuitFontSizeBody}"/>
-                                <material:MaterialIcon Kind="ChevronDown" Width="11" Height="11" Foreground="{DynamicResource CircuitTextDimBrush}"/>
+                                <TextBlock Text="File" FontSize="{DynamicResource CircuitFontSizeBodySm}" FontWeight="SemiBold"/>
+                                <material:MaterialIcon Kind="ChevronDown" Width="10" Height="10" Foreground="{DynamicResource CircuitTextMutedBrush}"/>
                             </StackPanel>
                             <Button.Flyout>
                                 <MenuFlyout Placement="BottomEdgeAlignedLeft">
@@ -390,164 +389,24 @@
                                     <Separator/>
                                     <MenuItem Header="Save Circuit" Command="{Binding SaveCircuitCommand}" InputGesture="Ctrl+S"/>
                                     <MenuItem Header="Save Circuit As..." Command="{Binding SaveCircuitAsDialogCommand}" InputGesture="Ctrl+Shift+S"/>
+                                    <Separator/>
+                                    <MenuItem Header="Export SPICE Netlist..." Command="{Binding ToggleSpiceDrawerCommand}"/>
+                                    <MenuItem Header="Generate Bill of Materials (BOM)..." Command="{Binding ToggleBomDrawerCommand}"/>
+                                    <MenuItem Header="Open AI Circuit Deck Studio..." Command="{Binding ToggleLlmDrawerCommand}"/>
                                 </MenuFlyout>
                             </Button.Flyout>
                         </Button>
 
-                        <!-- Toggle Left Library Panel -->
-                        <ToggleButton Classes="modebtn" IsChecked="{Binding IsLeftPanelOpen, Mode=TwoWay}"
-                                      ToolTip.Tip="Toggle Component Library Panel">
-                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                                <material:MaterialIcon Kind="ViewGridOutline" Width="13" Height="13"/>
-                                <TextBlock Text="Lib" FontSize="{DynamicResource CircuitFontSizeBodySm}" FontWeight="SemiBold"/>
-                            </StackPanel>
-                        </ToggleButton>
-
-                        <!-- Toggle Oscilloscope Bottom Panel -->
-                        <ToggleButton Classes="modebtn" IsChecked="{Binding IsOscilloscopeOpen, Mode=TwoWay}"
-                                      ToolTip.Tip="Toggle Oscilloscope Signal Panel">
-                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                                <material:MaterialIcon Kind="SineWave" Width="13" Height="13"/>
-                                <TextBlock Text="Scope" FontSize="{DynamicResource CircuitFontSizeBodySm}" FontWeight="SemiBold"/>
-                            </StackPanel>
-                        </ToggleButton>
-
-                        <!-- Toggle Inspector Right Panel -->
-                        <ToggleButton Classes="modebtn" IsChecked="{Binding IsInspectorOpen, Mode=TwoWay}"
-                                      ToolTip.Tip="Toggle Circuit Inspector Panel">
-                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                                <material:MaterialIcon Kind="TuneVariant" Width="13" Height="13"/>
-                                <TextBlock Text="Props" FontSize="{DynamicResource CircuitFontSizeBodySm}" FontWeight="SemiBold"/>
-                            </StackPanel>
-                        </ToggleButton>
-
-                        <Separator Background="{DynamicResource CircuitBorderSubtleBrush}" Width="1" Height="16" Margin="2,0"/>
-
-                        <!-- Primary CAD Mode Segmented Bar -->
-                        <Border Background="{DynamicResource CircuitSurfaceLowBrush}" 
-                                BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
-                                CornerRadius="{DynamicResource CircuitRadiusMd}" Padding="2" VerticalAlignment="Center">
-                            <StackPanel Orientation="Horizontal" Spacing="2">
-                                <Button Classes="modebtn" Classes.active="{Binding IsSelectMode}" 
-                                        Command="{Binding SetToolModeCommand}" CommandParameter="select" ToolTip.Tip="Selection &amp; Drag Mode (V)">
-                                    <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
-                                        <material:MaterialIcon Kind="CursorDefaultOutline" Width="12" Height="12"/>
-                                        <TextBlock Text="Select"/>
-                                    </StackPanel>
-                                </Button>
-                                <Button Classes="modebtn" Classes.active="{Binding IsWireMode}" 
-                                        Command="{Binding SetToolModeCommand}" CommandParameter="wire" ToolTip.Tip="Schematic Wiring Mode (W)">
-                                    <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
-                                        <material:MaterialIcon Kind="VectorPolyline" Width="12" Height="12"/>
-                                        <TextBlock Text="Wire"/>
-                                    </StackPanel>
-                                </Button>
-                                <Button Classes="modebtn" Classes.active="{Binding IsCutMode}" 
-                                        Command="{Binding SetToolModeCommand}" CommandParameter="cut" ToolTip.Tip="Wire Cutting Tool (X)">
-                                    <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
-                                        <material:MaterialIcon Kind="ContentCut" Width="12" Height="12"/>
-                                        <TextBlock Text="Cut"/>
-                                    </StackPanel>
-                                </Button>
-                            </StackPanel>
-                        </Border>
-
-                        <Button Classes="modebtn" ToolTip.Tip="Rotate 90° Clockwise (R)" Command="{Binding RotateSelectedCommand}">
-                            <material:MaterialIcon Kind="RotateRight" Width="13" Height="13"/>
-                        </Button>
-                        <Button Classes="modebtn" ToolTip.Tip="Delete Selected (Del)" Command="{Binding DeleteSelectedCommand}">
-                            <material:MaterialIcon Kind="TrashCanOutline" Width="13" Height="13"/>
-                        </Button>
-
-                        <Separator Background="{DynamicResource CircuitBorderSubtleBrush}" Width="1" Height="16" Margin="2,0"/>
-
-                        <Button Classes="modebtn" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" ToolTip.Tip="{Binding UndoLabel}">
-                            <material:MaterialIcon Kind="Undo" Width="13" Height="13"/>
-                        </Button>
-                        <Button Classes="modebtn" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" ToolTip.Tip="{Binding RedoLabel}">
-                            <material:MaterialIcon Kind="Redo" Width="13" Height="13"/>
-                        </Button>
-
-                        <Separator Background="{DynamicResource CircuitBorderSubtleBrush}" Width="1" Height="16" Margin="2,0"/>
-
-                        <!-- Live Circuit Visual Overlays -->
-                        <ToggleButton Classes="modebtn" IsChecked="{Binding ShowCurrentAnnotations, Mode=TwoWay}"
-                                      ToolTip.Tip="Toggle Live Branch Currents (Animated direction arrows &amp; values)">
-                            <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
-                                <material:MaterialIcon Kind="LightningBoltCircle" Width="13" Height="13"/>
-                                <TextBlock Text="I" FontSize="{DynamicResource CircuitFontSizeBodySm}" FontWeight="Bold"/>
-                            </StackPanel>
-                        </ToggleButton>
-                        <ToggleButton Classes="modebtn" IsChecked="{Binding ShowVoltageAnnotations, Mode=TwoWay}"
-                                      ToolTip.Tip="Toggle Live Node Voltages (Junction &amp; rail badges)">
-                            <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
-                                <material:MaterialIcon Kind="AlphaVCircleOutline" Width="13" Height="13"/>
-                                <TextBlock Text="V" FontSize="{DynamicResource CircuitFontSizeBodySm}" FontWeight="Bold"/>
-                            </StackPanel>
-                        </ToggleButton>
-                    </StackPanel>
-
-                    <!-- Right: Simulation Controls, Presets, and Theme Switcher -->
-                    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="4,0,2,0">
-                        <!-- Simulation Play/Pause -->
-                        <Button Classes="toolbtn" Classes.simplay="{Binding IsSimulating}" Command="{Binding ToggleSimulationCommand}">
-                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                                <material:MaterialIcon Kind="{Binding PlayPauseIconKind}" Width="13" Height="13"/>
-                                <TextBlock Text="{Binding PlayPauseButtonText}" FontWeight="Bold"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Classes="toolbtn" ToolTip.Tip="Restart Simulation: Reset time to 0 ms, clear charges &amp; restore all components (Ctrl+R)" Command="{Binding ResetSimulationCommand}">
-                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                                <material:MaterialIcon Kind="Restart" Width="13" Height="13" Foreground="{DynamicResource CircuitWarningBrush}"/>
-                                <TextBlock Text="Restart" FontWeight="SemiBold"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Classes="toolbtn" ToolTip.Tip="Single Step (0.25 ms)" Command="{Binding StepSimulationCommand}">
-                            <material:MaterialIcon Kind="StepForward" Width="13" Height="13"/>
-                        </Button>
-                        <Button Classes="toolbtn" ToolTip.Tip="Zoom to Fit Canvas" Command="{Binding ZoomToFitCommand}">
-                            <material:MaterialIcon Kind="FitToScreenOutline" Width="13" Height="13"/>
-                        </Button>
-                        <Button Classes="toolbtn" Command="{Binding ToggleSpiceDrawerCommand}" ToolTip.Tip="Inspect &amp; export Berkeley SPICE / LTspice netlist">
-                            <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
-                                <material:MaterialIcon Kind="CodeJson" Width="13" Height="13"/>
-                                <TextBlock Text="SPICE" FontSize="{DynamicResource CircuitFontSizeBodySm}" FontWeight="Bold"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Classes="toolbtn" Command="{Binding ToggleBomDrawerCommand}" ToolTip.Tip="Generate and view manufacturing Bill of Materials">
-                            <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
-                                <material:MaterialIcon Kind="FileTableOutline" Width="13" Height="13"/>
-                                <TextBlock Text="BOM" FontSize="{DynamicResource CircuitFontSizeBodySm}" FontWeight="Bold"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Classes="toolbtn" Command="{Binding ToggleLlmDrawerCommand}" ToolTip.Tip="AI Circuit Assistant: Prompt, Schema &amp; .fcircuit Deck">
-                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                                <material:MaterialIcon Kind="AutoFixHigh" Width="13" Height="13" Foreground="{DynamicResource CircuitAccentCyanBrush}"/>
-                                <TextBlock Text="AI DECK" FontSize="{DynamicResource CircuitFontSizeBodySm}" FontWeight="Bold"/>
-                            </StackPanel>
-                        </Button>
-
-                        <!-- Simulation Speed Slider -->
-                        <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center" Margin="2,0,2,0">
-                            <Slider Width="44" Minimum="0.1" Maximum="4.0" Value="{Binding SimulationSpeed}" VerticalAlignment="Center"/>
-                            <Border Background="{DynamicResource CircuitSurfaceLowBrush}" 
-                                    BorderBrush="{DynamicResource CircuitBorderBrush}" BorderThickness="1" 
-                                    CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="4,1.5" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding SimulationSpeed, StringFormat='{}{0:F1}x'}" 
-                                           Foreground="{DynamicResource CircuitTextDimBrush}" FontWeight="Bold" 
-                                           FontSize="{DynamicResource CircuitFontSizeMicro}" FontFamily="{DynamicResource CircuitCodeFont}" VerticalAlignment="Center"/>
-                            </Border>
-                        </StackPanel>
-
-                        <!-- Presets Selection -->
+                        <!-- Curated Circuit Presets Dropdown -->
                         <ComboBox ItemsSource="{Binding AvailablePresets}" 
                                   SelectedItem="{Binding SelectedPreset}"
-                                  Width="160" MaxDropDownHeight="360"
+                                  Width="120" Height="28" MaxDropDownHeight="360"
                                   Background="{DynamicResource CircuitSurfaceHighBrush}" 
                                   Foreground="{DynamicResource CircuitTextBrush}" 
-                                  BorderBrush="{DynamicResource CircuitBorderBrush}" 
-                                  CornerRadius="{DynamicResource CircuitRadiusMd}" 
+                                  BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" 
+                                  CornerRadius="{DynamicResource CircuitRadiusSm}" 
                                   FontSize="{DynamicResource CircuitFontSizeSmall}"
+                                  VerticalAlignment="Center"
                                   ToolTip.Tip="{Binding SelectedPreset}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
@@ -555,15 +414,251 @@
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
+                    </StackPanel>
 
-                        <!-- Theme Toggle Button (Dark <-> Light) -->
-                        <Button Classes="toolbtn" Command="{Binding ToggleThemeCommand}" ToolTip.Tip="{Binding ThemeTooltip}">
-                            <material:MaterialIcon Kind="{Binding ThemeIconKind}" Width="14" Height="14" Foreground="{DynamicResource CircuitAccentBrush}"/>
+                    <!-- Center: Prominent Simulation Transport Hub -->
+                    <Border Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Background="{DynamicResource CircuitSurfaceLowBrush}"
+                            BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1"
+                            CornerRadius="{DynamicResource CircuitRadiusLg}" Padding="3,2">
+                        <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
+                            <!-- Play / Pause Button -->
+                            <Button Classes="toolbtn" Classes.simplay="{Binding IsSimulating}" Height="28" Padding="8,3"
+                                    Command="{Binding ToggleSimulationCommand}"
+                                    ToolTip.Tip="{Binding PlayPauseButtonText}">
+                                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                    <material:MaterialIcon Kind="{Binding PlayPauseIconKind}" Width="13" Height="13"/>
+                                    <TextBlock Text="{Binding PlayPauseButtonText}" FontWeight="Bold" FontSize="{DynamicResource CircuitFontSizeBodySm}"/>
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Restart Button -->
+                            <Button Classes="toolbtn" Height="28" Width="26" Padding="0" Command="{Binding ResetSimulationCommand}"
+                                    ToolTip.Tip="Restart Simulation: Reset time to 0 ms, clear charges &amp; restore all components (Ctrl+R)">
+                                <material:MaterialIcon Kind="Restart" Width="13" Height="13" Foreground="{DynamicResource CircuitWarningBrush}"/>
+                            </Button>
+
+                            <!-- Single Step Button -->
+                            <Button Classes="toolbtn" Height="28" Width="26" Padding="0" Command="{Binding StepSimulationCommand}"
+                                    ToolTip.Tip="Single Step (0.25 ms)">
+                                <material:MaterialIcon Kind="StepForward" Width="13" Height="13"/>
+                            </Button>
+
+                            <Separator Background="{DynamicResource CircuitBorderSubtleBrush}" Width="1" Height="16" Margin="1,0"/>
+
+                            <!-- Speed Slider & Multiplier Badge -->
+                            <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center" Margin="1,0" ToolTip.Tip="Simulation Speed Multiplier">
+                                <material:MaterialIcon Kind="Speedometer" Width="11" Height="11" Foreground="{DynamicResource CircuitTextMutedBrush}"/>
+                                <Slider Width="36" Minimum="0.1" Maximum="4.0" Value="{Binding SimulationSpeed}" VerticalAlignment="Center"/>
+                                <Border Background="{DynamicResource CircuitSurfaceLowestBrush}" 
+                                        BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
+                                        CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="3,1.5" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding SimulationSpeed, StringFormat='{}{0:F1}x'}" 
+                                               Foreground="{DynamicResource CircuitTextDimBrush}" FontWeight="Bold" 
+                                               FontSize="{DynamicResource CircuitFontSizeMicro}" FontFamily="{DynamicResource CircuitCodeFont}" VerticalAlignment="Center"/>
+                                </Border>
+                            </StackPanel>
+
+                            <Separator Background="{DynamicResource CircuitBorderSubtleBrush}" Width="1" Height="16" Margin="1,0"/>
+
+                            <!-- Live Visual Overlays: Current (I) & Voltage (V) -->
+                            <Border Background="{DynamicResource CircuitSurfaceLowestBrush}" 
+                                    BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
+                                    CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="1" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Spacing="1">
+                                    <ToggleButton Classes="modebtn" IsChecked="{Binding ShowCurrentAnnotations, Mode=TwoWay}"
+                                                  Height="24" Padding="5,2"
+                                                  ToolTip.Tip="Toggle Live Branch Currents (Animated direction arrows &amp; values)">
+                                        <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                                            <material:MaterialIcon Kind="LightningBoltCircle" Width="11" Height="11"/>
+                                            <TextBlock Text="I" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold"/>
+                                        </StackPanel>
+                                    </ToggleButton>
+                                    <ToggleButton Classes="modebtn" IsChecked="{Binding ShowVoltageAnnotations, Mode=TwoWay}"
+                                                  Height="24" Padding="5,2"
+                                                  ToolTip.Tip="Toggle Live Node Voltages (Junction &amp; rail badges)">
+                                        <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                                            <material:MaterialIcon Kind="AlphaVCircleOutline" Width="11" Height="11"/>
+                                            <TextBlock Text="V" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold"/>
+                                        </StackPanel>
+                                    </ToggleButton>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Right: AI Deck, Panel Toggles, Theme, Ribbon Collapse -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <!-- AI DECK Button -->
+                        <Button Classes="toolbtn" Height="28" Padding="7,3" Command="{Binding ToggleLlmDrawerCommand}"
+                                ToolTip.Tip="AI Circuit Assistant: Prompt, Schema &amp; .fcircuit Deck">
+                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                <material:MaterialIcon Kind="AutoFixHigh" Width="13" Height="13" Foreground="{DynamicResource CircuitAccentCyanBrush}"/>
+                                <TextBlock Text="AI DECK" FontSize="{DynamicResource CircuitFontSizeBodySm}" FontWeight="Bold" Foreground="{DynamicResource CircuitAccentCyanBrush}"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Separator Background="{DynamicResource CircuitBorderSubtleBrush}" Width="1" Height="16" Margin="1,0"/>
+
+                        <!-- Panel Visibility Segmented Pill: [ Lib | Scope | Props ] -->
+                        <Border Background="{DynamicResource CircuitSurfaceLowBrush}" 
+                                BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
+                                CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="1" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="1">
+                                <ToggleButton Classes="modebtn" IsChecked="{Binding IsLeftPanelOpen, Mode=TwoWay}"
+                                              Height="24" Padding="6,2" ToolTip.Tip="Toggle Component Library (L)">
+                                    <material:MaterialIcon Kind="ViewGridOutline" Width="13" Height="13"/>
+                                </ToggleButton>
+                                <ToggleButton Classes="modebtn" IsChecked="{Binding IsOscilloscopeOpen, Mode=TwoWay}"
+                                              Height="24" Padding="6,2" ToolTip.Tip="Toggle Oscilloscope Signal Panel (O)">
+                                    <material:MaterialIcon Kind="SineWave" Width="13" Height="13"/>
+                                </ToggleButton>
+                                <ToggleButton Classes="modebtn" IsChecked="{Binding IsInspectorOpen, Mode=TwoWay}"
+                                              Height="24" Padding="6,2" ToolTip.Tip="Toggle Circuit Inspector Panel (I)">
+                                    <material:MaterialIcon Kind="TuneVariant" Width="13" Height="13"/>
+                                </ToggleButton>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Theme Toggle (Dark <-> Light) -->
+                        <Button Classes="toolbtn" Height="28" Width="28" Padding="0" Command="{Binding ToggleThemeCommand}" ToolTip.Tip="{Binding ThemeTooltip}">
+                            <material:MaterialIcon Kind="{Binding ThemeIconKind}" Width="13" Height="13" Foreground="{DynamicResource CircuitAccentBrush}"/>
+                        </Button>
+
+                        <Separator Background="{DynamicResource CircuitBorderSubtleBrush}" Width="1" Height="16" Margin="1,0"/>
+
+                        <!-- Ribbon Collapse / Expand Toggle Button -->
+                        <Button Classes="toolbtn" Height="28" Width="28" Padding="0" Command="{Binding ToggleCadRibbonCommand}" 
+                                ToolTip.Tip="{Binding RibbonToggleTooltip}">
+                            <material:MaterialIcon Kind="{Binding RibbonToggleIconKind}" Width="13" Height="13" Foreground="{DynamicResource CircuitTextDimBrush}"/>
                         </Button>
                     </StackPanel>
                 </Grid>
-            </ScrollViewer>
-        </Border>
+            </Border>
+
+            <!-- Tier 2: Collapsible Schematic CAD Ribbon (Drafting, Editing & Analysis Tools) -->
+            <Border Background="{DynamicResource CircuitSurfaceLowBrush}" 
+                    BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="0,0,0,1" 
+                    Padding="10,3" IsVisible="{Binding IsCadRibbonOpen}">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <!-- Left: CAD Modes, Transforms, History, View, Analysis -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <!-- CAD Mode Segmented Bar: Select, Wire, Cut -->
+                        <Border Background="{DynamicResource CircuitSurfaceLowestBrush}" 
+                                BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
+                                CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="1" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="1">
+                                <Button Classes="modebtn" Classes.active="{Binding IsSelectMode}" 
+                                        Height="24" Padding="8,2"
+                                        Command="{Binding SetToolModeCommand}" CommandParameter="select" ToolTip.Tip="Selection &amp; Drag Mode (V)">
+                                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                        <material:MaterialIcon Kind="CursorDefaultOutline" Width="12" Height="12"/>
+                                        <TextBlock Text="Select" FontSize="{DynamicResource CircuitFontSizeBodySm}"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Classes="modebtn" Classes.active="{Binding IsWireMode}" 
+                                        Height="24" Padding="8,2"
+                                        Command="{Binding SetToolModeCommand}" CommandParameter="wire" ToolTip.Tip="Schematic Wiring Mode (W)">
+                                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                        <material:MaterialIcon Kind="VectorPolyline" Width="12" Height="12"/>
+                                        <TextBlock Text="Wire" FontSize="{DynamicResource CircuitFontSizeBodySm}"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Classes="modebtn" Classes.active="{Binding IsCutMode}" 
+                                        Height="24" Padding="8,2"
+                                        Command="{Binding SetToolModeCommand}" CommandParameter="cut" ToolTip.Tip="Wire Cutting Tool (X)">
+                                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                        <material:MaterialIcon Kind="ContentCut" Width="12" Height="12"/>
+                                        <TextBlock Text="Cut" FontSize="{DynamicResource CircuitFontSizeBodySm}"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+
+                        <Separator Background="{DynamicResource CircuitBorderSubtleBrush}" Width="1" Height="16" Margin="2,0"/>
+
+                        <!-- Geometry Transforms: Rotate & Delete -->
+                        <Border Background="{DynamicResource CircuitSurfaceLowestBrush}" 
+                                BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
+                                CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="1" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="1">
+                                <Button Classes="modebtn" Height="24" Width="26" Padding="0"
+                                        ToolTip.Tip="Rotate 90° Clockwise (R)" Command="{Binding RotateSelectedCommand}">
+                                    <material:MaterialIcon Kind="RotateRight" Width="13" Height="13"/>
+                                </Button>
+                                <Button Classes="modebtn" Height="24" Width="26" Padding="0"
+                                        ToolTip.Tip="Delete Selected (Del)" Command="{Binding DeleteSelectedCommand}">
+                                    <material:MaterialIcon Kind="TrashCanOutline" Width="13" Height="13"/>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+
+                        <Separator Background="{DynamicResource CircuitBorderSubtleBrush}" Width="1" Height="16" Margin="2,0"/>
+
+                        <!-- History: Undo & Redo -->
+                        <Border Background="{DynamicResource CircuitSurfaceLowestBrush}" 
+                                BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
+                                CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="1" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="1">
+                                <Button Classes="modebtn" Height="24" Width="26" Padding="0"
+                                        Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" ToolTip.Tip="{Binding UndoLabel}">
+                                    <material:MaterialIcon Kind="Undo" Width="13" Height="13"/>
+                                </Button>
+                                <Button Classes="modebtn" Height="24" Width="26" Padding="0"
+                                        Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" ToolTip.Tip="{Binding RedoLabel}">
+                                    <material:MaterialIcon Kind="Redo" Width="13" Height="13"/>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+
+                        <Separator Background="{DynamicResource CircuitBorderSubtleBrush}" Width="1" Height="16" Margin="2,0"/>
+
+                        <!-- Canvas View: Zoom to Fit -->
+                        <Button Classes="modebtn" Height="26" Padding="7,2" ToolTip.Tip="Zoom to Fit Canvas (F)" Command="{Binding ZoomToFitCommand}">
+                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                <material:MaterialIcon Kind="FitToScreenOutline" Width="12" Height="12"/>
+                                <TextBlock Text="Fit" FontSize="{DynamicResource CircuitFontSizeBodySm}"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Separator Background="{DynamicResource CircuitBorderSubtleBrush}" Width="1" Height="16" Margin="2,0"/>
+
+                        <!-- Quick Analysis Drawers: SPICE & BOM -->
+                        <Border Background="{DynamicResource CircuitSurfaceLowestBrush}" 
+                                BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
+                                CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="1" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="1">
+                                <Button Classes="modebtn" Height="24" Padding="7,2" Command="{Binding ToggleSpiceDrawerCommand}" 
+                                        ToolTip.Tip="Inspect &amp; export Berkeley SPICE / LTspice netlist">
+                                    <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
+                                        <material:MaterialIcon Kind="CodeJson" Width="12" Height="12"/>
+                                        <TextBlock Text="SPICE" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Classes="modebtn" Height="24" Padding="7,2" Command="{Binding ToggleBomDrawerCommand}" 
+                                        ToolTip.Tip="Generate and view manufacturing Bill of Materials">
+                                    <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
+                                        <material:MaterialIcon Kind="FileTableOutline" Width="12" Height="12"/>
+                                        <TextBlock Text="BOM" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Right: Active Tool Context Hint -->
+                    <Border Grid.Column="2" Background="{DynamicResource CircuitSurfaceLowestBrush}" 
+                            BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
+                            CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="8,3" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <material:MaterialIcon Kind="InformationOutline" Width="12" Height="12" Foreground="{DynamicResource CircuitAccentBrush}"/>
+                            <TextBlock Text="{Binding StatusText}" MaxWidth="450" TextTrimming="CharacterEllipsis" 
+                                       FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitTextMutedBrush}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+        </StackPanel>
 
         <!-- Main Workspace: Left Library Sidebar + Canvas & Probes + Right Inspector Sidebar -->
         <Grid Grid.Row="1">
