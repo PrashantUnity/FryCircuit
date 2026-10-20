@@ -1,3 +1,4 @@
+using FryCircuit.Core.Devices;
 using FryCircuit.Core.Models;
 
 namespace FryCircuit.Core.Simulation;
@@ -285,8 +286,33 @@ public class ParticleFlowEngine
             return (exit1 - exit2) / 2.0;
         }
 
-        // 4. Sum the currents exiting into the node from all device pins in the fromPin component.
-        // By KCL, this net sum is precisely the current flowing across 'wire' towards toPin.
+        // 4. Sum the currents exiting into the node from device pins in the component.
+        // By KCL, Current(from -> to) = Sum(currents exiting fromPin component into node).
+        // If the fromPin component contains a Ground device (where return current is not counted in GetPinExitCurrent),
+        // we use the symmetric KCL equality: Current(from -> to) = - Sum(currents exiting toPin component).
+        bool fromComponentHasGround = visited.Any(p =>
+        {
+            var dev = circuit.Devices.FirstOrDefault(d => d.Id == p.DevId);
+            return dev != null && (dev.Type == "ground" || dev is GroundDevice);
+        });
+
+        if (fromComponentHasGround)
+        {
+            double toComponentCurrent = 0.0;
+            foreach (var dev in circuit.Devices)
+            {
+                for (int i = 0; i < dev.Pins.Count; i++)
+                {
+                    if (dev.Pins[i].NodeId == nodeId && !visited.Contains((dev.Id, i)))
+                    {
+                        toComponentCurrent += GetPinExitCurrent(dev, i);
+                    }
+                }
+            }
+            if (Math.Abs(toComponentCurrent) < 1e-12) return 0.0;
+            return -toComponentCurrent;
+        }
+
         double netCurrent = 0.0;
         foreach (var (devId, pinIdx) in visited)
         {

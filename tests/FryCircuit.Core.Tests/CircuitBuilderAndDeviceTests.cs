@@ -439,6 +439,52 @@ public class CircuitBuilderAndDeviceTests
     }
 
     [Fact]
+    public void SpiceNetlistEngine_ExportsSemiconductorsFusesAndActiveDevices()
+    {
+        var circuit = new Circuit("Active Devices SPICE Deck");
+        circuit.GetOrCreateNode(0, isGround: true);
+        circuit.GetOrCreateNode(1);
+        circuit.GetOrCreateNode(2);
+        circuit.GetOrCreateNode(3);
+
+        var bjt = new BjtDevice(1, "npn");
+        bjt.Pins[0].NodeId = 1; // Base
+        bjt.Pins[1].NodeId = 2; // Collector
+        bjt.Pins[2].NodeId = 0; // Emitter
+        circuit.AddDevice(bjt);
+
+        var op = new OpAmpDevice(2);
+        op.Pins[0].NodeId = 1;
+        op.Pins[1].NodeId = 0;
+        op.Pins[2].NodeId = 3;
+        circuit.AddDevice(op);
+
+        var fuse = new FuseDevice(3, currentRating: 2.5);
+        fuse.Pins[0].NodeId = 2;
+        fuse.Pins[1].NodeId = 3;
+        circuit.AddDevice(fuse);
+
+        var sw = new SwitchDevice(4);
+        sw.Pins[0].NodeId = 1;
+        sw.Pins[1].NodeId = 3;
+        circuit.AddDevice(sw);
+
+        var t555 = new Timer555Device(5);
+        for (int i = 0; i < 8; i++) t555.Pins[i].NodeId = i % 4;
+        circuit.AddDevice(t555);
+
+        string spice = FryCircuit.Core.IO.SpiceNetlistEngine.ExportSpice(circuit);
+
+        Assert.Contains("Q1 N2 N1 0 NPN_MOD_1", spice);
+        Assert.Contains(".MODEL NPN_MOD_1 NPN", spice);
+        Assert.Contains("E2 N3 0 0 N1 100000", spice);
+        Assert.Contains("R_FUSE3 N2 N3", spice);
+        Assert.Contains("R_SW4 N1 N3", spice);
+        Assert.Contains("X555_5", spice);
+        Assert.Contains(".SUBCKT NE555", spice);
+    }
+
+    [Fact]
     public void BatteryCell_CalculatesAccurateSocAndArrheniusInternalEsr()
     {
         var bat = new FryCircuit.Core.Devices.Battery.BatteryCellDevice(1, 0, 0)

@@ -726,7 +726,7 @@ public partial class CircuitCanvas
                 {
                     if (kvp.Key.LocationX != kvp.Value.X || kvp.Key.LocationY != kvp.Value.Y)
                     {
-                        moveActions.Add(new MoveDeviceAction(kvp.Key, kvp.Value.X, kvp.Value.Y, kvp.Key.LocationX, kvp.Key.LocationY));
+                        moveActions.Add(new MoveDeviceAction(kvp.Key, kvp.Value.X, kvp.Value.Y, kvp.Key.LocationX, kvp.Key.LocationY, Circuit));
                     }
                 }
                 if (moveActions.Count > 0)
@@ -736,7 +736,7 @@ public partial class CircuitCanvas
             }
             if (_draggedDevice != null && (_draggedDevice.LocationX != _deviceDragStartPos.X || _draggedDevice.LocationY != _deviceDragStartPos.Y))
             {
-                HistoryManager?.Record(new MoveDeviceAction(_draggedDevice, _deviceDragStartPos.X, _deviceDragStartPos.Y, _draggedDevice.LocationX, _draggedDevice.LocationY));
+                HistoryManager?.Record(new MoveDeviceAction(_draggedDevice, _deviceDragStartPos.X, _deviceDragStartPos.Y, _draggedDevice.LocationX, _draggedDevice.LocationY, Circuit));
             }
 
             if (Circuit != null)

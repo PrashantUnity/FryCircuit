@@ -4,6 +4,11 @@
              x:Class="FryCircuit.Plugin.Runner.App"
              Name="FryCircuit Studio"
              RequestedThemeVariant="Dark">
+    <NativeMenu.Menu>
+        <NativeMenu>
+            <NativeMenuItem Header="About FryCircuit Studio" Click="AboutMenuItem_OnClick" />
+        </NativeMenu>
+    </NativeMenu.Menu>
     <Application.Styles>
         <FluentTheme />
         <materialIcons:MaterialIconStyles />

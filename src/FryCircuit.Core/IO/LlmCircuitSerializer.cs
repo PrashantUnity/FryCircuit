@@ -70,13 +70,12 @@ public static class LlmCircuitSerializer
         // Check if any NetLabel devices provide semantic names for nodes
         foreach (var dev in circuit.Devices)
         {
-            if (dev.Type.Equals("netlabel", StringComparison.OrdinalIgnoreCase) && dev.Pins.Count > 0)
+            if (dev is NetLabelDevice nl && nl.Pins.Count > 0 && !string.IsNullOrWhiteSpace(nl.NetName))
             {
-                string? label = dev.Parameters.TryGetValue("label", out _) ? null : null;
-                // Check if label parameter or property exists
-                if (dev.Pins[0].NodeId > 0 && !string.IsNullOrWhiteSpace(dev.Type))
+                int nodeId = nl.Pins[0].NodeId;
+                if (nodeId > 0 && nodeToNetName.ContainsKey(nodeId))
                 {
-                    // If node is not ground, we can use label
+                    nodeToNetName[nodeId] = nl.NetName.Trim();
                 }
             }
         }

@@ -37,17 +37,46 @@ public class OpAmpDevice : Device, IDeviceSimulation
     {
         if (Pins.Count < 3) return;
 
-        double vInverting = ctx.GetNodeVoltage(Pins[0].NodeId);
-        double vNonInverting = ctx.GetNodeVoltage(Pins[1].NodeId);
-        double vDiff = vNonInverting - vInverting;
-        double targetV = Math.Clamp(vDiff * Gain, MinVoltage, MaxVoltage);
+        int invNode = Pins[0].NodeId;
+        int nonInvNode = Pins[1].NodeId;
+        int outNode = Pins[2].NodeId;
 
-        // Output behaves as voltage source with small series resistance
         double rOut = 1.0;
-        ctx.StampConductance(Pins[2].NodeId, -1, 1.0 / rOut);
-        if (ctx.NodeIndexMap.TryGetValue(Pins[2].NodeId, out int outRow))
+        double gOut = 1.0 / rOut;
+        ctx.StampConductance(outNode, -1, gOut);
+
+        double vInverting = ctx.GetNodeVoltage(invNode);
+        double vNonInverting = ctx.GetNodeVoltage(nonInvNode);
+        double vDiff = vNonInverting - vInverting;
+
+        double vDiffMax = MaxVoltage / Gain;
+        double vDiffMin = MinVoltage / Gain;
+
+        if (vDiff >= vDiffMin && vDiff <= vDiffMax)
         {
-            ctx.B[outRow] += targetV / rOut;
+            // Linear operating region: stamp small-signal transconductance into matrix G
+            // Equation: I_out = gOut * V_out - gm * V_plus + gm * V_minus
+            double gm = Gain * gOut;
+            if (ctx.NodeIndexMap.TryGetValue(outNode, out int outRow))
+            {
+                if (ctx.NodeIndexMap.TryGetValue(nonInvNode, out int nonInvCol))
+                {
+                    ctx.G[outRow, nonInvCol] -= gm;
+                }
+                if (ctx.NodeIndexMap.TryGetValue(invNode, out int invCol))
+                {
+                    ctx.G[outRow, invCol] += gm;
+                }
+            }
+        }
+        else
+        {
+            // Saturated region: clamped at power rails
+            double targetV = vDiff > vDiffMax ? MaxVoltage : MinVoltage;
+            if (ctx.NodeIndexMap.TryGetValue(outNode, out int outRow))
+            {
+                ctx.B[outRow] += targetV * gOut;
+            }
         }
     }
 

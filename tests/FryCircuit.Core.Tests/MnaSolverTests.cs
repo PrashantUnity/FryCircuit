@@ -667,5 +667,170 @@ public class MnaSolverTests
         Assert.False(led.IsBlown);
         Assert.Null(led.BlownReason);
     }
+
+    [Fact]
+    public void OpAmp_InvertingAmplifier_ClosedLoopLinearOutput()
+    {
+        // Vin = 1.0V -> Rin = 10k -> Inverting Node (2)
+        // Rf = 20k from Inverting Node (2) to Output Node (3)
+        // Non-inverting input (Pin 1) tied to Ground (0)
+        // Ideal expected Vout = - (Rf / Rin) * Vin = -2.0 V
+        var circuit = new Circuit("InvertingOpAmpTest");
+        circuit.GetOrCreateNode(0, isGround: true);
+        circuit.GetOrCreateNode(1); // Vin
+        circuit.GetOrCreateNode(2); // Vinv (-)
+        circuit.GetOrCreateNode(3); // Vout
+
+        var vs = new VoltageSourceDevice(1, voltage: 1.0);
+        vs.Pins[0].NodeId = 1;
+        vs.Pins[1].NodeId = 0;
+        circuit.AddDevice(vs);
+
+        var rIn = new ResistorDevice(2, resistance: 10000.0);
+        rIn.Pins[0].NodeId = 1;
+        rIn.Pins[1].NodeId = 2;
+        circuit.AddDevice(rIn);
+
+        var rF = new ResistorDevice(3, resistance: 20000.0);
+        rF.Pins[0].NodeId = 2;
+        rF.Pins[1].NodeId = 3;
+        circuit.AddDevice(rF);
+
+        var opAmp = new OpAmpDevice(4)
+        {
+            Gain = 100000.0,
+            MinVoltage = -15.0,
+            MaxVoltage = 15.0
+        };
+        opAmp.Pins[0].NodeId = 2; // Inverting (-)
+        opAmp.Pins[1].NodeId = 0; // Non-inverting (+) -> GND
+        opAmp.Pins[2].NodeId = 3; // Output
+        circuit.AddDevice(opAmp);
+
+        var solver = new MnaSolver(circuit);
+        solver.Step(1e-4);
+
+        double vOut = circuit.Nodes[3].Voltage;
+        double vInv = circuit.Nodes[2].Voltage;
+
+        // Vout should be very close to -2.0V
+        Assert.InRange(vOut, -2.001, -1.999);
+        // Virtual ground at node 2 should be within microvolts of 0V
+        Assert.InRange(vInv, -1e-4, 1e-4);
+    }
+
+    [Fact]
+    public void Multiple_Ground_Symbols_Unify_To_Common_Reference()
+    {
+        var circuit = new Circuit("MultiGroundTest");
+        // Place two separate ground devices on initially distinct nodes
+        var gnd1 = new GroundDevice(1, x: 0, y: 0);
+        gnd1.Pins[0].NodeId = 2;
+        circuit.AddDevice(gnd1);
+
+        var gnd2 = new GroundDevice(2, x: 10, y: 0);
+        gnd2.Pins[0].NodeId = 5;
+        circuit.AddDevice(gnd2);
+
+        circuit.GetOrCreateNode(1);
+        circuit.GetOrCreateNode(2);
+        circuit.GetOrCreateNode(5);
+
+        // Add 5V source between node 1 and gnd1 (node 2)
+        var vs = new VoltageSourceDevice(3, voltage: 5.0);
+        vs.Pins[0].NodeId = 1;
+        vs.Pins[1].NodeId = 2;
+        circuit.AddDevice(vs);
+
+        // Add 100 ohm resistor between node 1 and gnd2 (node 5)
+        var res = new ResistorDevice(4, resistance: 100.0);
+        res.Pins[0].NodeId = 1;
+        res.Pins[1].NodeId = 5;
+        circuit.AddDevice(res);
+
+        var solver = new MnaSolver(circuit);
+        solver.Step(1e-4);
+
+        // Both ground pins should share the unified ground node and be at 0V
+        Assert.Equal(gnd1.Pins[0].NodeId, gnd2.Pins[0].NodeId);
+        int gndNodeId = gnd1.Pins[0].NodeId;
+        Assert.True(circuit.Nodes[gndNodeId].IsGround);
+        Assert.Equal(0.0, circuit.Nodes[gndNodeId].Voltage, precision: 6);
+
+        // Voltage across resistor should be 5V, current = 50mA
+        Assert.Equal(5.0, circuit.Nodes[1].Voltage, precision: 3);
+        Assert.Equal(0.05, res.Current, precision: 4);
+    }
+
+    [Fact]
+    public void NetLabel_DistantPins_Aliased_Without_Wires()
+    {
+        var circuit = new Circuit("NetLabelAliasingTest");
+        circuit.GetOrCreateNode(0, isGround: true);
+
+        // 5V source connected to Node 1 and GND
+        var vs = new VoltageSourceDevice(1, voltage: 5.0);
+        vs.Pins[0].NodeId = 1;
+        vs.Pins[1].NodeId = 0;
+        circuit.AddDevice(vs);
+
+        // NetLabel "+5V" at Node 1
+        var nl1 = new NetLabelDevice(2, netName: "+5V");
+        nl1.Pins[0].NodeId = 1;
+        circuit.AddDevice(nl1);
+
+        // Distant Resistor on Node 10 and GND
+        var res = new ResistorDevice(3, resistance: 250.0);
+        res.Pins[0].NodeId = 10;
+        res.Pins[1].NodeId = 0;
+        circuit.AddDevice(res);
+
+        // NetLabel "+5V" at distant Node 10
+        var nl2 = new NetLabelDevice(4, netName: "+5V");
+        nl2.Pins[0].NodeId = 10;
+        circuit.AddDevice(nl2);
+
+        circuit.GetOrCreateNode(1);
+        circuit.GetOrCreateNode(10);
+
+        var solver = new MnaSolver(circuit);
+        solver.Step(1e-4);
+
+        // Pins of nl1 and nl2 and res.Pins[0] should now be unified to the same node
+        Assert.Equal(nl1.Pins[0].NodeId, nl2.Pins[0].NodeId);
+        Assert.Equal(5.0, res.VoltageDrop, precision: 3);
+        Assert.Equal(0.02, res.Current, precision: 4);
+    }
+
+    [Fact]
+    public void WireDeletion_GraphPartitioning_IsolatesDisconnectedNodes()
+    {
+        var circuit = new Circuit("WireCutTest");
+        var devA = new ResistorDevice(1, resistance: 100);
+        var devB = new ResistorDevice(2, resistance: 200);
+        var devC = new ResistorDevice(3, resistance: 300);
+        circuit.AddDevice(devA);
+        circuit.AddDevice(devB);
+        circuit.AddDevice(devC);
+
+        // Wire A.Pin1 to B.Pin0
+        var wire1 = circuit.ConnectPins(devA, 1, devB, 0);
+        // Wire B.Pin0 to C.Pin0
+        var wire2 = circuit.ConnectPins(devB, 0, devC, 0);
+
+        int originalNode = devA.Pins[1].NodeId;
+        Assert.Equal(originalNode, devB.Pins[0].NodeId);
+        Assert.Equal(originalNode, devC.Pins[0].NodeId);
+
+        // Removing wire2 disconnects C from A and B
+        circuit.RemoveWire(wire2);
+
+        // A.Pin1 and B.Pin0 remain connected together
+        Assert.Equal(devA.Pins[1].NodeId, devB.Pins[0].NodeId);
+        // C.Pin0 is partitioned into a new independent node
+        Assert.NotEqual(devA.Pins[1].NodeId, devC.Pins[0].NodeId);
+        Assert.True(circuit.Nodes.ContainsKey(devC.Pins[0].NodeId));
+    }
 }
+
 

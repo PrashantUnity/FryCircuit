@@ -1,0 +1,47 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        x:Class="FryCircuit.Plugin.Runner.AboutDialog"
+        Title="About FryCircuit Studio"
+        Width="460" Height="320"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource CircuitBgBrush}">
+    <Border Padding="28">
+        <StackPanel Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <!-- Icon and Title -->
+            <StackPanel Orientation="Horizontal" Spacing="14" HorizontalAlignment="Center">
+                <Border Width="50" Height="50" CornerRadius="12" Background="#1E293B" BorderBrush="#38BDF8" BorderThickness="1.5">
+                    <materialIcons:MaterialIcon Kind="Flash" Width="28" Height="28" Foreground="#38BDF8" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="FryCircuit Studio" FontSize="20" FontWeight="Bold" Foreground="#F8FAFC" />
+                    <TextBlock Text="Version 2.0.0 (Native EDA &amp; SPICE)" FontSize="12" Foreground="#94A3B8" />
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Description -->
+            <TextBlock Text="Professional EDA schematic capture, interactive SPICE-grade MNA simulation, real-time 4-channel oscilloscope, and quantum/aerospace physics modeling."
+                       Foreground="#CBD5E1"
+                       FontSize="12"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       MaxWidth="400" />
+
+            <Border Height="1" Background="#334155" Margin="0,4" />
+
+            <TextBlock Text="FryWorld Industrial EDA Architecture • .NET 10"
+                       Foreground="#64748B"
+                       FontSize="11"
+                       TextAlignment="Center" />
+
+            <!-- Close Button -->
+            <Button Content="OK"
+                    HorizontalAlignment="Center"
+                    Width="100"
+                    HorizontalContentAlignment="Center"
+                    Click="CloseButton_OnClick"
+                    Classes="toolbtn accent" />
+        </StackPanel>
+    </Border>
+</Window>

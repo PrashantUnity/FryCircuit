@@ -1,3 +1,5 @@
+using FryCircuit.Core.Devices;
+
 namespace FryCircuit.Core.Models;
 
 public class Circuit
@@ -134,55 +136,7 @@ public class Circuit
         }
         else if (targetNodeId != oldNodeId)
         {
-            // If either node was Ground, preserve ground
-            bool oldIsGround = Nodes.TryGetValue(oldNodeId, out var on) && on.IsGround;
-            bool targetIsGround = Nodes.TryGetValue(targetNodeId, out var tn) && tn.IsGround;
-
-            int unifiedNode;
-            if (oldIsGround && !targetIsGround)
-            {
-                unifiedNode = oldNodeId;
-            }
-            else if (targetIsGround && !oldIsGround)
-            {
-                unifiedNode = targetNodeId;
-            }
-            else if (oldIsGround && targetIsGround)
-            {
-                unifiedNode = (oldNodeId == 0) ? oldNodeId : ((targetNodeId == 0) ? targetNodeId : Math.Min(oldNodeId, targetNodeId));
-            }
-            else
-            {
-                unifiedNode = targetNodeId;
-            }
-
-            int replacedNode = (unifiedNode == oldNodeId) ? targetNodeId : oldNodeId;
-
-            foreach (var d in Devices)
-            {
-                foreach (var p in d.Pins)
-                {
-                    if (p.NodeId == replacedNode)
-                    {
-                        p.NodeId = unifiedNode;
-                    }
-                }
-            }
-
-            foreach (var w in Wires)
-            {
-                if (w.NodeId == replacedNode)
-                {
-                    w.NodeId = unifiedNode;
-                }
-            }
-
-            if (replacedNode != unifiedNode)
-            {
-                Nodes.Remove(replacedNode);
-            }
-
-            targetNodeId = unifiedNode;
+            targetNodeId = MergeNodes(targetNodeId, oldNodeId);
         }
 
         var existingWire = Wires.FirstOrDefault(w =>
@@ -198,6 +152,65 @@ public class Circuit
         var wire = new CircuitWire(nextWireId, targetNodeId, dev1.Id, pinIndex1, dev2.Id, pinIndex2);
         Wires.Add(wire);
         return wire;
+    }
+
+    /// <summary>
+    /// Merges two electrical nodes, preserving ground reference if either was ground,
+    /// and updating all pins and wires referencing oldNode to canonicalNode.
+    /// </summary>
+    public int MergeNodes(int node1, int node2)
+    {
+        if (node1 == node2) return node1;
+
+        bool is1Ground = Nodes.TryGetValue(node1, out var n1) && n1.IsGround;
+        bool is2Ground = Nodes.TryGetValue(node2, out var n2) && n2.IsGround;
+
+        int unifiedNode;
+        if (is1Ground && !is2Ground)
+        {
+            unifiedNode = node1;
+        }
+        else if (is2Ground && !is1Ground)
+        {
+            unifiedNode = node2;
+        }
+        else if (is1Ground && is2Ground)
+        {
+            unifiedNode = (node1 == 0) ? node1 : ((node2 == 0) ? node2 : Math.Min(node1, node2));
+        }
+        else
+        {
+            unifiedNode = Math.Min(node1, node2);
+        }
+
+        int replacedNode = (unifiedNode == node1) ? node2 : node1;
+
+        foreach (var d in Devices)
+        {
+            foreach (var p in d.Pins)
+            {
+                if (p.NodeId == replacedNode)
+                {
+                    p.NodeId = unifiedNode;
+                }
+            }
+        }
+
+        foreach (var w in Wires)
+        {
+            if (w.NodeId == replacedNode)
+            {
+                w.NodeId = unifiedNode;
+            }
+        }
+
+        if (replacedNode != unifiedNode)
+        {
+            Nodes.Remove(replacedNode);
+        }
+
+        GetOrCreateNode(unifiedNode, isGround: is1Ground || is2Ground);
+        return unifiedNode;
     }
 
     /// <summary>
@@ -223,6 +236,8 @@ public class Circuit
         if (pinIndex < 0 || pinIndex >= dev.Pins.Count) return;
 
         var pin = dev.Pins[pinIndex];
+        int oldNodeId = pin.NodeId;
+
         // Remove wires attached to this pin
         Wires.RemoveAll(w => w.ConnectsToPin(dev.Id, pinIndex));
 
@@ -230,14 +245,150 @@ public class Circuit
         int nextNode = (Nodes.Count > 0 ? Nodes.Keys.Max() : 0) + 1;
         pin.NodeId = nextNode;
         GetOrCreateNode(nextNode);
+
+        if (oldNodeId >= 0)
+        {
+            PartitionNodeComponents(oldNodeId);
+        }
     }
 
     /// <summary>
-    /// Removes a wire connection.
+    /// Removes a wire connection and partitions any disconnected pins into independent nodes.
     /// </summary>
     public bool RemoveWire(CircuitWire wire)
     {
-        return Wires.Remove(wire);
+        int nodeId = wire.NodeId;
+        bool removed = Wires.Remove(wire);
+        if (removed && nodeId >= 0)
+        {
+            PartitionNodeComponents(nodeId);
+        }
+        return removed;
+    }
+
+    /// <summary>
+    /// Checks the connected components of pins and wires sharing nodeId after a wire removal.
+    /// If the node has split into multiple disconnected components, isolates each into a new node.
+    /// </summary>
+    public List<int> PartitionNodeComponents(int nodeId)
+    {
+        var newNodesCreated = new List<int>();
+        var wiresOnNode = Wires.Where(w => w.NodeId == nodeId).ToList();
+        var pinsOnNode = new List<(Device Dev, int PinIndex)>();
+
+        foreach (var dev in Devices)
+        {
+            for (int i = 0; i < dev.Pins.Count; i++)
+            {
+                if (dev.Pins[i].NodeId == nodeId)
+                {
+                    pinsOnNode.Add((dev, i));
+                }
+            }
+        }
+
+        if (pinsOnNode.Count <= 1) return newNodesCreated;
+
+        // Build adjacency graph for pins on this node using remaining wires
+        var adj = new Dictionary<(int DevId, int PinIndex), List<(int DevId, int PinIndex)>>();
+        foreach (var p in pinsOnNode)
+        {
+            adj[(p.Dev.Id, p.PinIndex)] = new List<(int, int)>();
+        }
+
+        foreach (var w in wiresOnNode)
+        {
+            var p1 = (w.FromDeviceId, w.FromPinIndex);
+            var p2 = (w.ToDeviceId, w.ToPinIndex);
+            if (adj.ContainsKey(p1) && adj.ContainsKey(p2))
+            {
+                adj[p1].Add(p2);
+                adj[p2].Add(p1);
+            }
+        }
+
+        // Find connected components using BFS
+        var visited = new HashSet<(int DevId, int PinIndex)>();
+        var components = new List<List<(Device Dev, int PinIndex)>>();
+
+        foreach (var p in pinsOnNode)
+        {
+            var key = (p.Dev.Id, p.PinIndex);
+            if (visited.Contains(key)) continue;
+
+            var comp = new List<(Device, int)>();
+            var queue = new Queue<(int DevId, int PinIndex)>();
+            queue.Enqueue(key);
+            visited.Add(key);
+
+            while (queue.Count > 0)
+            {
+                var curr = queue.Dequeue();
+                var dev = Devices.FirstOrDefault(d => d.Id == curr.DevId);
+                if (dev != null && curr.PinIndex < dev.Pins.Count)
+                {
+                    comp.Add((dev, curr.PinIndex));
+                }
+
+                if (adj.TryGetValue(curr, out var nbrs))
+                {
+                    foreach (var next in nbrs)
+                    {
+                        if (visited.Add(next))
+                        {
+                            queue.Enqueue(next);
+                        }
+                    }
+                }
+            }
+            components.Add(comp);
+        }
+
+        // If only 1 component, the node is still fully connected
+        if (components.Count <= 1) return newNodesCreated;
+
+        // Choose which component keeps the original nodeId:
+        // Prioritize the component containing GroundDevice, NetLabel, or containing Node 0
+        int keepIndex = 0;
+        for (int i = 0; i < components.Count; i++)
+        {
+            if (components[i].Any(p => p.Dev.Type == "ground" || p.Dev is GroundDevice || p.Dev is NetLabelDevice))
+            {
+                keepIndex = i;
+                break;
+            }
+        }
+
+        int maxNodeId = Nodes.Count > 0 ? Nodes.Keys.Max() : 0;
+
+        for (int i = 0; i < components.Count; i++)
+        {
+            if (i == keepIndex) continue;
+
+            int newNodeId = ++maxNodeId;
+            GetOrCreateNode(newNodeId);
+            newNodesCreated.Add(newNodeId);
+
+            var compPins = components[i];
+            var compDevPinKeys = compPins.Select(p => (p.Dev.Id, p.PinIndex)).ToHashSet();
+
+            foreach (var (dev, pinIdx) in compPins)
+            {
+                dev.Pins[pinIdx].NodeId = newNodeId;
+            }
+
+            // Update remaining wires that connect pins within this component
+            foreach (var w in wiresOnNode)
+            {
+                if (compDevPinKeys.Contains((w.FromDeviceId, w.FromPinIndex)) &&
+                    compDevPinKeys.Contains((w.ToDeviceId, w.ToPinIndex)))
+                {
+                    w.NodeId = newNodeId;
+                }
+            }
+        }
+
+        return newNodesCreated;
     }
 
     /// <summary>

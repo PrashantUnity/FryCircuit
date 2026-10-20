@@ -17,6 +17,16 @@ public class MnaSolver
     /// <summary>Numerical integration method for dynamic elements (Trapezoidal / Gear2)</summary>
     public IntegrationMethod IntegrationMethod { get; set; } = IntegrationMethod.Trapezoidal;
 
+    private static readonly double[,] EmptyMatrix = new double[0, 0];
+    private static readonly double[] EmptyVector = Array.Empty<double>();
+
+    private double[,] _cachedG = new double[0, 0];
+    private double[] _cachedB = Array.Empty<double>();
+    private double[] _cachedSolution = Array.Empty<double>();
+    private double[] _cachedPrevSolution = Array.Empty<double>();
+    private double[,] _cachedSolveM = new double[0, 0];
+    private double[] _cachedSolveRhs = Array.Empty<double>();
+
     public MnaSolver(Circuit circuit)
     {
         _circuit = circuit;
@@ -32,10 +42,12 @@ public class MnaSolver
             if (dev is CapacitorDevice cap)
             {
                 cap.StateVoltage = 0.0;
+                cap.StateCurrent = 0.0;
                 cap.EquivCurrent = 0.0;
             }
             else if (dev is InductorDevice ind)
             {
+                ind.StateVoltage = 0.0;
                 ind.StateCurrent = 0.0;
                 ind.EquivCurrent = 0.0;
             }
@@ -54,7 +66,10 @@ public class MnaSolver
     {
         if (dt <= 0) return;
 
-        // Ensure there is at least one ground node
+        // Net labels establish connectivity across separate wires sharing the same NetName
+        ApplyNetLabelAliasing();
+
+        // Ensure there is at least one ground node, unifying all ground components
         EnsureGroundNode();
 
         // Map non-ground nodes to matrix indices [0..numNodes-1]
@@ -84,24 +99,36 @@ public class MnaSolver
             return;
         }
 
+        // Ensure cached matrix and vector buffers match the active matrix dimensions
+        if (_cachedG.GetLength(0) != matrixSize)
+        {
+            _cachedG = new double[matrixSize, matrixSize];
+            _cachedB = new double[matrixSize];
+            _cachedSolution = new double[matrixSize];
+            _cachedPrevSolution = new double[matrixSize];
+            _cachedSolveM = new double[matrixSize, matrixSize];
+            _cachedSolveRhs = new double[matrixSize];
+        }
+
+        Array.Clear(_cachedSolution, 0, matrixSize);
+        Array.Clear(_cachedPrevSolution, 0, matrixSize);
+
         // High-precision Newton-Raphson iteration with convergence tolerance
         const int maxIterations = 24;
         const double voltageTolerance = 1e-6; // 1 µV
-        double[] solution = new double[matrixSize];
-        double[] prevSolution = new double[matrixSize];
 
         for (int iter = 0; iter < maxIterations; iter++)
         {
-            double[,] g = new double[matrixSize, matrixSize];
-            double[] b = new double[matrixSize];
+            Array.Clear(_cachedG, 0, matrixSize * matrixSize);
+            Array.Clear(_cachedB, 0, matrixSize);
 
             var ctx = new MnaContext(
-                g,
-                b,
+                _cachedG,
+                _cachedB,
                 nodeIndexMap,
                 dt,
                 _currentTime,
-                solution,
+                _cachedSolution,
                 numNodes,
                 voltageSources,
                 GetNodeVoltage,
@@ -133,27 +160,27 @@ public class MnaSolver
 
                 if (nodeIndexMap.TryGetValue(posNode, out int pIdx))
                 {
-                    g[auxRow, pIdx] += 1.0;
-                    g[pIdx, auxRow] += 1.0;
+                    _cachedG[auxRow, pIdx] += 1.0;
+                    _cachedG[pIdx, auxRow] += 1.0;
                 }
 
                 if (nodeIndexMap.TryGetValue(negNode, out int nIdx))
                 {
-                    g[auxRow, nIdx] -= 1.0;
-                    g[nIdx, auxRow] -= 1.0;
+                    _cachedG[auxRow, nIdx] -= 1.0;
+                    _cachedG[nIdx, auxRow] -= 1.0;
                 }
 
-                b[auxRow] = vInstant;
+                _cachedB[auxRow] = vInstant;
             }
 
             // Ensure diagonal stability (Gmin shunt for floating nodes: 1e-10 S)
             for (int i = 0; i < numNodes; i++)
             {
-                g[i, i] += 1e-10;
+                _cachedG[i, i] += 1e-10;
             }
 
-            // 3. Solve Linear System G * x = b
-            if (!SolveLinearSystem(g, b, solution))
+            // 3. Solve Linear System G * x = b without per-iteration heap allocations
+            if (!SolveLinearSystem(_cachedG, _cachedB, _cachedSolution, _cachedSolveM, _cachedSolveRhs, matrixSize))
             {
                 break;
             }
@@ -162,18 +189,18 @@ public class MnaSolver
             double maxDeltaV = 0.0;
             for (int k = 0; k < numNodes; k++)
             {
-                double delta = Math.Abs(solution[k] - prevSolution[k]);
+                double delta = Math.Abs(_cachedSolution[k] - _cachedPrevSolution[k]);
                 if (delta > maxDeltaV) maxDeltaV = delta;
             }
 
-            Array.Copy(solution, prevSolution, matrixSize);
+            Array.Copy(_cachedSolution, _cachedPrevSolution, matrixSize);
 
             // Update intermediate voltages for Newton-Raphson device evaluations
             foreach (var node in nonGroundNodes)
             {
                 if (nodeIndexMap.TryGetValue(node.Id, out int idx))
                 {
-                    node.Voltage = solution[idx];
+                    node.Voltage = _cachedSolution[idx];
                 }
             }
 
@@ -193,18 +220,18 @@ public class MnaSolver
             }
             else if (nodeIndexMap.TryGetValue(node.Id, out int idx))
             {
-                node.Voltage = solution[idx];
+                node.Voltage = _cachedSolution[idx];
             }
         }
 
         // 5. Update Device Dynamic States and Currents
         var updateCtx = new MnaContext(
-            new double[0, 0],
-            new double[0],
+            EmptyMatrix,
+            EmptyVector,
             nodeIndexMap,
             dt,
             _currentTime,
-            solution,
+            _cachedSolution,
             numNodes,
             voltageSources,
             GetNodeVoltage,
@@ -241,17 +268,54 @@ public class MnaSolver
 
     private void EnsureGroundNode()
     {
-        // 1. Explicit Ground component placed on schematic (Highest priority)
-        var groundDev = _circuit.Devices.OfType<GroundDevice>().FirstOrDefault();
-        if (groundDev != null && groundDev.Pins.Count > 0)
+        // 1. Explicit Ground components placed on schematic (Highest priority)
+        var groundDevices = _circuit.Devices.OfType<GroundDevice>().ToList();
+        if (groundDevices.Count > 0)
         {
-            int gNodeId = groundDev.Pins[0].NodeId;
-            // Clear any previously assigned fallback ground flags
+            int canonicalGndId = 0;
+            var existingGnd = _circuit.FindGroundNode();
+            if (existingGnd != null)
+            {
+                canonicalGndId = existingGnd.Id;
+            }
+            else
+            {
+                var firstPin = groundDevices[0].Pins.FirstOrDefault();
+                if (firstPin != null && firstPin.NodeId >= 0)
+                {
+                    canonicalGndId = firstPin.NodeId;
+                }
+            }
+
+            var gndNode = _circuit.GetOrCreateNode(canonicalGndId, isGround: true);
+            gndNode.IsGround = true;
+
+            // Merge all ground devices into canonical ground node
+            foreach (var gd in groundDevices)
+            {
+                if (gd.Pins.Count > 0)
+                {
+                    var pin = gd.Pins[0];
+                    if (pin.NodeId < 0 || !_circuit.Nodes.ContainsKey(pin.NodeId))
+                    {
+                        pin.NodeId = canonicalGndId;
+                    }
+                    else if (pin.NodeId != canonicalGndId)
+                    {
+                        canonicalGndId = _circuit.MergeNodes(canonicalGndId, pin.NodeId);
+                    }
+                }
+            }
+
+            // Ensure canonical node is ground and clear any other node's IsGround flag
             foreach (var node in _circuit.Nodes.Values)
             {
-                if (node.Id != gNodeId && node.IsGround) node.IsGround = false;
+                if (node.Id != canonicalGndId && node.IsGround)
+                {
+                    node.IsGround = false;
+                }
             }
-            _circuit.GetOrCreateNode(gNodeId, isGround: true);
+            _circuit.GetOrCreateNode(canonicalGndId, isGround: true);
             return;
         }
 
@@ -288,14 +352,82 @@ public class MnaSolver
         }
     }
 
-    /// <summary>
-    /// Solves A * x = b using Gaussian elimination with partial pivoting.
-    /// </summary>
-    private static bool SolveLinearSystem(double[,] a, double[] b, double[] x)
+    private void ApplyNetLabelAliasing()
     {
-        int n = b.Length;
-        double[,] m = (double[,])a.Clone();
-        double[] rhs = (double[])b.Clone();
+        var netLabels = _circuit.Devices.OfType<NetLabelDevice>().ToList();
+        if (netLabels.Count == 0) return;
+
+        var groups = netLabels
+            .Where(nl => !string.IsNullOrWhiteSpace(nl.NetName) && nl.Pins.Count > 0)
+            .GroupBy(nl => nl.NetName.Trim(), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var group in groups)
+        {
+            bool isGroundNet = string.Equals(group.Key, "GND", StringComparison.OrdinalIgnoreCase) ||
+                               string.Equals(group.Key, "GROUND", StringComparison.OrdinalIgnoreCase) ||
+                               string.Equals(group.Key, "0", StringComparison.OrdinalIgnoreCase);
+
+            if (isGroundNet)
+            {
+                var gndNode = _circuit.FindGroundNode();
+                int gndId = gndNode?.Id ?? 0;
+                _circuit.GetOrCreateNode(gndId, isGround: true);
+
+                foreach (var nl in group)
+                {
+                    var pin = nl.Pins[0];
+                    if (pin.NodeId < 0 || !_circuit.Nodes.ContainsKey(pin.NodeId))
+                    {
+                        pin.NodeId = gndId;
+                    }
+                    else if (pin.NodeId != gndId)
+                    {
+                        gndId = _circuit.MergeNodes(gndId, pin.NodeId);
+                    }
+                }
+            }
+            else
+            {
+                int canonicalNodeId = -1;
+                foreach (var nl in group)
+                {
+                    var pin = nl.Pins[0];
+                    if (pin.NodeId >= 0 && _circuit.Nodes.ContainsKey(pin.NodeId))
+                    {
+                        canonicalNodeId = pin.NodeId;
+                        break;
+                    }
+                }
+
+                if (canonicalNodeId < 0)
+                {
+                    canonicalNodeId = (_circuit.Nodes.Count > 0 ? _circuit.Nodes.Keys.Max() : 0) + 1;
+                    _circuit.GetOrCreateNode(canonicalNodeId);
+                }
+
+                foreach (var nl in group)
+                {
+                    var pin = nl.Pins[0];
+                    if (pin.NodeId < 0 || !_circuit.Nodes.ContainsKey(pin.NodeId))
+                    {
+                        pin.NodeId = canonicalNodeId;
+                    }
+                    else if (pin.NodeId != canonicalNodeId)
+                    {
+                        canonicalNodeId = _circuit.MergeNodes(canonicalNodeId, pin.NodeId);
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Solves A * x = b using Gaussian elimination with partial pivoting into reusable scratch buffers.
+    /// </summary>
+    private static bool SolveLinearSystem(double[,] a, double[] b, double[] x, double[,] m, double[] rhs, int n)
+    {
+        Array.Copy(a, m, n * n);
+        Array.Copy(b, rhs, n);
 
         for (int i = 0; i < n; i++)
         {

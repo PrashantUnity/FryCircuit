@@ -47,6 +47,7 @@ public static class SpiceNetlistEngine
         bool hasDiode = false;
         bool hasNmos = false;
         bool hasPmos = false;
+        bool has555 = false;
 
         sb.AppendLine("* --- Components ---");
         foreach (var dev in circuit.Devices.OrderBy(d => d.Id))
@@ -188,6 +189,71 @@ public static class SpiceNetlistEngine
                     sb.AppendLine($"R_ESR{bat.Id} N_INT_{bat.Id} {n} {bat.NominalSeriesResistance.ToString("G5", inv)}");
                     break;
                 }
+                case BjtDevice bjt:
+                {
+                    string b = GetNodeName(bjt.Pins[0].NodeId);
+                    string c = GetNodeName(bjt.Pins[1].NodeId);
+                    string e = GetNodeName(bjt.Pins[2].NodeId);
+                    string modName = bjt.IsNpn ? $"NPN_MOD_{bjt.Id}" : $"PNP_MOD_{bjt.Id}";
+                    sb.AppendLine($"Q{bjt.Id} {c} {b} {e} {modName}");
+                    sb.AppendLine($".MODEL {modName} {(bjt.IsNpn ? "NPN" : "PNP")} (BF={bjt.BetaF.ToString("G5", inv)} BR={bjt.BetaR.ToString("G5", inv)} IS={bjt.Isat.ToString("E3", inv)} VAF={bjt.EarlyVoltage.ToString("G5", inv)})");
+                    break;
+                }
+                case OpAmpDevice op:
+                {
+                    string inN = GetNodeName(op.Pins[0].NodeId);
+                    string inP = GetNodeName(op.Pins[1].NodeId);
+                    string outPin = GetNodeName(op.Pins[2].NodeId);
+                    sb.AppendLine($"* Operational Amplifier (Gain={op.Gain:G4}, Rails=[{op.MinVoltage:F1}V, {op.MaxVoltage:F1}V]):");
+                    sb.AppendLine($"E{op.Id} {outPin} 0 {inP} {inN} {op.Gain.ToString("G6", inv)}");
+                    break;
+                }
+                case FuseDevice fuse:
+                {
+                    string n1 = GetNodeName(fuse.Pins[0].NodeId);
+                    string n2 = GetNodeName(fuse.Pins[1].NodeId);
+                    double r = fuse.IsBlown ? 1e12 : fuse.InternalResistance;
+                    sb.AppendLine($"R_FUSE{fuse.Id} {n1} {n2} {r.ToString("G5", inv)} ; Rating={fuse.CurrentRating:F2}A, Blown={fuse.IsBlown}");
+                    break;
+                }
+                case SwitchDevice sw:
+                {
+                    if (sw.Type.Equals("spdt", StringComparison.OrdinalIgnoreCase) && sw.Pins.Count >= 3)
+                    {
+                        string pCommon = GetNodeName(sw.Pins[0].NodeId);
+                        string pTh1 = GetNodeName(sw.Pins[1].NodeId);
+                        string pTh2 = GetNodeName(sw.Pins[2].NodeId);
+                        sb.AppendLine($"R_SW1_{sw.Id} {pCommon} {pTh1} {(sw.IsClosed ? 1e-4 : 1e12).ToString("G5", inv)}");
+                        sb.AppendLine($"R_SW2_{sw.Id} {pCommon} {pTh2} {(sw.IsClosed ? 1e12 : 1e-4).ToString("G5", inv)}");
+                    }
+                    else if (sw.Pins.Count >= 2)
+                    {
+                        string n1 = GetNodeName(sw.Pins[0].NodeId);
+                        string n2 = GetNodeName(sw.Pins[1].NodeId);
+                        sb.AppendLine($"R_SW{sw.Id} {n1} {n2} {(sw.IsClosed ? 1e-4 : 1e12).ToString("G5", inv)}");
+                    }
+                    break;
+                }
+                case Timer555Device t555:
+                {
+                    has555 = true;
+                    string gnd = GetNodeName(t555.Pins[0].NodeId);
+                    string trig = GetNodeName(t555.Pins[1].NodeId);
+                    string outp = GetNodeName(t555.Pins[2].NodeId);
+                    string rst = GetNodeName(t555.Pins[3].NodeId);
+                    string ctrl = GetNodeName(t555.Pins[4].NodeId);
+                    string thresh = GetNodeName(t555.Pins[5].NodeId);
+                    string disch = GetNodeName(t555.Pins[6].NodeId);
+                    string vcc = GetNodeName(t555.Pins[7].NodeId);
+                    sb.AppendLine($"X555_{t555.Id} {gnd} {trig} {outp} {rst} {ctrl} {thresh} {disch} {vcc} NE555");
+                    break;
+                }
+                case NetLabelDevice nl:
+                {
+                    string n = GetNodeName(nl.Pins[0].NodeId);
+                    sb.AppendLine($"* NetLabel \"{nl.NetName}\" -> {n}");
+                    break;
+                }
                 case GroundDevice gnd:
                 {
                     // Ground references are handled via node 0
@@ -212,6 +278,17 @@ public static class SpiceNetlistEngine
         if (hasPmos)
         {
             sb.AppendLine(".MODEL PMOS_MOD PMOS (VTO=-1.2 KP=0.02 LAMBDA=0.02 CGSO=10p CGDO=5p)");
+        }
+        if (has555)
+        {
+            sb.AppendLine();
+            sb.AppendLine("* --- NE555 Behavioral Macromodel ---");
+            sb.AppendLine(".SUBCKT NE555 1 2 3 4 5 6 7 8");
+            sb.AppendLine("* 1:GND 2:TRIG 3:OUT 4:RESET 5:CTRL 6:THRESH 7:DISCH 8:VCC");
+            sb.AppendLine("R1 8 5 5k");
+            sb.AppendLine("R2 5 N_INT_555_2 5k");
+            sb.AppendLine("R3 N_INT_555_2 1 5k");
+            sb.AppendLine(".ENDS NE555");
         }
 
         sb.AppendLine();

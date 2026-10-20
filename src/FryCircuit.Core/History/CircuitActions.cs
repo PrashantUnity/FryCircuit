@@ -105,7 +105,14 @@ public class RemoveWireAction : IUndoableAction
 
     public void Undo()
     {
-        if (!_circuit.Wires.Contains(_wire))
+        var dev1 = _circuit.Devices.FirstOrDefault(d => d.Id == _wire.FromDeviceId);
+        var dev2 = _circuit.Devices.FirstOrDefault(d => d.Id == _wire.ToDeviceId);
+        if (dev1 != null && dev2 != null)
+        {
+            _circuit.ConnectPins(dev1, _wire.FromPinIndex, dev2, _wire.ToPinIndex);
+            _circuit.RouteAllWires();
+        }
+        else if (!_circuit.Wires.Contains(_wire))
         {
             _circuit.Wires.Add(_wire);
         }
@@ -119,6 +126,7 @@ public class RemoveWireAction : IUndoableAction
 
 public class MoveDeviceAction : IUndoableAction
 {
+    private readonly Circuit? _circuit;
     private readonly Device _device;
     private readonly double _oldX;
     private readonly double _oldY;
@@ -127,25 +135,28 @@ public class MoveDeviceAction : IUndoableAction
 
     public string Description => $"Move {_device.Type.ToUpperInvariant()} #{_device.Id}";
 
-    public MoveDeviceAction(Device device, double oldX, double oldY, double newX, double newY)
+    public MoveDeviceAction(Device device, double oldX, double oldY, double newX, double newY, Circuit? circuit = null)
     {
         _device = device;
         _oldX = oldX;
         _oldY = oldY;
         _newX = newX;
         _newY = newY;
+        _circuit = circuit;
     }
 
     public void Undo()
     {
         _device.LocationX = _oldX;
         _device.LocationY = _oldY;
+        _circuit?.RouteAllWires();
     }
 
     public void Redo()
     {
         _device.LocationX = _newX;
         _device.LocationY = _newY;
+        _circuit?.RouteAllWires();
     }
 }
 

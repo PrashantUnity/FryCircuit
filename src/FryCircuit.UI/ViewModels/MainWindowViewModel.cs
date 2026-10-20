@@ -340,7 +340,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     public string RibbonToggleIconKind => IsCadRibbonOpen ? "ChevronUp" : "ChevronDown";
-    public string RibbonToggleTooltip => IsCadRibbonOpen ? "Collapse CAD Ribbon (Ctrl+F1)" : "Expand CAD Ribbon (Ctrl+F1)";
+    public string RibbonToggleTooltip => IsCadRibbonOpen ? "Collapse CAD Ribbon (F1)" : "Expand CAD Ribbon (F1)";
 
     [RelayCommand]
     public void ToggleCadRibbon()
@@ -1181,28 +1181,36 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private double GetAutoChannelSample(int channelIndex)
     {
         if (CurrentCircuit == null) return 0.0;
-        return channelIndex switch
+
+        int? probedNode = channelIndex switch
         {
-            1 => (ProbedNodeCh1.HasValue && CurrentCircuit.Nodes.TryGetValue(ProbedNodeCh1.Value, out var pn1))
-                ? pn1.Voltage
-                : CurrentCircuit.Devices.OfType<VoltageSourceDevice>().FirstOrDefault()?.VoltageDrop
-                  ?? (CurrentCircuit.Nodes.TryGetValue(1, out var n1) ? n1.Voltage : 0.0),
-            2 => (ProbedNodeCh2.HasValue && CurrentCircuit.Nodes.TryGetValue(ProbedNodeCh2.Value, out var pn2))
-                ? pn2.Voltage
-                : CurrentCircuit.Devices.OfType<ResistorDevice>().LastOrDefault()?.VoltageDrop
-                  ?? (CurrentCircuit.Nodes.TryGetValue(2, out var n2) ? n2.Voltage : 0.0),
-            3 => (ProbedNodeCh3.HasValue && CurrentCircuit.Nodes.TryGetValue(ProbedNodeCh3.Value, out var pn3))
-                ? pn3.Voltage
-                : (CurrentCircuit.Nodes.TryGetValue(3, out var n3)
-                    ? n3.Voltage
-                    : CurrentCircuit.Devices.OfType<DiodeDevice>().FirstOrDefault()?.VoltageDrop ?? 0.0),
-            4 => (ProbedNodeCh4.HasValue && CurrentCircuit.Nodes.TryGetValue(ProbedNodeCh4.Value, out var pn4))
-                ? pn4.Voltage
-                : (CurrentCircuit.Nodes.TryGetValue(4, out var n4)
-                    ? n4.Voltage
-                    : CurrentCircuit.Devices.OfType<CapacitorDevice>().FirstOrDefault()?.VoltageDrop ?? 0.0),
-            _ => CurrentCircuit.Nodes.TryGetValue(channelIndex, out var n) ? n.Voltage : 0.0
+            1 => ProbedNodeCh1,
+            2 => ProbedNodeCh2,
+            3 => ProbedNodeCh3,
+            4 => ProbedNodeCh4,
+            _ => null
         };
+
+        if (probedNode.HasValue && CurrentCircuit.Nodes.TryGetValue(probedNode.Value, out var probed))
+        {
+            return probed.Voltage;
+        }
+
+        // Direct node index match
+        if (CurrentCircuit.Nodes.TryGetValue(channelIndex, out var node))
+        {
+            return node.Voltage;
+        }
+
+        // Fall back to non-ground nodes in sequential order
+        var nonGroundNodes = CurrentCircuit.Nodes.Values.Where(n => !n.IsGround).OrderBy(n => n.Id).ToList();
+        int nodeIdx = channelIndex - 1;
+        if (nodeIdx >= 0 && nodeIdx < nonGroundNodes.Count)
+        {
+            return nonGroundNodes[nodeIdx].Voltage;
+        }
+
+        return 0.0;
     }
 
     [RelayCommand]

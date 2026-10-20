@@ -1,4 +1,5 @@
 using FryCircuit.Core.Models;
+using FryCircuit.Core.Simulation;
 
 namespace FryCircuit.Core.Devices;
 
@@ -18,6 +19,7 @@ public class InductorDevice : Device, IDeviceSimulation
 
     // Companion model state variables
     public double StateCurrent { get; set; }
+    public double StateVoltage { get; set; }
     public double EquivCurrent { get; set; }
 
     public InductorDevice(int id = 0, double x = 0, double y = 0, double inductance = 1e-3)
@@ -35,8 +37,10 @@ public class InductorDevice : Device, IDeviceSimulation
     {
         if (Pins.Count >= 2 && ctx.Dt > 0)
         {
-            // Physical companion admittance with coil series resistance
-            double gl = 1.0 / (SeriesResistance + (Inductance / ctx.Dt));
+            double zL = (ctx.Method == IntegrationMethod.Trapezoidal)
+                ? (2.0 * Inductance / ctx.Dt)
+                : (Inductance / ctx.Dt);
+            double gl = 1.0 / (SeriesResistance + zL);
             ctx.StampConductance(Pins[0].NodeId, Pins[1].NodeId, gl);
         }
     }
@@ -45,9 +49,20 @@ public class InductorDevice : Device, IDeviceSimulation
     {
         if (Pins.Count >= 2 && ctx.Dt > 0)
         {
-            double gl = 1.0 / (SeriesResistance + (Inductance / ctx.Dt));
-            double factor = (Inductance / ctx.Dt) * gl;
-            double iEq = factor * StateCurrent;
+            double zL = (ctx.Method == IntegrationMethod.Trapezoidal)
+                ? (2.0 * Inductance / ctx.Dt)
+                : (Inductance / ctx.Dt);
+            double gl = 1.0 / (SeriesResistance + zL);
+            double iEq;
+            if (ctx.Method == IntegrationMethod.Trapezoidal)
+            {
+                iEq = gl * StateVoltage + gl * (zL - SeriesResistance) * StateCurrent;
+            }
+            else
+            {
+                iEq = gl * zL * StateCurrent;
+            }
+            EquivCurrent = iEq;
             ctx.StampCurrentSource(Pins[0].NodeId, Pins[1].NodeId, iEq);
         }
     }
@@ -61,11 +76,24 @@ public class InductorDevice : Device, IDeviceSimulation
             double v0 = ctx.GetNodeVoltage(Pins[0].NodeId);
             double v1 = ctx.GetNodeVoltage(Pins[1].NodeId);
             VoltageDrop = v0 - v1;
-            double gl = 1.0 / (SeriesResistance + (Inductance / ctx.Dt));
-            double factor = (Inductance / ctx.Dt) * gl;
-            double iEq = factor * StateCurrent;
+
+            double zL = (ctx.Method == IntegrationMethod.Trapezoidal)
+                ? (2.0 * Inductance / ctx.Dt)
+                : (Inductance / ctx.Dt);
+            double gl = 1.0 / (SeriesResistance + zL);
+            double iEq;
+            if (ctx.Method == IntegrationMethod.Trapezoidal)
+            {
+                iEq = gl * StateVoltage + gl * (zL - SeriesResistance) * StateCurrent;
+            }
+            else
+            {
+                iEq = gl * zL * StateCurrent;
+            }
+
             double iBranch = gl * VoltageDrop + iEq;
             StateCurrent = iBranch;
+            StateVoltage = VoltageDrop;
             Current = iBranch;
         }
     }
