@@ -90,6 +90,21 @@ public static class DeviceRendererRegistry
         ["counter4"] = new BinaryCounterRenderer(),
         ["74193"] = new BinaryCounterRenderer(),
         ["counter"] = new BinaryCounterRenderer(),
+        ["fan"] = new FanRenderer(),
+        ["dcfan"] = new FanRenderer(),
+        ["cooler"] = new FanRenderer(),
+        ["blower"] = new FanRenderer(),
+        ["bldc"] = new BldcMotorRenderer(),
+        ["bldcmotor"] = new BldcMotorRenderer(),
+        ["motor"] = new BldcMotorRenderer(),
+        ["esc"] = new EscRenderer(),
+        ["bldcesc"] = new EscRenderer(),
+        ["bec"] = new BecRenderer(),
+        ["buck"] = new BecRenderer(),
+        ["buzzer"] = new PiezoBuzzerRenderer(),
+        ["piezo"] = new PiezoBuzzerRenderer(),
+        ["tvs"] = new TvsDiodeRenderer(),
+        ["tvsdiode"] = new TvsDiodeRenderer(),
     };
 
     private static readonly IDeviceRenderer _fallbackRenderer = new ResistorRenderer();

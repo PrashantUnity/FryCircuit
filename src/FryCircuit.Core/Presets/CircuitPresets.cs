@@ -1,4 +1,6 @@
 using FryCircuit.Core.Devices;
+using FryCircuit.Core.Devices.Aerospace;
+using FryCircuit.Core.Devices.Battery;
 using FryCircuit.Core.Devices.Display;
 using FryCircuit.Core.Devices.Logic;
 using FryCircuit.Core.Models;
@@ -32,7 +34,8 @@ public static class CircuitPresets
         "Potentiometer Tuning & Multimeters",
         "LED Cascade & Current Limiter Ladder",
         "Pyramid Resistor Current Divider Network",
-        "Digital 555 & Dual 7-Segment Counter"
+        "Digital 555 & Dual 7-Segment Counter",
+        "Drone Quadcopter Propulsion & Avionics"
     };
 
     public static Circuit Create(string name)
@@ -60,6 +63,7 @@ public static class CircuitPresets
             "LED Cascade & Current Limiter Ladder" => CreateLedCascadeLadder(),
             "Pyramid Resistor Current Divider Network" => CreatePyramidResistorDivider(),
             "Digital 555 & Dual 7-Segment Counter" => Create555Dual7SegmentCounter(),
+            "Drone Quadcopter Propulsion & Avionics" => CreateDronePropulsionAndAvionics(),
             _ => CreateHalfWaveRectifier()
         };
     }
@@ -1452,6 +1456,119 @@ public static class CircuitPresets
 
         // Ground Reference
         var gnd = new GroundDevice(21, x: 8, y: 16);
+        gnd.Pins[0].NodeId = 0;
+        circuit.AddDevice(gnd);
+
+        circuit.EnsureWiresSynthesized();
+
+        return circuit;
+    }
+
+    public static Circuit CreateDronePropulsionAndAvionics()
+    {
+        var circuit = new Circuit("Drone Quadcopter Propulsion & Avionics");
+        circuit.Frame = new CircuitFrame(0, 0, 26, 16);
+
+        circuit.GetOrCreateNode(0, isGround: true); // Ground reference
+        circuit.GetOrCreateNode(1);                 // 14.8V 4S LiPo Raw Battery Bus
+        circuit.GetOrCreateNode(2);                 // Protected 14.8V Power Rail
+        circuit.GetOrCreateNode(3);                 // 5.0V Regulated Avionics Rail
+        circuit.GetOrCreateNode(4);                 // ESC PWM Throttle Signal
+        circuit.GetOrCreateNode(5);                 // BLDC Phase U
+        circuit.GetOrCreateNode(6);                 // BLDC Phase V
+        circuit.GetOrCreateNode(7);                 // BLDC Phase W
+        circuit.GetOrCreateNode(8);                 // Cooling Fan Tachometer Sense
+
+        // 1. 14.8V 4S LiPo Drone Battery Pack
+        var bat = new VoltageSourceDevice(1, x: 2, y: 3, voltage: 14.8);
+        bat.Pins[0].NodeId = 1;
+        bat.Pins[1].NodeId = 0;
+        circuit.AddDevice(bat);
+
+        // 2. Main 80A Overcurrent Fuse (Sized for 4S high-power propulsion bus)
+        var fuse = new FuseDevice(2, x: 5, y: 3, currentRating: 80.0);
+        fuse.Pins[0].NodeId = 1;
+        fuse.Pins[1].NodeId = 2;
+        circuit.AddDevice(fuse);
+
+        // 3. High-Energy TVS Clamping Diode (Vertical Shunt 18V Standoff for 4S LiPo bus)
+        var tvs = new TvsDiodeDevice(3, x: 8, y: 5, breakdown: 18.0)
+        {
+            Transform = new DeviceTransform(DeviceRotation.Left)
+        };
+        tvs.Pins[0].NodeId = 0; // Anode to GND bus (8, 6)
+        tvs.Pins[1].NodeId = 2; // Cathode to Protected Rail (8, 4)
+        circuit.AddDevice(tvs);
+
+        // 4. Step-Down DC-DC BEC Regulator (14.8V -> 5.0V Regulated for Flight Controller & Buzzer)
+        var bec = new BecDevice(4, x: 12, y: 5)
+        {
+            OutputVoltage = 5.0,
+            MaxOutputCurrent = 3.0,
+            Efficiency = 0.92
+        };
+        bec.Pins[0].NodeId = 2; // VIN (11, 4)
+        bec.Pins[1].NodeId = 0; // GND (11, 6)
+        bec.Pins[2].NodeId = 3; // VOUT (13, 5)
+        circuit.AddDevice(bec);
+
+        // 5. Drone Telemetry / Lost Model Piezo Buzzer (5V, 2.7kHz)
+        var buzz = new PiezoBuzzerDevice(5, x: 16, y: 6)
+        {
+            NominalVoltage = 5.0,
+            ResonantFrequencyHz = 2700.0,
+            RatedDecibelsSpl = 88.0
+        };
+        buzz.Pins[0].NodeId = 3; // + (16, 5)
+        buzz.Pins[1].NodeId = 0; // - (16, 7)
+        circuit.AddDevice(buzz);
+
+        // 6. High-Airflow DC Brushless Cooling Fan (12V Fan on Main Rail with Tachometer Feedback)
+        var fan = new FanDevice(6, x: 12, y: 7)
+        {
+            RatedVoltage = 12.0,
+            MaxRpm = 6000.0,
+            AirflowRatingCfm = 42.0
+        };
+        fan.Pins[0].NodeId = 2; // +
+        fan.Pins[1].NodeId = 0; // -
+        fan.Pins[2].NodeId = 8; // TACH
+        circuit.AddDevice(fan);
+
+        // 7. PWM Throttle Control Voltage Source (2.5V -> 75% Throttle)
+        var vThrottle = new VoltageSourceDevice(7, x: 2, y: 11, voltage: 2.5);
+        vThrottle.Pins[0].NodeId = 4;
+        vThrottle.Pins[1].NodeId = 0;
+        circuit.AddDevice(vThrottle);
+
+        // 8. 45A Electronic Speed Controller (ESC) Inverter
+        var esc = new EscDevice(8, x: 10, y: 11)
+        {
+            ContinuousCurrentRating = 45.0,
+            ThrottlePercent = 0.75
+        };
+        esc.Pins[0].NodeId = 2; // VBAT+
+        esc.Pins[1].NodeId = 0; // GND
+        esc.Pins[2].NodeId = 4; // PWM
+        esc.Pins[3].NodeId = 5; // Phase U
+        esc.Pins[4].NodeId = 6; // Phase V
+        esc.Pins[5].NodeId = 7; // Phase W
+        circuit.AddDevice(esc);
+
+        // 9. 3-Phase BLDC Drone Propulsion Motor (2300 Kv with 5" Propeller)
+        var motor = new BldcMotorDevice(9, x: 18, y: 11)
+        {
+            Kv = 2300.0,
+            PhaseResistance = 0.055,
+            PropellerDiameterInches = 5.0
+        };
+        motor.Pins[0].NodeId = 5; // Phase U
+        motor.Pins[1].NodeId = 6; // Phase V
+        motor.Pins[2].NodeId = 7; // Phase W
+        circuit.AddDevice(motor);
+
+        // Ground Reference
+        var gnd = new GroundDevice(10, x: 6, y: 7);
         gnd.Pins[0].NodeId = 0;
         circuit.AddDevice(gnd);
 

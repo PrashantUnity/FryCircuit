@@ -372,6 +372,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public bool IsLogicSelected => SelectedPaletteCategory == "Logic & ICs";
     public bool IsMetersVisible => SelectedPaletteCategory == "All" || SelectedPaletteCategory == "Meters & Switches";
     public bool IsMetersSelected => SelectedPaletteCategory == "Meters & Switches";
+    public bool IsDronesVisible => SelectedPaletteCategory == "All" || SelectedPaletteCategory == "Drones & Aero";
+    public bool IsDronesSelected => SelectedPaletteCategory == "Drones & Aero";
 
     public IReadOnlyList<PaletteItemViewModel> AllPaletteItems { get; } = new List<PaletteItemViewModel>
     {
@@ -389,6 +391,14 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         new() { Code = "csource", Name = "DC Current", Symbol = "I", Category = "Sources", Hotkey = "I", ToolTip = "Constant ideal current generator" },
         new() { Code = "battery", Name = "LiPo Battery", Symbol = "BAT", Category = "Sources", Hotkey = "BAT", ToolTip = "Lithium-Ion / LiPo Electrochemical Cell with Temperature Derating & SOC" },
         new() { Code = "ground", Name = "Ground (0V)", Symbol = "⏚", Category = "Sources", Hotkey = "G", ToolTip = "Earth ground 0V reference rail" },
+
+        // Drones & Aerospace
+        new() { Code = "fan", Name = "Cooling Fan", Symbol = "FAN", Category = "Drones & Aero", Hotkey = "FN", ToolTip = "DC Brushless Cooling Fan / Propeller Blower with Dynamic RPM & Airflow" },
+        new() { Code = "bldc", Name = "BLDC Motor", Symbol = "BLDC", Category = "Drones & Aero", Hotkey = "BM", ToolTip = "3-Phase BLDC Drone Propulsion Motor with Back-EMF & Thrust Telemetry" },
+        new() { Code = "esc", Name = "Drone ESC", Symbol = "ESC", Category = "Drones & Aero", Hotkey = "ESC", ToolTip = "Electronic Speed Controller Inverter Stage with PWM Throttle Control" },
+        new() { Code = "bec", Name = "5V BEC", Symbol = "BEC", Category = "Drones & Aero", Hotkey = "BEC", ToolTip = "Step-Down DC-DC BEC Power Regulator (4S-6S LiPo to 5V Clean Avionics)" },
+        new() { Code = "buzzer", Name = "Piezo Buzzer", Symbol = "BUZZ", Category = "Drones & Aero", Hotkey = "BZ", ToolTip = "Piezoelectric Drone Lost-Model Alarm & Battery Telemetry Beeper" },
+        new() { Code = "tvs", Name = "TVS Diode", Symbol = "TVS", Category = "Drones & Aero", Hotkey = "TVS", ToolTip = "High-Energy Transient Voltage Clamping Diode for ESC Inductive Spikes" },
 
         // Semiconductors
         new() { Code = "diode", Name = "Diode", Symbol = "▷|", Category = "Semiconductors", Hotkey = "D", ToolTip = "P-N junction rectifier diode" },
@@ -433,7 +443,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         FilteredPaletteItems.Clear();
         var q = ComponentSearchQuery?.Trim();
-        bool hasQuery = !string.IsNullOrWhiteSpace(q);
+        bool hasQuery = !string.IsNullOrEmpty(q);
 
         foreach (var item in AllPaletteItems)
         {
@@ -473,6 +483,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsLogicSelected));
         OnPropertyChanged(nameof(IsMetersVisible));
         OnPropertyChanged(nameof(IsMetersSelected));
+        OnPropertyChanged(nameof(IsDronesVisible));
+        OnPropertyChanged(nameof(IsDronesSelected));
     }
 
     [ObservableProperty]

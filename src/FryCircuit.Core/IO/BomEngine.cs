@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using FryCircuit.Core.Devices;
+using FryCircuit.Core.Devices.Aerospace;
 using FryCircuit.Core.Devices.Battery;
 using FryCircuit.Core.Models;
 using FryCircuit.Core.Physics;
@@ -133,6 +134,12 @@ public static class BomEngine
         "battery" => "BAT",
         "switch" or "spst" or "spdt" => "SW",
         "potentiometer" => "POT",
+        "fan" or "dcfan" or "cooler" or "blower" => "FAN",
+        "bldc" or "bldcmotor" or "motor" => "MTR",
+        "esc" or "bldcesc" => "ESC",
+        "bec" or "buck" => "VR",
+        "buzzer" or "piezo" => "BZ",
+        "tvs" or "tvsdiode" => "TVS",
         _ => "DEV"
     };
 
@@ -160,6 +167,12 @@ public static class BomEngine
         "cosmicipulse" => "Cosmic Heavy-Ion SEU Injector",
         "hallsensor" => "4-Terminal Magnetic Hall Transducer",
         "battery" => "Lithium-Ion / LiPo Electrochemical Cell",
+        "fan" or "dcfan" or "cooler" or "blower" => "DC Brushless Cooling Fan",
+        "bldc" or "bldcmotor" or "motor" => "3-Phase BLDC Drone Outrunner",
+        "esc" or "bldcesc" => "Electronic Speed Controller (ESC)",
+        "bec" or "buck" => "Step-Down DC-DC BEC Regulator",
+        "buzzer" or "piezo" => "Piezoelectric Acoustic Buzzer",
+        "tvs" or "tvsdiode" => "Transient Voltage Suppressor (TVS)",
         _ => type.ToUpperInvariant()
     };
 
@@ -181,6 +194,12 @@ public static class BomEngine
         CosmicIonPulseDevice => "Radiation Test Port",
         HallEffectSensorDevice => "SOT-23-4 (4-Pin Sensor)",
         BatteryCellDevice => "LiPo Pouch / 18650 Cell",
+        FanDevice => "40x40x10mm Blower / Radial Fan",
+        BldcMotorDevice => "2207 / 2306 BLDC Outrunner Mount",
+        EscDevice => "30.5x30.5mm 4-in-1 ESC SMD",
+        BecDevice => "SOT-23-6 / DFN-8 Buck Module",
+        PiezoBuzzerDevice => "9x5.5mm SMT Piezo Transducer",
+        TvsDiodeDevice => "DO-214AB (SMC) 1500W Clamping",
         _ => "Standard SMD"
     };
 
@@ -190,6 +209,7 @@ public static class BomEngine
         CosmicIonPulseDevice => "Aerospace & Deep Space",
         HallEffectSensorDevice => "Drone Robotics & ESC",
         BatteryCellDevice => "Aerospace & Drone Power",
+        FanDevice or BldcMotorDevice or EscDevice or BecDevice or PiezoBuzzerDevice or TvsDiodeDevice => "Drone & Aerospace Robotics",
         TransmissionLineDevice => "High-Speed RF & Microwave",
         TunnelDiodeDevice => "Microwave Instrumentation",
         _ => "General Industrial EDA"
@@ -211,6 +231,12 @@ public static class BomEngine
         SquidDevice => "Dual-Junction, Flux Tunable",
         TransmissionLineDevice => "Z0=50Ω Controlled Microstrip",
         BatteryCellDevice b => $"{b.CapacityAmpHours:F1} Ah, 3.7V Nom LiPo",
+        FanDevice f => $"{f.RatedVoltage:F0}V DC, {f.MaxRpm:F0} RPM, {f.AirflowRatingCfm:F0} CFM",
+        BldcMotorDevice m => $"{m.Kv:F0} Kv, {m.PhaseResistance * 1000:F0}mΩ Phase Rs, {m.PropellerDiameterInches:F1}\" Prop",
+        EscDevice e => $"{e.ContinuousCurrentRating:F0}A Cont, {e.MosfetRdsOn * 1000:F1}mΩ Rds(on)",
+        BecDevice b => $"{b.OutputVoltage:F1}V Reg, {b.MaxOutputCurrent:F1}A Max, {(int)(b.Efficiency * 100)}% Eff",
+        PiezoBuzzerDevice p => $"{p.ResonantFrequencyHz:F0}Hz, {p.RatedDecibelsSpl:F0}dBA @ 10cm",
+        TvsDiodeDevice t => $"Vbr={t.BreakdownVoltage:F1}V, {t.PeakPowerWatts:F0}W Clamp",
         _ => "Standard Component"
     };
 
@@ -231,6 +257,12 @@ public static class BomEngine
         JosephsonJunctionDevice jj => $"{jj.CriticalCurrent:G3}",
         SquidDevice sq => $"{sq.BaseCriticalCurrent:G3}_{sq.ExternalFluxNormalized:F2}",
         BatteryCellDevice b => $"{b.CapacityAmpHours:F1}Ah",
+        FanDevice f => $"Fan_{f.RatedVoltage:F0}V_{f.MaxRpm:F0}RPM",
+        BldcMotorDevice m => $"BLDC_{m.Kv:F0}Kv",
+        EscDevice e => $"ESC_{e.ContinuousCurrentRating:F0}A",
+        BecDevice b => $"BEC_{b.OutputVoltage:F1}V",
+        PiezoBuzzerDevice p => $"Buzzer_{p.ResonantFrequencyHz:F0}Hz",
+        TvsDiodeDevice t => $"TVS_{t.BreakdownVoltage:F1}V",
         _ => dev.Type
     };
 
@@ -254,6 +286,12 @@ public static class BomEngine
         TransmissionLineDevice tl => $"{tl.CharacteristicImpedance:F1} Ω ({tl.DelaySeconds * 1e12:F0} ps)",
         HallEffectSensorDevice hs => $"{hs.MagneticFieldTesla * 1000:F0} mT ({hs.SensitivityVoltsPerTesla:F1} V/T)",
         BatteryCellDevice b => $"{b.CapacityAmpHours:F1} Ah ({b.OpenCircuitVoltage:F2} V)",
+        FanDevice f => $"{f.RatedVoltage:F0}V ({f.CurrentRpm:F0} RPM)",
+        BldcMotorDevice m => $"{m.Kv:F0} Kv ({m.ThrustGrams:F0}g Thrust)",
+        EscDevice e => $"{e.ContinuousCurrentRating:F0} A ({(int)(e.EffectiveThrottle * 100)}%)",
+        BecDevice b => $"{b.OutputVoltage:F1} V ({b.LoadCurrent:F2} A)",
+        PiezoBuzzerDevice p => $"{p.ResonantFrequencyHz:F0} Hz ({p.ActualDecibelsSpl:F0} dB)",
+        TvsDiodeDevice t => $"{t.BreakdownVoltage:F1} V TVS",
         _ => dev.Type
     };
 }

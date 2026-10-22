@@ -737,6 +737,7 @@
                             <!-- Category Chips Filter -->
                             <WrapPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
                                 <Button Classes="categoryTab" Classes.active="{Binding IsAllSelected}" Content="All" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="All" Margin="1,2"/>
+                                <Button Classes="categoryTab" Classes.active="{Binding IsDronesSelected}" Content="Drones" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Drones &amp; Aero" Margin="1,2"/>
                                 <Button Classes="categoryTab" Classes.active="{Binding IsPassivesSelected}" Content="Passives" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Passives" Margin="1,2"/>
                                 <Button Classes="categoryTab" Classes.active="{Binding IsSourcesSelected}" Content="Sources" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Sources" Margin="1,2"/>
                                 <Button Classes="categoryTab" Classes.active="{Binding IsSemiconductorsSelected}" Content="Semis" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Semiconductors" Margin="1,2"/>

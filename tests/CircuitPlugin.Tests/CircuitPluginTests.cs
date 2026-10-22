@@ -196,8 +196,14 @@ public sealed class CircuitPluginTests
     public void MainWindowViewModel_PaletteCatalog_FiltersByCategoryAndSearchQuery()
     {
         var vm = new FryCircuit.UI.ViewModels.MainWindowViewModel();
-        Assert.Equal(39, vm.AllPaletteItems.Count);
-        Assert.Equal(39, vm.FilteredPaletteItems.Count);
+        Assert.Equal(45, vm.AllPaletteItems.Count);
+        Assert.Equal(45, vm.FilteredPaletteItems.Count);
+
+        // Filter by category: Drones & Aero
+        vm.SelectPaletteCategoryCommand.Execute("Drones & Aero");
+        Assert.Equal("Drones & Aero", vm.SelectedPaletteCategory);
+        Assert.Equal(6, vm.FilteredPaletteItems.Count); // fan, bldc, esc, bec, buzzer, tvs
+        Assert.All(vm.FilteredPaletteItems, item => Assert.Equal("Drones & Aero", item.Category));
 
         // Filter by category: Passives
         vm.SelectPaletteCategoryCommand.Execute("Passives");
@@ -218,7 +224,7 @@ public sealed class CircuitPluginTests
 
         // Clear search
         vm.ComponentSearchQuery = "";
-        Assert.Equal(39, vm.FilteredPaletteItems.Count);
+        Assert.Equal(45, vm.FilteredPaletteItems.Count);
 
         vm.Dispose();
     }

@@ -779,6 +779,12 @@ public static class LlmCircuitSerializer
             "op_amp" or "amp" => "opamp",
             "voltmeter" or "meter_v" => "voltmeter",
             "ammeter" or "meter_a" => "amperemeter",
+            "dcfan" or "cooler" or "blower" => "fan",
+            "bldcmotor" or "drone_motor" => "bldc",
+            "bldcesc" or "speedcontroller" => "esc",
+            "buck" or "dcdc" => "bec",
+            "piezo" or "beeper" => "buzzer",
+            "tvsdiode" => "tvs",
             _ => t
         };
     }

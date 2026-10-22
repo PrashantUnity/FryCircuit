@@ -80,6 +80,12 @@ SUPPORTED DEVICE TYPES:
 - and, or, not, nand, nor, xor: "pins": {"in1": "a", "in2": "b", "out": "y"} (or 'in'/'out' for not)
 - potentiometer: "pins": {"t1": "a", "wiper": "w", "t2": "b"}, "value": "10k"
 - switch: "nodes": ["n1", "n2"]
+- fan: "pins": {"+": "vcc", "-": "gnd", "tach": "tach"}, "parameters": {"RatedVoltage": 12.0, "MaxRpm": 5000}
+- bldc: "pins": {"u": "u", "v": "v", "w": "w"}, "parameters": {"Kv": 2300, "PropellerDiameterInches": 5.0}
+- esc: "pins": {"+": "vbat", "-": "gnd", "pwm": "pwm", "u": "u", "v": "v", "w": "w"}
+- bec: "pins": {"vin": "vbat", "gnd": "gnd", "vout": "v5"}, "value": "5.0V"
+- buzzer: "pins": {"+": "vcc", "-": "gnd"}
+- tvs: "pins": {"anode": "gnd", "cathode": "vbat"}, "value": "18.0V"
 
 ENGINEERING UNITS:
 k (1e3), M/MEG (1e6), u/µ (1e-6), n (1e-9), p (1e-12), m (1e-3). Optional units: V, Hz, F, H, Ohm, A.

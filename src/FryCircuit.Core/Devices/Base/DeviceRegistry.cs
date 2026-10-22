@@ -180,5 +180,13 @@ public static class DeviceRegistry
         Register(new SevenSegmentDisplayDescriptor(), "seg7", "7seg", "sevensegment", "display");
         Register(new BcdTo7SegmentDescriptor(), "bcd7seg", "7448", "7447");
         Register(new BinaryCounterDescriptor(), "counter4", "74193", "counter");
+
+        // Drone & Aerospace Components
+        Register(new FanDescriptor(), "fan", "dcfan", "cooler", "blower");
+        Register(new BldcMotorDescriptor(), "bldc", "bldcmotor", "motor");
+        Register(new EscDescriptor(), "esc", "bldcesc", "speedcontroller");
+        Register(new BecDescriptor(), "bec", "buck", "dcdc");
+        Register(new PiezoBuzzerDescriptor(), "buzzer", "piezo", "beeper");
+        Register(new TvsDiodeDescriptor(), "tvs", "tvsdiode");
     }
 }

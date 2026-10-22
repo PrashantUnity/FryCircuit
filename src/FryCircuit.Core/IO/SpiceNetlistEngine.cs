@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using FryCircuit.Core.Devices;
+using FryCircuit.Core.Devices.Aerospace;
 using FryCircuit.Core.Devices.Battery;
 using FryCircuit.Core.Models;
 using FryCircuit.Core.Physics;
@@ -257,6 +258,74 @@ public static class SpiceNetlistEngine
                 case GroundDevice gnd:
                 {
                     // Ground references are handled via node 0
+                    break;
+                }
+                case FanDevice fan:
+                {
+                    string p = GetNodeName(fan.Pins[0].NodeId);
+                    string n = GetNodeName(fan.Pins[1].NodeId);
+                    sb.AppendLine($"* DC Brushless Cooling Fan (Rated={fan.RatedVoltage:F0}V, {fan.CurrentRpm:F0} RPM, {fan.CurrentAirflowCfm:F1} CFM):");
+                    sb.AppendLine($"R_FAN_COIL{fan.Id} {p} N_INT_FAN_{fan.Id} {fan.CoilResistance.ToString("G5", inv)}");
+                    sb.AppendLine($"E_FAN_BEMF{fan.Id} N_INT_FAN_{fan.Id} {n} VALUE = {{ {fan.BackEmfConstant.ToString("E4", inv)} * {fan.AngularVelocityRadS.ToString("G5", inv)} }}");
+                    if (fan.Pins.Count > 2)
+                    {
+                        string tach = GetNodeName(fan.Pins[2].NodeId);
+                        sb.AppendLine($"R_FAN_TACH{fan.Id} {tach} {n} 10k");
+                    }
+                    break;
+                }
+                case BldcMotorDevice bldc:
+                {
+                    string u = GetNodeName(bldc.Pins[0].NodeId);
+                    string v = GetNodeName(bldc.Pins[1].NodeId);
+                    string w = GetNodeName(bldc.Pins[2].NodeId);
+                    double rDelta = Math.Max(0.005, 3.0 * bldc.PhaseResistance);
+                    sb.AppendLine($"* 3-Phase BLDC Drone Motor ({bldc.Kv:F0} Kv, {bldc.CurrentRpm:F0} RPM, Thrust={bldc.ThrustGrams:F0}g):");
+                    sb.AppendLine($"R_MTR_UV_{bldc.Id} {u} {v} {rDelta.ToString("G5", inv)}");
+                    sb.AppendLine($"R_MTR_VW_{bldc.Id} {v} {w} {rDelta.ToString("G5", inv)}");
+                    sb.AppendLine($"R_MTR_WU_{bldc.Id} {w} {u} {rDelta.ToString("G5", inv)}");
+                    break;
+                }
+                case EscDevice esc:
+                {
+                    string vp = GetNodeName(esc.Pins[0].NodeId);
+                    string vn = GetNodeName(esc.Pins[1].NodeId);
+                    string u = GetNodeName(esc.Pins[3].NodeId);
+                    string v = GetNodeName(esc.Pins[4].NodeId);
+                    string w = GetNodeName(esc.Pins[5].NodeId);
+                    sb.AppendLine($"* Drone Electronic Speed Controller (ESC) Inverter ({esc.ContinuousCurrentRating:F0}A, Throttle={(int)(esc.EffectiveThrottle * 100)}%):");
+                    sb.AppendLine($"R_ESC_SUPPLY{esc.Id} {vp} {vn} {(12.0 / Math.Max(0.001, esc.QuiescentCurrent)).ToString("G5", inv)}");
+                    sb.AppendLine($"R_ESC_SW_U{esc.Id} {vp} {u} 0.05");
+                    sb.AppendLine($"R_ESC_SW_V{esc.Id} {u} {v} 0.05");
+                    sb.AppendLine($"R_ESC_SW_W{esc.Id} {v} {w} 0.05");
+                    break;
+                }
+                case BecDevice bec:
+                {
+                    string vin = GetNodeName(bec.Pins[0].NodeId);
+                    string gnd = GetNodeName(bec.Pins[1].NodeId);
+                    string vout = GetNodeName(bec.Pins[2].NodeId);
+                    sb.AppendLine($"* Step-Down DC-DC BEC Regulator (Vout={bec.OutputVoltage:F1}V, Imax={bec.MaxOutputCurrent:F1}A, Eff={(int)(bec.Efficiency * 100)}%):");
+                    sb.AppendLine($"V_BEC_OUT{bec.Id} {vout} {gnd} DC {bec.OutputVoltage.ToString("G5", inv)}");
+                    sb.AppendLine($"R_BEC_IN{bec.Id} {vin} {gnd} 10k");
+                    break;
+                }
+                case PiezoBuzzerDevice buzz:
+                {
+                    string p = GetNodeName(buzz.Pins[0].NodeId);
+                    string n = GetNodeName(buzz.Pins[1].NodeId);
+                    sb.AppendLine($"* Piezoelectric Drone Alarm Buzzer (Freq={buzz.ResonantFrequencyHz:F0}Hz, SPL={buzz.ActualDecibelsSpl:F0}dB):");
+                    sb.AppendLine($"R_BUZZ{buzz.Id} {p} {n} {buzz.EquivalentResistance.ToString("G5", inv)}");
+                    break;
+                }
+                case TvsDiodeDevice tvs:
+                {
+                    string a = GetNodeName(tvs.Pins[0].NodeId);
+                    string k = GetNodeName(tvs.Pins[1].NodeId);
+                    string mod = $"TVS_MOD_{tvs.Id}";
+                    sb.AppendLine($"* Transient Voltage Suppressor (TVS) Clamping Diode (Vbr={tvs.BreakdownVoltage:F1}V, Pmax={tvs.PeakPowerWatts:F0}W):");
+                    sb.AppendLine($"D_TVS{tvs.Id} {a} {k} {mod}");
+                    sb.AppendLine($".MODEL {mod} D (BV={tvs.BreakdownVoltage.ToString("G5", inv)} IBV=1m RS={tvs.ClampingResistance.ToString("G5", inv)})");
                     break;
                 }
                 default:
