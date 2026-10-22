@@ -254,6 +254,8 @@ public static class Program
 #pragma warning restore CS0618
 
         window.Close();
+        FryCircuit.UI.Theming.CircuitThemeService.Instance.UntrackResourceRoot(window);
+        vm.Dispose();
     }
 
     private static void CaptureLedInspector(string outDir)
@@ -314,6 +316,7 @@ public static class Program
 #pragma warning restore CS0618
 
         window.Close();
+        vm.Dispose();
     }
 
     private static void CaptureLayoutStates(string outDir)
@@ -586,6 +589,7 @@ public static class Program
 #pragma warning restore CS0618
 
         window.Close();
+        vm.Dispose();
     }
 
     private static void CaptureAiInteractionTest(string outDir)
@@ -738,6 +742,8 @@ public static class Program
         Console.WriteLine("Step 5 Captured: AI Loaded Inverting Op-Amp");
 
         window.Close();
+        FryCircuit.UI.Theming.CircuitThemeService.Instance.UntrackResourceRoot(window);
+        vm.Dispose();
     }
 
     private static void SaveFrame(Window window, string filename)
