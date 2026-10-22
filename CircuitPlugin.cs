@@ -391,19 +391,50 @@ public class CircuitPlugin : IFryPlugin
             Function = AIFunctionFactory.Create(circuitTools.GetSchematic, "circuit_get_schematic", "Returns the complete schematic currently open in Circuit Studio formatted as .fcircuit JSON with topology, components, values, and netlists.")
         });
 
+        const string loadSchematicDesc = """
+Loads or synthesizes a schematic in Circuit Studio using .fcircuit JSON. Automatically performs topological auto-routing and component placement.
+
+FORMAT:
+{
+  "name": "My Circuit",
+  "components": [
+    { "id": "V1", "type": "vsource", "waveform": "sine", "amplitude": "10V", "frequency": "1kHz", "pins": { "+": "vin", "-": "gnd" } },
+    { "id": "R1", "type": "resistor", "value": "10k", "nodes": ["vin", "vout"] },
+    { "id": "C1", "type": "capacitor", "value": "100nF", "nodes": ["vout", "gnd"] },
+    { "id": "GND", "type": "ground", "nodes": ["gnd"] }
+  ]
+}
+
+SUPPORTED DEVICE TYPES:
+- resistor, capacitor, inductor: "value": "10k", "nodes": ["n1", "n2"]
+- vsource / battery / csource: "waveform" ('sine', 'square', 'triangle', 'dc'), "amplitude" ("10V"), "frequency" ("1kHz"), "pins": {"+": "vcc", "-": "gnd"}
+- ground: type 'ground', "nodes": ["gnd"] (must be present in all circuits)
+- diode / led / zener: "pins": {"anode": "a", "cathode": "k"}
+- opamp: "pins": {"in-": "inv", "in+": "noninv", "out": "vout"}
+- npn / pnp (BJT): "pins": {"base": "b", "collector": "c", "emitter": "e"}
+- nmos / pmos (MOSFET): "pins": {"gate": "g", "drain": "d", "source": "s"}
+- timer555: "pins": {"gnd": "gnd", "trig": "t", "out": "o", "reset": "vcc", "ctrl": "cv", "thresh": "th", "disch": "dis", "vcc": "vcc"}
+- and, or, not, nand, nor, xor: "pins": {"in1": "a", "in2": "b", "out": "y"} (or 'in'/'out' for not)
+- potentiometer: "pins": {"t1": "a", "wiper": "w", "t2": "b"}, "value": "10k"
+- switch: "nodes": ["n1", "n2"]
+
+ENGINEERING UNITS:
+k (1e3), M/MEG (1e6), u/µ (1e-6), n (1e-9), p (1e-12), m (1e-3). Optional units: V, Hz, F, H, Ohm, A.
+""";
+
         ctx.RegisterAiTool(new AiToolDescriptor
         {
             Name = "circuit_load_schematic",
-            Description = "Loads or updates a circuit schematic in Circuit Studio using .fcircuit JSON format. Automatically positions components and performs wiring.",
+            Description = loadSchematicDesc,
             Category = "Circuit Engineering",
             RequiresConfirmation = false,
-            Function = AIFunctionFactory.Create(circuitTools.LoadSchematic, "circuit_load_schematic", "Loads or updates a circuit schematic in Circuit Studio using .fcircuit JSON format. Automatically positions components and performs wiring.")
+            Function = AIFunctionFactory.Create(circuitTools.LoadSchematic, "circuit_load_schematic", loadSchematicDesc)
         });
 
         ctx.RegisterAiTool(new AiToolDescriptor
         {
             Name = "circuit_step_simulation",
-            Description = "Advances the real-time SPICE-grade MNA circuit simulation engine by the specified number of steps.",
+            Description = "Advances the real-time SPICE-grade MNA circuit simulation engine by the specified number of time-steps (1 to 1000). Useful for computing steady-state or observing transient response step-by-step.",
             Category = "Circuit Engineering",
             Function = AIFunctionFactory.Create(circuitTools.StepSimulation, "circuit_step_simulation", "Advances the real-time SPICE-grade MNA circuit simulation engine by the specified number of steps.")
         });
@@ -411,7 +442,7 @@ public class CircuitPlugin : IFryPlugin
         ctx.RegisterAiTool(new AiToolDescriptor
         {
             Name = "circuit_get_readings",
-            Description = "Queries live node voltages and branch current readings across all components in the active circuit.",
+            Description = "Queries all live node voltages and device current readings across the circuit. Returns JSON: { circuit: string, simTimeMs: number, nodes: [{node, name, isGround, voltage}], devices: [{id, type, current, parameters}] }.",
             Category = "Circuit Engineering",
             Function = AIFunctionFactory.Create(circuitTools.GetReadings, "circuit_get_readings", "Queries live node voltages and branch current readings across all components in the active circuit.")
         });
@@ -497,13 +528,25 @@ public class CircuitPlugin : IFryPlugin
             Function = AIFunctionFactory.Create(circuitTools.ZoomToFit, "circuit_zoom_to_fit", "Centers and fits the canvas viewport.")
         });
 
+        const string modifyComponentDesc = """
+Modifies a parameter value of an existing component in the active circuit.
+Supported parameters:
+- resistor: 'resistance' (Ohms)
+- capacitor: 'capacitance' (Farads)
+- inductor: 'inductance' (Henries)
+- vsource / battery: 'voltage' or 'amplitude' (Volts), 'frequency' (Hz), 'offset' (Volts)
+- potentiometer: 'resistance' (Ohms), 'wiper' (0.0 to 1.0)
+- diode / led: 'forwardVoltage' (Volts), 'breakdownVoltage' (Volts)
+- opamp: 'gain' (V/V), 'saturateVoltage' (Volts)
+""";
+
         ctx.RegisterAiTool(new AiToolDescriptor
         {
             Name = "circuit_modify_component",
-            Description = "Modifies a parameter value of an existing component in the circuit (e.g. resistance of 'r1', frequency of 'vsrc').",
+            Description = modifyComponentDesc,
             Category = "Circuit Engineering",
             RequiresConfirmation = false,
-            Function = AIFunctionFactory.Create(circuitTools.ModifyComponent, "circuit_modify_component", "Modifies a component parameter in the active circuit.")
+            Function = AIFunctionFactory.Create(circuitTools.ModifyComponent, "circuit_modify_component", modifyComponentDesc)
         });
 
         ctx.RegisterAiTool(new AiToolDescriptor

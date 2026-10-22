@@ -241,7 +241,11 @@ public static class LlmCircuitSerializer
             {
                 netNameToNodeId[netName] = newId;
             }
-            circuit.GetOrCreateNode(newId, isGround: isGnd);
+            var cNode = circuit.GetOrCreateNode(newId, isGround: isGnd);
+            if (!string.IsNullOrEmpty(netName) && string.IsNullOrEmpty(cNode.Name))
+            {
+                cNode.Name = isGnd ? "GND" : netName;
+            }
             return newId;
         }
 
@@ -276,15 +280,18 @@ public static class LlmCircuitSerializer
             }
 
             int id = devIdCounter;
+            string? explicitLabel = null;
             if (comp.TryGetProperty("id", out var idProp))
             {
                 if (idProp.ValueKind == JsonValueKind.Number && idProp.TryGetInt32(out int nid))
                 {
                     id = nid;
+                    explicitLabel = id.ToString();
                 }
                 else if (idProp.ValueKind == JsonValueKind.String)
                 {
                     string idStr = idProp.GetString() ?? string.Empty;
+                    explicitLabel = idStr;
                     // Extract numeric suffix if possible (e.g. "R12" -> 12)
                     string digits = new string(idStr.Where(char.IsDigit).ToArray());
                     if (int.TryParse(digits, out int parsedId) && parsedId > 0)
@@ -292,6 +299,10 @@ public static class LlmCircuitSerializer
                         id = parsedId;
                     }
                 }
+            }
+            if (comp.TryGetProperty("label", out var labelProp) && labelProp.ValueKind == JsonValueKind.String)
+            {
+                explicitLabel = labelProp.GetString();
             }
             if (id <= 0) id = devIdCounter;
             devIdCounter = Math.Max(devIdCounter + 1, id + 1);
@@ -310,6 +321,10 @@ public static class LlmCircuitSerializer
             }
 
             var device = DeviceRegistry.CreateDevice(type, id, x, y);
+            if (!string.IsNullOrEmpty(explicitLabel))
+            {
+                device.Label = explicitLabel;
+            }
 
             // Rotation & Flip
             if (comp.TryGetProperty("rotation", out var rotProp))

@@ -54,8 +54,38 @@ public class CircuitAiTools
         return vm.ExportCircuitToLlmJson();
     }
 
-    [Description("Loads or replaces the schematic in Circuit Studio using a .fcircuit JSON string. Automatically performs topological layout and synthesizes wiring.")]
-    public async Task<string> LoadSchematic([Description("The complete .fcircuit JSON document.")] string fcircuitJson)
+    [Description("""
+Loads or synthesizes a schematic in Circuit Studio using .fcircuit JSON. Automatically performs topological auto-routing and component placement.
+
+FORMAT:
+{
+  "name": "My Circuit",
+  "components": [
+    { "id": "V1", "type": "vsource", "waveform": "sine", "amplitude": "10V", "frequency": "1kHz", "pins": { "+": "vin", "-": "gnd" } },
+    { "id": "R1", "type": "resistor", "value": "10k", "nodes": ["vin", "vout"] },
+    { "id": "C1", "type": "capacitor", "value": "100nF", "nodes": ["vout", "gnd"] },
+    { "id": "GND", "type": "ground", "nodes": ["gnd"] }
+  ]
+}
+
+SUPPORTED DEVICE TYPES:
+- resistor, capacitor, inductor: "value": "10k", "nodes": ["n1", "n2"]
+- vsource / battery / csource: "waveform" ('sine', 'square', 'triangle', 'dc'), "amplitude" ("10V"), "frequency" ("1kHz"), "pins": {"+": "vcc", "-": "gnd"}
+- ground: type 'ground', "nodes": ["gnd"] (must be present in all circuits)
+- diode / led / zener: "pins": {"anode": "a", "cathode": "k"}
+- opamp: "pins": {"in-": "inv", "in+": "noninv", "out": "vout"}
+- npn / pnp (BJT): "pins": {"base": "b", "collector": "c", "emitter": "e"}
+- nmos / pmos (MOSFET): "pins": {"gate": "g", "drain": "d", "source": "s"}
+- timer555: "pins": {"gnd": "gnd", "trig": "t", "out": "o", "reset": "vcc", "ctrl": "cv", "thresh": "th", "disch": "dis", "vcc": "vcc"}
+- and, or, not, nand, nor, xor: "pins": {"in1": "a", "in2": "b", "out": "y"} (or 'in'/'out' for not)
+- potentiometer: "pins": {"t1": "a", "wiper": "w", "t2": "b"}, "value": "10k"
+- switch: "nodes": ["n1", "n2"]
+
+ENGINEERING UNITS:
+k (1e3), M/MEG (1e6), u/µ (1e-6), n (1e-9), p (1e-12), m (1e-3). Optional units: V, Hz, F, H, Ohm, A.
+""")]
+    public async Task<string> LoadSchematic(
+        [Description("The complete .fcircuit JSON string with 'name' and 'components' array defining device types, values, and net connections.")] string fcircuitJson)
     {
         var vm = GetVm();
         if (vm == null) return "Error: Circuit Studio view model is not active.";
@@ -159,8 +189,12 @@ public class CircuitAiTools
         return result;
     }
 
-    [Description("Exports the active circuit schematic in various industry formats ('spice' netlist, 'bom' markdown, or 'fcircuit' JSON).")]
-    public string Export([Description("Export format: 'spice', 'bom', or 'fcircuit'. Defaults to 'spice'.")] string format = "spice")
+    [Description("Exports the active circuit schematic in various industry formats:\n" +
+                 "- 'spice': Berkeley SPICE 3f5 / LTspice compatible .cir netlist with thermal anchors and analysis directives.\n" +
+                 "- 'bom': Markdown table Bill of Materials with quantities, reference designators, SMD footprints, and manufacturing specs.\n" +
+                 "- 'fcircuit': Canonical LLM JSON format with complete component models and topology.")]
+    public string Export(
+        [Description("Export format: 'spice' (default), 'bom', or 'fcircuit'.")] string format = "spice")
     {
         var vm = GetVm();
         if (vm == null || vm.CurrentCircuit == null) return "Error: No active circuit to export.";
@@ -228,10 +262,12 @@ public class CircuitAiTools
         return $"Active tool mode set to {toolMode}.";
     }
 
-    [Description("Controls the real-time SPICE-grade MNA simulation: 'start', 'pause', 'toggle', 'reset', or sets time speed multiplier (0.1 to 4.0).")]
+    [Description("Controls the real-time SPICE-grade MNA simulation engine.\n" +
+                 "- action: 'start' (run solver continuously), 'pause' (freeze solver), 'toggle' (toggle state), 'reset' (clear capacitor/inductor energy states).\n" +
+                 "- speed: time-step speed multiplier (0.1 to 4.0).")]
     public async Task<string> ControlSimulation(
         [Description("Action: 'start', 'pause', 'toggle', or 'reset'.")] string action = "toggle",
-        [Description("Optional time-step speed multiplier (e.g. 1.0, 2.0).")] double? speed = null)
+        [Description("Optional time-step speed multiplier between 0.1 and 4.0 (default 1.0).")] double? speed = null)
     {
         var vm = GetVm();
         if (vm == null) return "Error: Circuit Studio view model is not active.";
@@ -290,11 +326,19 @@ public class CircuitAiTools
         return "Canvas viewport centered and fitted to circuit.";
     }
 
-    [Description("Modifies a parameter value of an existing component in the circuit (e.g. resistance of 'r1', frequency of 'vsrc').")]
+    [Description("Modifies a parameter value of an existing component in the circuit.\n" +
+                 "Supported parameters per component type:\n" +
+                 "- resistor: 'resistance' (Ohms)\n" +
+                 "- capacitor: 'capacitance' (Farads)\n" +
+                 "- inductor: 'inductance' (Henries)\n" +
+                 "- vsource / battery: 'voltage' or 'amplitude' (Volts), 'frequency' (Hz), 'offset' (Volts)\n" +
+                 "- potentiometer: 'resistance' (Ohms), 'wiper' (0.0 to 1.0)\n" +
+                 "- diode / led: 'forwardVoltage' (Volts), 'breakdownVoltage' (Volts)\n" +
+                 "- opamp: 'gain' (V/V), 'saturateVoltage' (Volts)")]
     public async Task<string> ModifyComponent(
-        [Description("The component ID or reference (e.g. '1', 'r1', 'vsrc', 'led1').")] string componentId,
-        [Description("The parameter name to modify (e.g. 'resistance', 'capacitance', 'voltage', 'frequency').")] string parameterName,
-        [Description("The new numerical value for the parameter.")] double value)
+        [Description("The component ID or reference designator (e.g. '1', 'R1', 'V1', 'C2', 'LED1').")] string componentId,
+        [Description("The parameter name (e.g. 'resistance', 'capacitance', 'inductance', 'voltage', 'frequency', 'wiper').")] string parameterName,
+        [Description("The new numerical value (float).")] double value)
     {
         var vm = GetVm();
         if (vm == null || vm.CurrentCircuit == null) return "Error: No active circuit loaded.";
@@ -355,15 +399,19 @@ public class CircuitAiTools
         if (string.IsNullOrWhiteSpace(componentId)) return null;
         var trimmed = componentId.Trim();
 
-        // 1. Exact numeric Id match (e.g. "3")
+        // 1. Semantic label match (e.g. "Rfb", "Vin", "Rin", "U1")
+        var byLabel = circuit.Devices.FirstOrDefault(d => !string.IsNullOrEmpty(d.Label) && string.Equals(d.Label, trimmed, StringComparison.OrdinalIgnoreCase));
+        if (byLabel != null) return byLabel;
+
+        // 2. Exact numeric Id match (e.g. "3")
         var byNumericId = circuit.Devices.FirstOrDefault(d => string.Equals(d.Id.ToString(), trimmed, StringComparison.OrdinalIgnoreCase));
         if (byNumericId != null) return byNumericId;
 
-        // 2. RefDes match (e.g. "R3", "V1", "U4", "D2", "C1")
+        // 3. RefDes match (e.g. "R3", "V1", "U4", "D2", "C1")
         var byRefDes = circuit.Devices.FirstOrDefault(d => string.Equals(GetDeviceRefDes(d), trimmed, StringComparison.OrdinalIgnoreCase));
         if (byRefDes != null) return byRefDes;
 
-        // 3. Strip leading letters to extract trailing integer (e.g. "r3" -> 3)
+        // 4. Strip leading letters to extract trailing integer (e.g. "r3" -> 3)
         var digitsOnly = new string(trimmed.SkipWhile(c => !char.IsDigit(c)).TakeWhile(char.IsDigit).ToArray());
         if (int.TryParse(digitsOnly, out int parsedId))
         {
@@ -371,7 +419,7 @@ public class CircuitAiTools
             if (byParsedId != null) return byParsedId;
         }
 
-        // 4. Fallback to device type match (e.g. "vsource", "diode", "opamp", "resistor")
+        // 5. Fallback to device type match (e.g. "vsource", "diode", "opamp", "resistor")
         return circuit.Devices.FirstOrDefault(d => string.Equals(d.Type, trimmed, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -428,8 +476,9 @@ public class CircuitAiTools
         return "Redo executed.";
     }
 
-    [Description("Advances the real-time SPICE-grade MNA simulation engine by the specified number of steps.")]
-    public async Task<string> StepSimulation([Description("Number of simulation time-steps to compute (e.g. 10).")] int steps = 10)
+    [Description("Advances the real-time SPICE-grade MNA circuit simulation engine by the specified number of time-steps (1 to 1000). Useful for computing steady-state or observing transient response step-by-step.")]
+    public async Task<string> StepSimulation(
+        [Description("Number of simulation time-steps to compute (e.g. 10, 25, 50).")] int steps = 10)
     {
         var vm = GetVm();
         if (vm == null) return "Error: Circuit Studio view model is not active.";
@@ -444,7 +493,8 @@ public class CircuitAiTools
         return $"Simulated {steps} steps. Current simulation time: {(vm.Solver?.CurrentTime ?? 0) * 1000.0:F2} ms.";
     }
 
-    [Description("Queries all live node voltages and device current readings across the circuit.")]
+    [Description("Queries all live node voltages and device current readings across the circuit.\n" +
+                 "Returns JSON: { circuit: string, simTimeMs: number, nodes: [{node, name, isGround, voltage}], devices: [{id, type, current, parameters}] }")]
     public string GetReadings()
     {
         var vm = GetVm();
@@ -452,10 +502,10 @@ public class CircuitAiTools
         if (circuit == null) return "Error: No active circuit loaded.";
 
         var nodeReadings = circuit.Nodes.Values
-            .Select(n => new { node = n.Id, name = n.IsGround ? "GND" : $"N{n.Id}", isGround = n.IsGround, voltage = $"{n.Voltage:F3} V" });
+            .Select(n => new { node = n.Id, name = n.IsGround ? "GND" : (!string.IsNullOrEmpty(n.Name) ? n.Name : $"N{n.Id}"), isGround = n.IsGround, voltage = $"{n.Voltage:F3} V" });
 
         var deviceReadings = circuit.Devices
-            .Select(d => new { id = d.Id, type = d.Type, parameters = string.Join(", ", d.Parameters.Select(p => $"{p.Key}={p.Value}")), current = $"{d.Current * 1000.0:F3} mA" });
+            .Select(d => new { id = d.Id, label = !string.IsNullOrEmpty(d.Label) ? d.Label : GetDeviceRefDes(d), type = d.Type, parameters = string.Join(", ", d.Parameters.Select(p => $"{p.Key}={p.Value}")), current = $"{d.Current * 1000.0:F3} mA" });
 
         return JsonSerializer.Serialize(new
         {

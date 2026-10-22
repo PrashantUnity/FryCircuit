@@ -15,6 +15,7 @@ public class Device : INotifyPropertyChanged
 
     public int Id { get; set; }
     public string Type { get; set; } = string.Empty;
+    public string? Label { get; set; }
     public double LocationX { get; set; }
     public double LocationY { get; set; }
     public DeviceTransform Transform { get; set; } = new();

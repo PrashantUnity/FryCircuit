@@ -4,6 +4,7 @@ public class CircuitNode
 {
     public int Id { get; set; }
     public bool IsGround { get; set; }
+    public string? Name { get; set; }
     
     /// <summary>
     /// Calculated instantaneous voltage relative to ground (V)
