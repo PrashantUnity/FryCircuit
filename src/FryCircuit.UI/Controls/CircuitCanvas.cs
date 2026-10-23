@@ -109,6 +109,7 @@ public partial class CircuitCanvas : Control
     private Point _deviceDragOffset;
     private (double X, double Y) _deviceDragStartPos;
     private bool _isDragCollision;
+    private Device? _dragCollisionDevice;
 
     // Undo / Redo Manager reference
     public UndoRedoManager? HistoryManager { get; set; }
@@ -159,6 +160,8 @@ public partial class CircuitCanvas : Control
     // Device Placement preview
     private (double Wx, double Wy) _placementCursorPos;
     private DeviceRotation _placementRotation = DeviceRotation.Up;
+    private bool _isPlacementCollision;
+    private Device? _placementCollisionDevice;
 
     // Multi-Selection support
     public HashSet<Device> SelectedDevices { get; } = new();
@@ -175,6 +178,18 @@ public partial class CircuitCanvas : Control
     private (Device Device, Pin Pin, int PinIndex)? _hoveredPin;
     private CircuitWire? _hoveredWire;
     private (double Wx, double Wy) _lastCursorWorldPos;
+
+    // Interactive Wire Dragging & Custom Routing
+    private bool _isDraggingWire;
+    private CircuitWire? _draggedWire;
+    private int _draggedSegmentIndex = -1;
+    private int _draggedVertexIndex = -1;
+    private bool _isDraggingHorizontalSegment;
+    private List<(double X, double Y)> _wireDragOriginalPath = new();
+    private bool _wireDragOriginalCustom;
+    private (CircuitWire Wire, int SegmentIndex, bool IsHorizontal)? _hoveredWireSegment;
+    private (CircuitWire Wire, int VertexIndex)? _hoveredWireVertex;
+    private Device? _wireCollisionDevice;
 
     static CircuitCanvas()
     {
@@ -484,6 +499,9 @@ public partial class CircuitCanvas : Control
         {
             DrawPlacementGhost(context);
         }
+
+        // 7b. Collision & Forbidden Zone Overlays
+        DrawCollisionOverlays(context);
 
         // 8. Hovered Pin Target Reticle
         if (_hoveredPin != null && !_isWiring)

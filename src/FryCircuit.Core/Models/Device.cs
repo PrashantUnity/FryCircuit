@@ -180,16 +180,58 @@ public class Device : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Gets the rectangular bounds of the device body in world grid coordinates.
+    /// Gets the rectangular bounds of the device body in world grid coordinates,
+    /// respecting its descriptor geometry and rotation.
     /// </summary>
-    public (double MinX, double MaxX, double MinY, double MaxY) GetBoundingBox(double padding = 0.3)
+    public (double MinX, double MaxX, double MinY, double MaxY) GetBoundingBox(double padding = 0.2)
     {
+        return GetBoundsFor(Type, LocationX, LocationY, Transform.Rotation, padding);
+    }
+
+    /// <summary>
+    /// Calculates world grid bounds for a component of given type, center, rotation, and padding.
+    /// </summary>
+    public static (double MinX, double MaxX, double MinY, double MaxY) GetBoundsFor(
+        string type, double centerX, double centerY, DeviceRotation rotation, double padding = 0.2)
+    {
+        double baseW = 2.0;
+        double baseH = 2.0;
+
+        if (DeviceRegistry.TryGet(type, out var desc) && desc != null)
+        {
+            baseW = desc.BoundingBoxSize.Width;
+            baseH = desc.BoundingBoxSize.Height;
+        }
+
+        bool isRot = ((int)rotation % 180) != 0;
+        double halfW = (isRot ? baseH : baseW) / 2.0 + padding;
+        double halfH = (isRot ? baseW : baseH) / 2.0 + padding;
+
         return (
-            LocationX - (1.0 - padding),
-            LocationX + (1.0 - padding),
-            LocationY - (1.0 - padding),
-            LocationY + (1.0 - padding)
+            centerX - halfW,
+            centerX + halfW,
+            centerY - halfH,
+            centerY + halfH
         );
+    }
+
+    /// <summary>
+    /// Tests whether two bounding boxes intersect in 2D space.
+    /// </summary>
+    public static bool BoundsIntersect(
+        (double MinX, double MaxX, double MinY, double MaxY) a,
+        (double MinX, double MaxX, double MinY, double MaxY) b)
+    {
+        return a.MinX < b.MaxX && a.MaxX > b.MinX && a.MinY < b.MaxY && a.MaxY > b.MinY;
+    }
+
+    /// <summary>
+    /// Tests whether this device collides or overlaps with another device in world space.
+    /// </summary>
+    public bool Intersects(Device other, double padding = 0.15)
+    {
+        if (ReferenceEquals(this, other)) return false;
+        return BoundsIntersect(GetBoundingBox(padding), other.GetBoundingBox(padding));
     }
 
     public (double X, double Y) Center => (LocationX, LocationY);

@@ -12,12 +12,12 @@ public partial class CircuitCanvas
     {
         if (Circuit == null) return;
 
-        // 1. Compute IEEE 315 standard solder junction beads and incident directions
-        var directionsAtPoint = new Dictionary<(double X, double Y), HashSet<(int dx, int dy)>>();
+        // 1. Build net-aware incident directions map
+        // Key: (Math.Round(X, 1), Math.Round(Y, 1)) -> (NodeId -> Set of incident directions (dx, dy))
+        var netDirections = new Dictionary<(double X, double Y), Dictionary<int, HashSet<(int dx, int dy)>>>();
         var junctionColors = new Dictionary<(double X, double Y), (Color Glow, Color Core)>();
-        var junctionNodeIds = new Dictionary<(double X, double Y), int>();
-        var verticalSegments = new List<(double X, double MinY, double MaxY, int NodeId, CircuitWire Wire)>();
 
+        // Ensure all wires have valid path points
         foreach (var wire in Circuit.Wires)
         {
             if (wire.PathPoints == null || wire.PathPoints.Count < 2)
@@ -38,66 +38,49 @@ public partial class CircuitCanvas
             bool isGnd = node?.IsGround == true;
             var (vGlow, vCore) = GetVoltageColors(v, isGnd);
 
-            for (int i = 0; i < pts.Count - 1; i++)
+            for (int i = 0; i < pts.Count; i++)
             {
-                double x1 = pts[i].X;
-                double y1 = pts[i].Y;
-                double x2 = pts[i + 1].X;
-                double y2 = pts[i + 1].Y;
-
-                if (Math.Abs(y1 - y2) < 1e-4)
+                var key = (Math.Round(pts[i].X, 1), Math.Round(pts[i].Y, 1));
+                if (!netDirections.TryGetValue(key, out var nodeMap))
                 {
-                    double y = y1;
-                    double minX = Math.Min(x1, x2);
-                    double maxX = Math.Max(x1, x2);
-                    for (double x = minX; x <= maxX + 1e-4; x += 0.5)
-                    {
-                        var key = (Math.Round(x, 1), Math.Round(y, 1));
-                        if (!directionsAtPoint.TryGetValue(key, out var dirSet))
-                        {
-                            dirSet = new HashSet<(int, int)>();
-                            directionsAtPoint[key] = dirSet;
-                        }
-                        junctionColors[key] = (vGlow, vCore);
-                        junctionNodeIds[key] = wire.NodeId;
-
-                        if (x > minX + 1e-4) dirSet.Add((-1, 0)); // Wire extends left
-                        if (x < maxX - 1e-4) dirSet.Add((1, 0));  // Wire extends right
-                    }
+                    nodeMap = new Dictionary<int, HashSet<(int, int)>>();
+                    netDirections[key] = nodeMap;
                 }
-                else if (Math.Abs(x1 - x2) < 1e-4)
+                if (!nodeMap.TryGetValue(wire.NodeId, out var dirSet))
                 {
-                    double x = x1;
-                    double minY = Math.Min(y1, y2);
-                    double maxY = Math.Max(y1, y2);
-                    verticalSegments.Add((x, minY, maxY, wire.NodeId, wire));
+                    dirSet = new HashSet<(int, int)>();
+                    nodeMap[wire.NodeId] = dirSet;
+                }
 
-                    for (double y = minY; y <= maxY + 1e-4; y += 0.5)
-                    {
-                        var key = (Math.Round(x, 1), Math.Round(y, 1));
-                        if (!directionsAtPoint.TryGetValue(key, out var dirSet))
-                        {
-                            dirSet = new HashSet<(int, int)>();
-                            directionsAtPoint[key] = dirSet;
-                        }
-                        junctionColors[key] = (vGlow, vCore);
-                        junctionNodeIds[key] = wire.NodeId;
+                junctionColors[key] = (vGlow, vCore);
 
-                        if (y > minY + 1e-4) dirSet.Add((0, -1)); // Wire extends up
-                        if (y < maxY - 1e-4) dirSet.Add((0, 1));  // Wire extends down
-                    }
+                // Incident direction from previous point
+                if (i > 0)
+                {
+                    int pdx = Math.Sign(pts[i - 1].X - pts[i].X);
+                    int pdy = Math.Sign(pts[i - 1].Y - pts[i].Y);
+                    if (pdx != 0 || pdy != 0) dirSet.Add((pdx, pdy));
+                }
+                // Incident direction to next point
+                if (i < pts.Count - 1)
+                {
+                    int ndx = Math.Sign(pts[i + 1].X - pts[i].X);
+                    int ndy = Math.Sign(pts[i + 1].Y - pts[i].Y);
+                    if (ndx != 0 || ndy != 0) dirSet.Add((ndx, ndy));
                 }
             }
         }
 
-        // Add device pin directions: a pin connects into the point from the device body
+        // Add device pin incident directions per node
         foreach (var dev in Circuit.Devices)
         {
             for (int p = 0; p < dev.Pins.Count; p++)
             {
+                var pin = dev.Pins[p];
                 var (px, py) = dev.GetAbsolutePinPosition(p);
                 var key = (Math.Round(px, 1), Math.Round(py, 1));
-                if (directionsAtPoint.TryGetValue(key, out var dirSet))
+
+                if (netDirections.TryGetValue(key, out var nodeMap) && nodeMap.TryGetValue(pin.NodeId, out var dirSet))
                 {
                     var (nx, ny) = dev.GetPinNormal(p);
                     int pdx = -Math.Sign(nx);
@@ -110,8 +93,44 @@ public partial class CircuitCanvas
             }
         }
 
-        // 2. Draw wire segments (with bridge hop arcs for unconnected orthogonal crossings)
-        double hopR = Math.Min(5.5 * Zoom, GridSize * Zoom * 0.22);
+        // 2. Identify true solder junctions (>= 3 incident directions on the SAME electrical net)
+        var trueJunctionNodeIds = new Dictionary<(double X, double Y), int>();
+        var trueDirectionsAtPoint = new Dictionary<(double X, double Y), HashSet<(int dx, int dy)>>();
+
+        foreach (var (key, nodeMap) in netDirections)
+        {
+            foreach (var (nodeId, dirSet) in nodeMap)
+            {
+                if (dirSet.Count >= 3)
+                {
+                    trueJunctionNodeIds[key] = nodeId;
+                    trueDirectionsAtPoint[key] = dirSet;
+                    break;
+                }
+            }
+        }
+
+        // 3. Segment collection for exact geometric crossing detection
+        var verticalSegments = new List<(double X, double MinY, double MaxY, int NodeId, CircuitWire Wire)>();
+        foreach (var wire in Circuit.Wires)
+        {
+            var pts = wire.PathPoints;
+            if (pts == null || pts.Count < 2) continue;
+
+            for (int i = 0; i < pts.Count - 1; i++)
+            {
+                if (Math.Abs(pts[i].X - pts[i + 1].X) < 1e-4)
+                {
+                    double x = pts[i].X;
+                    double minY = Math.Min(pts[i].Y, pts[i + 1].Y);
+                    double maxY = Math.Max(pts[i].Y, pts[i + 1].Y);
+                    verticalSegments.Add((x, minY, maxY, wire.NodeId, wire));
+                }
+            }
+        }
+
+        // 4. Draw wire segments (with bridge hop arcs for unconnected orthogonal crossings)
+        double hopR = Math.Clamp(5.5 * Zoom, 3.5, 9.0);
 
         foreach (var wire in Circuit.Wires)
         {
@@ -168,6 +187,22 @@ public partial class CircuitCanvas
                     continue;
                 }
 
+                // Guard: if segment is non-orthogonal (diagonal), render as orthogonal dogleg step
+                if (Math.Abs(y1 - y2) >= 1e-4)
+                {
+                    var s1 = WorldToScreen(x1, y1);
+                    var midS = WorldToScreen(x2, y1);
+                    var s2 = WorldToScreen(x2, y2);
+                    if (hasAura && glowPen != null)
+                    {
+                        context.DrawLine(glowPen, s1, midS);
+                        context.DrawLine(glowPen, midS, s2);
+                    }
+                    context.DrawLine(corePen, s1, midS);
+                    context.DrawLine(corePen, midS, s2);
+                    continue;
+                }
+
                 // Horizontal segments: detect crossings with unconnected vertical segments
                 double minX = Math.Min(x1, x2);
                 double maxX = Math.Max(x1, x2);
@@ -175,16 +210,17 @@ public partial class CircuitCanvas
 
                 foreach (var vs in verticalSegments)
                 {
-                    if (vs.Wire == wire || vs.NodeId == wire.NodeId) continue;
-                    if (vs.X > minX + 0.25 && vs.X < maxX - 0.25)
+                    if (vs.Wire == wire) continue;
+
+                    // Check strict interior intersection (not at endpoints)
+                    if (vs.X > minX + 0.15 && vs.X < maxX - 0.15 && y1 > vs.MinY + 0.15 && y1 < vs.MaxY - 0.15)
                     {
-                        if (y1 > vs.MinY + 0.25 && y1 < vs.MaxY - 0.25)
+                        var crossKey = (Math.Round(vs.X, 1), Math.Round(y1, 1));
+                        bool isConnectedJoint = trueJunctionNodeIds.TryGetValue(crossKey, out int jnId) && jnId == wire.NodeId && vs.NodeId == wire.NodeId;
+
+                        if (!isConnectedJoint && !crossings.Contains(vs.X))
                         {
-                            var key = (Math.Round(vs.X, 1), Math.Round(y1, 1));
-                            if (!directionsAtPoint.TryGetValue(key, out var dirSet) || dirSet.Count < 3)
-                            {
-                                if (!crossings.Contains(vs.X)) crossings.Add(vs.X);
-                            }
+                            crossings.Add(vs.X);
                         }
                     }
                 }
@@ -233,7 +269,7 @@ public partial class CircuitCanvas
                 }
             }
 
-            // Mini Digital Waveform / Pulse Activity Glyph (only for 555 timer digital clock outputs)
+            // Mini Digital Waveform Glyph for 555 timer digital clock outputs
             var dFrom = Circuit.Devices.FirstOrDefault(d => d.Id == wire.FromDeviceId);
             var dTo = Circuit.Devices.FirstOrDefault(d => d.Id == wire.ToDeviceId);
             bool isClockWire = !isGround && (
@@ -263,50 +299,130 @@ public partial class CircuitCanvas
             }
         }
 
-        // 3. Render solid solder junction beads for all points with at least 3 distinct incident directions
-        foreach (var (key, dirSet) in directionsAtPoint)
+        // 5. Render high-contrast solid solder junction beads ONLY for verified >= 3 same-net connections
+        foreach (var (key, jNodeId) in trueJunctionNodeIds)
         {
-            if (dirSet.Count >= 3)
+            var screenPt = WorldToScreen(key.X, key.Y);
+            var juncProbedCh = ProbedChannels?.FirstOrDefault(c => c.TargetNodeId.HasValue && c.TargetNodeId.Value == jNodeId);
+            bool isJuncProbed = juncProbedCh != null || (ProbedNodeCh1.HasValue && jNodeId == ProbedNodeCh1.Value) || (ProbedNodeCh2.HasValue && jNodeId == ProbedNodeCh2.Value);
+            Color ringCol = juncProbedCh?.Color ?? (ProbedNodeCh1.HasValue && jNodeId == ProbedNodeCh1.Value ? Color.FromRgb(245, 158, 11) : Color.FromRgb(6, 182, 212));
+
+            if (isJuncProbed)
             {
-                var screenPt = WorldToScreen(key.X, key.Y);
-                int jNodeId = junctionNodeIds.GetValueOrDefault(key, -1);
-                var juncProbedCh = ProbedChannels?.FirstOrDefault(c => c.TargetNodeId.HasValue && c.TargetNodeId.Value == jNodeId);
-                bool isJuncProbed = juncProbedCh != null || (ProbedNodeCh1.HasValue && jNodeId == ProbedNodeCh1.Value) || (ProbedNodeCh2.HasValue && jNodeId == ProbedNodeCh2.Value);
-                Color ringCol = juncProbedCh?.Color ?? (ProbedNodeCh1.HasValue && jNodeId == ProbedNodeCh1.Value ? Color.FromRgb(245, 158, 11) : Color.FromRgb(6, 182, 212));
+                context.DrawEllipse(new SolidColorBrush(Color.FromArgb(70, ringCol.R, ringCol.G, ringCol.B)), null, screenPt, 7.5 * Zoom, 7.5 * Zoom);
+                context.DrawEllipse(new SolidColorBrush(Color.FromArgb(240, 15, 23, 42)), new Pen(new SolidColorBrush(ringCol), 1.8 * Zoom), screenPt, 5.2 * Zoom, 5.2 * Zoom);
+                context.DrawEllipse(new SolidColorBrush(ringCol), null, screenPt, 3.2 * Zoom, 3.2 * Zoom);
+            }
+            else
+            {
+                var (vGlow, vCore) = junctionColors.GetValueOrDefault(key, (Color.FromArgb(40, 148, 163, 184), Color.FromRgb(148, 163, 184)));
+                var beadGlowBrush = new SolidColorBrush(Color.FromArgb(50, vCore.R, vCore.G, vCore.B));
+                var beadCoreBrush = new SolidColorBrush(vCore);
+                var beadDarkPen = new Pen(new SolidColorBrush(Color.FromArgb(245, 10, 15, 26)), 1.5 * Zoom);
 
-                if (isJuncProbed)
-                {
-                    context.DrawEllipse(new SolidColorBrush(Color.FromArgb(70, ringCol.R, ringCol.G, ringCol.B)), null, screenPt, 7.5 * Zoom, 7.5 * Zoom);
-                    context.DrawEllipse(new SolidColorBrush(Color.FromArgb(235, 15, 23, 42)), new Pen(new SolidColorBrush(ringCol), 1.8 * Zoom), screenPt, 5.0 * Zoom, 5.0 * Zoom);
-                    context.DrawEllipse(new SolidColorBrush(ringCol), null, screenPt, 2.8 * Zoom, 2.8 * Zoom);
-                }
-                else
-                {
-                    var (vGlow, vCore) = junctionColors.GetValueOrDefault(key, (Color.FromArgb(40, 148, 163, 184), Color.FromRgb(148, 163, 184)));
-                    var beadGlowBrush = new SolidColorBrush(Color.FromArgb(50, vCore.R, vCore.G, vCore.B));
-                    var beadCoreBrush = new SolidColorBrush(vCore);
-                    var beadRingPen = new Pen(new SolidColorBrush(Color.FromArgb(235, 15, 23, 42)), 1.2 * Zoom);
+                // High-contrast EDA solder bead
+                context.DrawEllipse(beadGlowBrush, null, screenPt, 6.0 * Zoom, 6.0 * Zoom);
+                context.DrawEllipse(beadCoreBrush, beadDarkPen, screenPt, 3.8 * Zoom, 3.8 * Zoom);
 
-                    context.DrawEllipse(beadGlowBrush, null, screenPt, 4.2 * Zoom, 4.2 * Zoom);
-                    context.DrawEllipse(beadCoreBrush, beadRingPen, screenPt, 2.8 * Zoom, 2.8 * Zoom);
-                }
+                // 3D specular highlight dot on top-left of bead
+                var specPt = new Point(screenPt.X - 1.0 * Zoom, screenPt.Y - 1.0 * Zoom);
+                context.DrawEllipse(new SolidColorBrush(Color.FromArgb(200, 255, 255, 255)), null, specPt, 0.9 * Zoom, 0.9 * Zoom);
             }
         }
 
-        _lastDirectionsAtPoint = directionsAtPoint;
-        _lastJunctionNodeIds = junctionNodeIds;
+        // 6. Draw interactive wire drag & vertex edit handles for selected/hovered wire
+        DrawWireEditHandles(context);
+
+        _lastDirectionsAtPoint = trueDirectionsAtPoint;
+        _lastJunctionNodeIds = trueJunctionNodeIds;
+    }
+
+    private void DrawWireEditHandles(DrawingContext context)
+    {
+        if (Circuit == null) return;
+
+        var activeWire = _draggedWire ?? SelectedWire ?? _hoveredWire;
+        if (activeWire == null || activeWire.PathPoints == null || activeWire.PathPoints.Count < 2) return;
+
+        bool isWireActive = activeWire == SelectedWire || activeWire == _draggedWire || activeWire == _hoveredWire;
+        if (!isWireActive) return;
+
+        // Draw diamond grab handles at bend corners
+        for (int i = 1; i < activeWire.PathPoints.Count - 1; i++)
+        {
+            var p = activeWire.PathPoints[i];
+            var screenPt = WorldToScreen(p.X, p.Y);
+            bool isHoveredVertex = _hoveredWireVertex?.Wire == activeWire && _hoveredWireVertex?.VertexIndex == i;
+
+            double diamondR = (isHoveredVertex ? 5.5 : 3.8) * Zoom;
+            var fillBrush = isHoveredVertex
+                ? new SolidColorBrush(Color.FromRgb(52, 211, 153)) // Emerald on hover
+                : new SolidColorBrush(Color.FromRgb(56, 189, 248)); // Cyan default
+
+            var borderPen = new Pen(new SolidColorBrush(Color.FromArgb(230, 15, 23, 42)), 1.2 * Zoom);
+
+            var diamondGeom = new StreamGeometry();
+            using (var ctx = diamondGeom.Open())
+            {
+                ctx.BeginFigure(new Point(screenPt.X, screenPt.Y - diamondR), isFilled: true);
+                ctx.LineTo(new Point(screenPt.X + diamondR, screenPt.Y));
+                ctx.LineTo(new Point(screenPt.X, screenPt.Y + diamondR));
+                ctx.LineTo(new Point(screenPt.X - diamondR, screenPt.Y));
+                ctx.EndFigure(isClosed: true);
+            }
+            context.DrawGeometry(fillBrush, borderPen, diamondGeom);
+        }
+
+        // Draw segment drag indicator badge when hovering or dragging a segment
+        var activeSeg = _hoveredWireSegment;
+        if (_isDraggingWire && _draggedWire != null && _draggedSegmentIndex >= 0)
+        {
+            activeSeg = (_draggedWire, _draggedSegmentIndex, _isDraggingHorizontalSegment);
+        }
+
+        if (activeSeg != null && activeSeg.Value.Wire == activeWire)
+        {
+            int sIdx = activeSeg.Value.SegmentIndex;
+            if (sIdx >= 0 && sIdx < activeWire.PathPoints.Count - 1)
+            {
+                var p1 = WorldToScreen(activeWire.PathPoints[sIdx].X, activeWire.PathPoints[sIdx].Y);
+                var p2 = WorldToScreen(activeWire.PathPoints[sIdx + 1].X, activeWire.PathPoints[sIdx + 1].Y);
+                var mid = new Point((p1.X + p2.X) / 2.0, (p1.Y + p2.Y) / 2.0);
+
+                string arrowText = activeSeg.Value.IsHorizontal ? "↕" : "↔";
+                var ft = new FormattedText(
+                    arrowText,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    FlowDirection.LeftToRight,
+                    new Typeface("Inter", FontStyle.Normal, FontWeight.Bold),
+                    10.0 * Zoom,
+                    new SolidColorBrush(Color.FromRgb(56, 189, 248))
+                );
+
+                double badgeW = 16.0 * Zoom;
+                double badgeH = 14.0 * Zoom;
+                var badgeRect = new Rect(mid.X - badgeW / 2.0, mid.Y - badgeH / 2.0, badgeW, badgeH);
+
+                context.FillRectangle(new SolidColorBrush(Color.FromArgb(230, 15, 23, 42)), badgeRect, (float)(3 * Zoom));
+                context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromRgb(56, 189, 248)), 1.2 * Zoom), badgeRect, (float)(3 * Zoom));
+                context.DrawText(ft, new Point(mid.X - ft.Width / 2.0, mid.Y - ft.Height / 2.0));
+            }
+        }
     }
 
     private static StreamGeometry CreateHopGeometry(Point start, Point end, double hopR)
     {
         var geom = new StreamGeometry();
+        // SweepDirection: ensure arc always bows upwards (towards negative Y in screen space)
+        var sweep = (start.X < end.X) ? SweepDirection.CounterClockwise : SweepDirection.Clockwise;
         using (var ctx = geom.Open())
         {
             ctx.BeginFigure(start, isFilled: false);
-            ctx.ArcTo(end, new Size(hopR, hopR), 0, false, SweepDirection.CounterClockwise);
+            ctx.ArcTo(end, new Size(hopR, hopR), 0, false, sweep);
         }
         return geom;
     }
+
 
     private static void DrawMiniPulseGlyph(DrawingContext context, Point midPt, double zoom, Color color)
     {

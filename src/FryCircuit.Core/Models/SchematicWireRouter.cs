@@ -1,3 +1,4 @@
+using FryCircuit.Core.Devices.Base;
 using FryCircuit.Core.Models;
 
 namespace FryCircuit.Core.Models;
@@ -117,10 +118,10 @@ public static class SchematicWireRouter
         {
             foreach (var d in circuit.Devices)
             {
-                minX = Math.Min(minX, (int)Math.Floor(d.LocationX * 2.0) - 6);
-                maxX = Math.Max(maxX, (int)Math.Ceiling(d.LocationX * 2.0) + 6);
-                minY = Math.Min(minY, (int)Math.Floor(d.LocationY * 2.0) - 6);
-                maxY = Math.Max(maxY, (int)Math.Ceiling(d.LocationY * 2.0) + 6);
+                minX = Math.Min(minX, (int)Math.Floor(d.LocationX * 2.0) - 8);
+                maxX = Math.Max(maxX, (int)Math.Ceiling(d.LocationX * 2.0) + 8);
+                minY = Math.Min(minY, (int)Math.Floor(d.LocationY * 2.0) - 8);
+                maxY = Math.Max(maxY, (int)Math.Ceiling(d.LocationY * 2.0) + 8);
             }
         }
 
@@ -132,38 +133,99 @@ public static class SchematicWireRouter
             return new List<(double X, double Y)> { (origX1, origY1), (origX2, origY2) };
         }
 
-        // Precompute obstacles in half-grid units
+        // Precompute obstacles and pin corridor keep-out zones in half-grid units for ALL components
         var obstacles = new HashSet<GridPoint>();
+        var pinCorridorPoints = new HashSet<GridPoint>();
+
         if (circuit != null)
         {
             foreach (var d in circuit.Devices)
             {
-                if (ReferenceEquals(d, ignoreDev1) || ReferenceEquals(d, ignoreDev2))
-                    continue;
+                var (bMinX, bMaxX, bMinY, bMaxY) = d.GetBoundingBox(padding: 0.05);
+                int minGx = (int)Math.Round(bMinX * 2.0);
+                int maxGx = (int)Math.Round(bMaxX * 2.0);
+                int minGy = (int)Math.Round(bMinY * 2.0);
+                int maxGy = (int)Math.Round(bMaxY * 2.0);
 
-                int cx = (int)Math.Round(d.LocationX * 2.0);
-                int cy = (int)Math.Round(d.LocationY * 2.0);
-                var centerPt = new GridPoint(cx, cy);
-
-                // Mark component body core as impassable obstacle unless it is start/goal point
-                if (!centerPt.Equals(startPt) && !centerPt.Equals(goalPt))
+                if (minGx <= maxGx && minGy <= maxGy)
                 {
-                    obstacles.Add(centerPt);
-                }
-
-                // Add surrounding body for components with wider footprints
-                if (d.Type == "tline" || d.Type == "timer555" || d.Type == "opamp")
-                {
-                    for (int ox = -2; ox <= 2; ox++)
+                    for (int gx = minGx; gx <= maxGx; gx++)
                     {
-                        for (int oy = -2; oy <= 2; oy++)
+                        for (int gy = minGy; gy <= maxGy; gy++)
                         {
-                            var pBody = new GridPoint(cx + ox, cy + oy);
+                            var pBody = new GridPoint(gx, gy);
                             if (!pBody.Equals(startPt) && !pBody.Equals(goalPt))
                             {
                                 obstacles.Add(pBody);
                             }
                         }
+                    }
+                }
+                else
+                {
+                    int cx = (int)Math.Round(d.LocationX * 2.0);
+                    int cy = (int)Math.Round(d.LocationY * 2.0);
+                    var centerPt = new GridPoint(cx, cy);
+                    if (!centerPt.Equals(startPt) && !centerPt.Equals(goalPt))
+                    {
+                        obstacles.Add(centerPt);
+                    }
+                }
+
+                // Protect pins of other devices and reserve their front departure corridor
+                for (int pi = 0; pi < d.Pins.Count; pi++)
+                {
+                    var (apx, apy) = d.GetAbsolutePinPosition(pi);
+                    var (pNormX, pNormY) = d.GetPinNormal(pi);
+                    int pinGx = (int)Math.Round(apx * 2.0);
+                    int pinGy = (int)Math.Round(apy * 2.0);
+                    var pPin = new GridPoint(pinGx, pinGy);
+
+                    if (!pPin.Equals(startPt) && !pPin.Equals(goalPt))
+                    {
+                        obstacles.Add(pPin);
+
+                        // Corridor point immediately in front of pin
+                        if (pNormX != 0 || pNormY != 0)
+                        {
+                            var pCorridor = new GridPoint(pinGx + pNormX, pinGy + pNormY);
+                            if (!pCorridor.Equals(startPt) && !pCorridor.Equals(goalPt))
+                            {
+                                pinCorridorPoints.Add(pCorridor);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Wire track congestion avoidance: track points already occupied by existing wires
+        var wireOccupiedPoints = new HashSet<GridPoint>();
+        if (circuit != null)
+        {
+            foreach (var w in circuit.Wires)
+            {
+                if (w.PathPoints == null || w.PathPoints.Count < 2) continue;
+                for (int i = 0; i < w.PathPoints.Count - 1; i++)
+                {
+                    int px1 = (int)Math.Round(w.PathPoints[i].X * 2.0);
+                    int py1 = (int)Math.Round(w.PathPoints[i].Y * 2.0);
+                    int px2 = (int)Math.Round(w.PathPoints[i + 1].X * 2.0);
+                    int py2 = (int)Math.Round(w.PathPoints[i + 1].Y * 2.0);
+
+                    if (px1 == px2)
+                    {
+                        int minPy = Math.Min(py1, py2);
+                        int maxPy = Math.Max(py1, py2);
+                        for (int y = minPy; y <= maxPy; y++)
+                            wireOccupiedPoints.Add(new GridPoint(px1, y));
+                    }
+                    else if (py1 == py2)
+                    {
+                        int minPx = Math.Min(px1, px2);
+                        int maxPx = Math.Max(px1, px2);
+                        for (int x = minPx; x <= maxPx; x++)
+                            wireOccupiedPoints.Add(new GridPoint(x, py1));
                     }
                 }
             }
@@ -177,18 +239,28 @@ public static class SchematicWireRouter
         (int Dx, int Dy)[] candidateStarts;
         if (dx1 != 0 || dy1 != 0)
         {
-            var list = new List<(int Dx, int Dy)> { (dx1, dy1) };
-            if (dx1 != 0)
+            int escX = startX + dx1;
+            int escY = startY + dy1;
+            var escPt = new GridPoint(escX, escY);
+            if (!obstacles.Contains(escPt))
             {
-                list.Add((0, -1));
-                list.Add((0, 1));
+                candidateStarts = new[] { (dx1, dy1) };
             }
-            else if (dy1 != 0)
+            else
             {
-                list.Add((-1, 0));
-                list.Add((1, 0));
+                var list = new List<(int Dx, int Dy)>();
+                if (dx1 != 0)
+                {
+                    list.Add((0, -1));
+                    list.Add((0, 1));
+                }
+                else if (dy1 != 0)
+                {
+                    list.Add((-1, 0));
+                    list.Add((1, 0));
+                }
+                candidateStarts = list.ToArray();
             }
-            candidateStarts = list.ToArray();
         }
         else
         {
@@ -211,7 +283,7 @@ public static class SchematicWireRouter
         (int Dx, int Dy)[] directions = { (0, -1), (1, 0), (0, 1), (-1, 0) };
 
         int iterations = 0;
-        int maxIterations = 3000;
+        int maxIterations = 3500;
 
         while (openSet.Count > 0 && iterations++ < maxIterations)
         {
@@ -246,22 +318,40 @@ public static class SchematicWireRouter
                 if (!nextPt.Equals(goalPt) && obstacles.Contains(nextPt))
                     continue;
 
-                // When approaching goal pin, disallow entering through the device body
+                // Cost: 1.0 per unit distance + bend penalty
+                bool isTurn = (nextDx != current.Direction.Dx || nextDy != current.Direction.Dy);
+                double stepCost = 1.0 + (isTurn ? 2.5 : 0.0);
+
+                // When approaching goal pin, enforce front-entry approach
                 if (nextPt.Equals(goalPt))
                 {
                     if (dx2 != 0 || dy2 != 0)
                     {
+                        // Disallow entering through the device body
                         if ((dx2 != 0 && nextDx == dx2) || (dy2 != 0 && nextDy == dy2))
                         {
-                            // Disallow approaching pin backwards through device body
                             continue;
+                        }
+
+                        // Strongly prefer entering straight from pin normal front face
+                        if (nextDx != -dx2 || nextDy != -dy2)
+                        {
+                            stepCost += 8.0;
                         }
                     }
                 }
 
-                // Cost: 1.0 per unit distance + bend penalty
-                bool isTurn = (nextDx != current.Direction.Dx || nextDy != current.Direction.Dy);
-                double stepCost = 1.0 + (isTurn ? 2.5 : 0.0);
+                // Congestion penalty if occupying track of an existing wire
+                if (wireOccupiedPoints.Contains(nextPt) && !nextPt.Equals(startPt) && !nextPt.Equals(goalPt))
+                {
+                    stepCost += 1.2;
+                }
+
+                // Corridor penalty if crossing in front of another component's pin
+                if (pinCorridorPoints.Contains(nextPt) && !nextPt.Equals(startPt) && !nextPt.Equals(goalPt))
+                {
+                    stepCost += 4.5;
+                }
 
                 double tentativeG = current.GScore + stepCost;
                 double h = Heuristic(nx, ny, goalX, goalY);
@@ -339,42 +429,111 @@ public static class SchematicWireRouter
     public static bool HasObstacleBetween(Circuit? circuit, double x1, double y1, double x2, double y2, Device? ignoreDev1 = null, Device? ignoreDev2 = null)
     {
         if (circuit == null) return false;
+        return FindCollidingDeviceForSegment(circuit, x1, y1, x2, y2, ignoreDev1, ignoreDev2) != null;
+    }
 
+    /// <summary>
+    /// Checks if a wire segment (x1, y1) -> (x2, y2) intersects or penetrates any component body in the circuit.
+    /// Even for connected devices, segments departing inward into the device body are flagged as collisions.
+    /// </summary>
+    public static Device? FindCollidingDeviceForSegment(Circuit circuit, double x1, double y1, double x2, double y2, Device? ignoreDev1 = null, Device? ignoreDev2 = null)
+    {
+        foreach (var dev in circuit.Devices)
+        {
+            if (SegmentPenetratesDevice(x1, y1, x2, y2, dev, ignoreDev1, ignoreDev2))
+            {
+                return dev;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Tests whether a segment penetrates the interior body of a device,
+    /// allowing valid outward departures from pin locations along escape normals.
+    /// </summary>
+    public static bool SegmentPenetratesDevice(double x1, double y1, double x2, double y2, Device dev, Device? ignoreDev1 = null, Device? ignoreDev2 = null)
+    {
         double minX = Math.Min(x1, x2);
         double maxX = Math.Max(x1, x2);
         double minY = Math.Min(y1, y2);
         double maxY = Math.Max(y1, y2);
 
-        foreach (var dev in circuit.Devices)
+        var (devLeft, devRight, devTop, devBottom) = dev.GetBoundingBox(padding: 0.05);
+
+        // Check if segment touches any pin on this device
+        int matchedPin1 = -1;
+        int matchedPin2 = -1;
+        for (int p = 0; p < dev.Pins.Count; p++)
         {
-            if (ReferenceEquals(dev, ignoreDev1) || ReferenceEquals(dev, ignoreDev2))
-                continue;
+            var (px, py) = dev.GetAbsolutePinPosition(p);
+            if (Math.Abs(px - x1) < 1e-3 && Math.Abs(py - y1) < 1e-3) matchedPin1 = p;
+            if (Math.Abs(px - x2) < 1e-3 && Math.Abs(py - y2) < 1e-3) matchedPin2 = p;
+        }
 
-            int cx = (int)Math.Round(dev.LocationX);
-            int cy = (int)Math.Round(dev.LocationY);
+        bool isConnectedDevice = ReferenceEquals(dev, ignoreDev1) || ReferenceEquals(dev, ignoreDev2);
 
-            if (Math.Abs(minX - maxX) < 0.05) // vertical segment
+        // If neither endpoint is a pin on this device:
+        if (matchedPin1 < 0 && matchedPin2 < 0)
+        {
+            if (isConnectedDevice)
             {
-                if (cx == (int)Math.Round(minX) && cy > minY + 0.05 && cy < maxY - 0.05)
+                // Intermediate segment of a wire connected to dev cannot cross through dev
+                if (Math.Abs(minX - maxX) < 0.05)
+                    return minX >= devLeft && minX <= devRight && maxY > devTop && minY < devBottom;
+                if (Math.Abs(minY - maxY) < 0.05)
+                    return minY >= devTop && minY <= devBottom && maxX > devLeft && minX < devRight;
+                return dev.LocationX >= minX - 0.2 && dev.LocationX <= maxX + 0.2 &&
+                       dev.LocationY >= minY - 0.2 && dev.LocationY <= maxY + 0.2;
+            }
+
+            if (Math.Abs(minX - maxX) < 0.05) // vertical segment at minX
+            {
+                if (minX >= devLeft && minX <= devRight && maxY > devTop && minY < devBottom)
                 {
                     return true;
                 }
             }
-            else if (Math.Abs(minY - maxY) < 0.05) // horizontal segment
+            else if (Math.Abs(minY - maxY) < 0.05) // horizontal segment at minY
             {
-                if (cy == (int)Math.Round(minY) && cx > minX + 0.05 && cx < maxX - 0.05)
+                if (minY >= devTop && minY <= devBottom && maxX > devLeft && minX < devRight)
                 {
                     return true;
                 }
             }
             else
             {
-                if (dev.LocationX >= minX - 0.4 && dev.LocationX <= maxX + 0.4 &&
-                    dev.LocationY >= minY - 0.4 && dev.LocationY <= maxY + 0.4)
+                if (dev.LocationX >= minX - 0.2 && dev.LocationX <= maxX + 0.2 &&
+                    dev.LocationY >= minY - 0.2 && dev.LocationY <= maxY + 0.2)
                 {
                     return true;
                 }
             }
+            return false;
+        }
+
+        // An endpoint matches a pin on this device.
+        // It is only allowed if it departs/approaches along the pin's outward normal,
+        // and does NOT head inward into the component body!
+        if (matchedPin1 >= 0)
+        {
+            var (normX, normY) = dev.GetPinNormal(matchedPin1);
+            double dirX = x2 - x1;
+            double dirY = y2 - y1;
+
+            if (normX != 0 && Math.Sign(dirX) == -normX) return true; // heading inward horizontally
+            if (normY != 0 && Math.Sign(dirY) == -normY) return true; // heading inward vertically
+        }
+
+        if (matchedPin2 >= 0)
+        {
+            var (normX, normY) = dev.GetPinNormal(matchedPin2);
+            double dirX = x1 - x2;
+            double dirY = y1 - y2;
+
+            if (normX != 0 && Math.Sign(dirX) == -normX) return true; // approaching inward horizontally
+            if (normY != 0 && Math.Sign(dirY) == -normY) return true; // approaching inward vertically
         }
 
         return false;

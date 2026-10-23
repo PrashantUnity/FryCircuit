@@ -17,7 +17,10 @@ public class DeviceRenderContext
     {
         if (IsPlacingGhost)
         {
-            return new SolidColorBrush(Color.FromArgb(140, 56, 189, 248));
+            var ghostColor = IsDragCollision
+                ? Color.FromArgb(160, 244, 63, 94)
+                : Color.FromArgb(140, 56, 189, 248);
+            return new SolidColorBrush(ghostColor);
         }
         if (IsGlowPass)
         {
@@ -40,7 +43,10 @@ public class DeviceRenderContext
     {
         if (IsPlacingGhost)
         {
-            return new Pen(new SolidColorBrush(Color.FromArgb(140, 56, 189, 248)), baseThickness * Zoom)
+            var ghostColor = IsDragCollision
+                ? Color.FromArgb(180, 244, 63, 94)
+                : Color.FromArgb(140, 56, 189, 248);
+            return new Pen(new SolidColorBrush(ghostColor), baseThickness * Zoom)
             {
                 LineCap = PenLineCap.Round,
                 LineJoin = PenLineJoin.Round

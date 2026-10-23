@@ -221,11 +221,23 @@ public partial class CircuitCanvas
         var ghostDev = DeviceFactory.CreateDevice(PlacingDeviceType, 0, _placementCursorPos.Wx, _placementCursorPos.Wy);
         ghostDev.Transform = new DeviceTransform(_placementRotation);
 
+        // Highlight colliding device footprint if in collision
+        if (_isPlacementCollision && _placementCollisionDevice != null)
+        {
+            var (cMinX, cMaxX, cMinY, cMaxY) = _placementCollisionDevice.GetBoundingBox(padding: 0.15);
+            var p1 = WorldToScreen(cMinX, cMinY);
+            var p2 = WorldToScreen(cMaxX, cMaxY);
+            var cRect = new Rect(p1, p2);
+            context.FillRectangle(new SolidColorBrush(Color.FromArgb(45, 244, 63, 94)), cRect, (float)(4 * Zoom));
+            context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromRgb(244, 63, 94)), 1.5 * Zoom) { DashStyle = DashStyle.Dash }, cRect, (float)(4 * Zoom));
+        }
+
         var renderCtx = new DeviceRenderContext
         {
             Zoom = Zoom,
             GridSize = GridSize,
-            IsPlacingGhost = true
+            IsPlacingGhost = true,
+            IsDragCollision = _isPlacementCollision
         };
 
         double rotAngle = (int)_placementRotation;
@@ -238,7 +250,11 @@ public partial class CircuitCanvas
         }
 
         // Snapped grid target ring & crosshair ticks
-        var ghostRingPen = new Pen(new SolidColorBrush(Color.FromArgb(120, 56, 189, 248)), 1.2)
+        var ringColor = _isPlacementCollision
+            ? Color.FromRgb(244, 63, 94) // Crimson warning red
+            : Color.FromArgb(120, 56, 189, 248); // Cyan
+
+        var ghostRingPen = new Pen(new SolidColorBrush(ringColor), 1.3)
         {
             DashStyle = DashStyle.Dash
         };
@@ -246,29 +262,116 @@ public partial class CircuitCanvas
         context.DrawEllipse(null, ghostRingPen, center, ringR, ringR);
 
         // Cyber crosshair ticks
-        var tickPen = new Pen(new SolidColorBrush(Color.FromArgb(160, 56, 189, 248)), 1.2);
+        var tickPen = new Pen(new SolidColorBrush(ringColor), 1.3);
         double tickLen = 5 * Zoom;
         context.DrawLine(tickPen, new Point(center.X - ringR - tickLen, center.Y), new Point(center.X - ringR + 2, center.Y));
         context.DrawLine(tickPen, new Point(center.X + ringR - 2, center.Y), new Point(center.X + ringR + tickLen, center.Y));
         context.DrawLine(tickPen, new Point(center.X, center.Y - ringR - tickLen), new Point(center.X, center.Y - ringR + 2));
         context.DrawLine(tickPen, new Point(center.X, center.Y + ringR - 2), new Point(center.X, center.Y + ringR + tickLen));
 
-        // Placement HUD Tooltip: (X, Y) • [Space: Rotate]
-        string hudText = $"X: {_placementCursorPos.Wx:F0}  Y: {_placementCursorPos.Wy:F0}  [R: {(int)_placementRotation}°]  •  Space: Rotate";
+        // Placement HUD Tooltip
+        string hudText;
+        Color hudBg;
+        Color hudBorder;
+        Color hudTextCol;
+
+        if (_isPlacementCollision)
+        {
+            string collName = _placementCollisionDevice?.Type.ToUpperInvariant() ?? "COMPONENT";
+            hudText = $"⚠ Cannot Place: Overlaps {collName}";
+            hudBg = Color.FromArgb(245, 69, 10, 10);
+            hudBorder = Color.FromRgb(244, 63, 94);
+            hudTextCol = Color.FromRgb(254, 205, 211);
+        }
+        else
+        {
+            hudText = $"X: {_placementCursorPos.Wx:F0}  Y: {_placementCursorPos.Wy:F0}  [R: {(int)_placementRotation}°]  •  Space: Rotate";
+            hudBg = Color.FromArgb(235, 15, 23, 42);
+            hudBorder = Color.FromArgb(100, 56, 189, 248);
+            hudTextCol = Color.FromRgb(56, 189, 248);
+        }
+
         var ftHud = new FormattedText(
             hudText,
             System.Globalization.CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
             new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold),
-            9.5,
-            new SolidColorBrush(Color.FromRgb(56, 189, 248))
+            10.0,
+            new SolidColorBrush(hudTextCol)
         );
-        double hudW = ftHud.Width + 12;
-        double hudH = ftHud.Height + 6;
+        double hudW = ftHud.Width + 14;
+        double hudH = ftHud.Height + 8;
         var hudRect = new Rect(center.X + ringR + 8, center.Y - hudH / 2.0, hudW, hudH);
-        context.FillRectangle(new SolidColorBrush(Color.FromArgb(235, 15, 23, 42)), hudRect, 4);
-        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(100, 56, 189, 248)), 1), hudRect, 4);
-        context.DrawText(ftHud, new Point(hudRect.X + 6, hudRect.Y + 3));
+        context.FillRectangle(new SolidColorBrush(hudBg), hudRect, 4);
+        context.DrawRectangle(new Pen(new SolidColorBrush(hudBorder), 1.2), hudRect, 4);
+        context.DrawText(ftHud, new Point(hudRect.X + 7, hudRect.Y + 4));
+    }
+
+    private void DrawCollisionOverlays(DrawingContext context)
+    {
+        // 1. Device dragging collision overlay
+        if (_isDraggingDevice && _isDragCollision && _dragCollisionDevice != null)
+        {
+            var (cMinX, cMaxX, cMinY, cMaxY) = _dragCollisionDevice.GetBoundingBox(padding: 0.15);
+            var p1 = WorldToScreen(cMinX, cMinY);
+            var p2 = WorldToScreen(cMaxX, cMaxY);
+            var cRect = new Rect(p1, p2);
+
+            context.FillRectangle(new SolidColorBrush(Color.FromArgb(45, 244, 63, 94)), cRect, (float)(4 * Zoom));
+            context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromRgb(244, 63, 94)), 1.5 * Zoom) { DashStyle = DashStyle.Dash }, cRect, (float)(4 * Zoom));
+
+            // Floating warning chip above dragged component
+            if (_draggedDevice != null)
+            {
+                var dCenter = WorldToScreen(_draggedDevice.LocationX, _draggedDevice.LocationY);
+                string text = $"⚠ Cannot Place (Overlaps {_dragCollisionDevice.Type.ToUpperInvariant()})";
+                var ft = new FormattedText(
+                    text,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    FlowDirection.LeftToRight,
+                    new Typeface("Inter", FontStyle.Normal, FontWeight.Bold),
+                    10.5,
+                    new SolidColorBrush(Color.FromRgb(254, 205, 211))
+                );
+
+                double bW = ft.Width + 14;
+                double bH = ft.Height + 8;
+                var bRect = new Rect(dCenter.X - bW / 2.0, dCenter.Y - 32 * Zoom - bH, bW, bH);
+                context.FillRectangle(new SolidColorBrush(Color.FromArgb(245, 69, 10, 10)), bRect, 4);
+                context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromRgb(244, 63, 94)), 1.2), bRect, 4);
+                context.DrawText(ft, new Point(bRect.X + 7, bRect.Y + 4));
+            }
+        }
+
+        // 2. Wire dragging collision overlay
+        if (_isDraggingWire && _wireCollisionDevice != null)
+        {
+            var (cMinX, cMaxX, cMinY, cMaxY) = _wireCollisionDevice.GetBoundingBox(padding: 0.15);
+            var p1 = WorldToScreen(cMinX, cMinY);
+            var p2 = WorldToScreen(cMaxX, cMaxY);
+            var cRect = new Rect(p1, p2);
+
+            context.FillRectangle(new SolidColorBrush(Color.FromArgb(45, 244, 63, 94)), cRect, (float)(4 * Zoom));
+            context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromRgb(244, 63, 94)), 1.5 * Zoom) { DashStyle = DashStyle.Dash }, cRect, (float)(4 * Zoom));
+
+            var curPos = WorldToScreen(_lastCursorWorldPos.Wx, _lastCursorWorldPos.Wy);
+            string text = $"⚠ Wire crosses {_wireCollisionDevice.Type.ToUpperInvariant()}";
+            var ft = new FormattedText(
+                text,
+                System.Globalization.CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                new Typeface("Inter", FontStyle.Normal, FontWeight.Bold),
+                10.5,
+                new SolidColorBrush(Color.FromRgb(254, 205, 211))
+            );
+
+            double bW = ft.Width + 14;
+            double bH = ft.Height + 8;
+            var bRect = new Rect(curPos.X - bW / 2.0, curPos.Y - 28 * Zoom - bH, bW, bH);
+            context.FillRectangle(new SolidColorBrush(Color.FromArgb(245, 69, 10, 10)), bRect, 4);
+            context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromRgb(244, 63, 94)), 1.2), bRect, 4);
+            context.DrawText(ft, new Point(bRect.X + 7, bRect.Y + 4));
+        }
     }
 
     private void DrawPinHoverReticle(DrawingContext context, (Device Device, Pin Pin, int PinIndex) pinInfo)

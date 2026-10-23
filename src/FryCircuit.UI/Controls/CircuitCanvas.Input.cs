@@ -169,6 +169,18 @@ public partial class CircuitCanvas
                 double placeX = Math.Round(wx);
                 double placeY = Math.Round(wy);
 
+                // Collision check against existing devices
+                var testBounds = Device.GetBoundsFor(PlacingDeviceType, placeX, placeY, _placementRotation, padding: 0.15);
+                var colliding = Circuit.Devices.FirstOrDefault(d => Device.BoundsIntersect(testBounds, d.GetBoundingBox(padding: 0.15)));
+                if (colliding != null)
+                {
+                    _isPlacementCollision = true;
+                    _placementCollisionDevice = colliding;
+                    InvalidateVisual();
+                    e.Handled = true;
+                    return;
+                }
+
                 int nextId = (Circuit.Devices.Count > 0 ? Circuit.Devices.Max(d => d.Id) : 0) + 1;
                 var newDev = DeviceFactory.CreateDevice(PlacingDeviceType, nextId, placeX, placeY);
                 newDev.Transform = new DeviceTransform(_placementRotation);
@@ -261,7 +273,7 @@ public partial class CircuitCanvas
                 {
                     if (_wiringStartDevice != null)
                     {
-                        var createdWire = Circuit.ConnectPinToWire(_wiringStartDevice, _wiringStartPinIndex, _snapTargetWire);
+                        var createdWire = Circuit.ConnectPinToWire(_wiringStartDevice, _wiringStartPinIndex, _snapTargetWire, _wiringCursorPos);
                         if (createdWire != null)
                         {
                             HistoryManager?.Record(new AddWireAction(Circuit, createdWire));
@@ -274,7 +286,7 @@ public partial class CircuitCanvas
                     var wireHit = FindWireAt(wx, wy, tolerance: 0.5);
                     if (wireHit != null && _wiringStartDevice != null)
                     {
-                        var createdWire = Circuit.ConnectPinToWire(_wiringStartDevice, _wiringStartPinIndex, wireHit);
+                        var createdWire = Circuit.ConnectPinToWire(_wiringStartDevice, _wiringStartPinIndex, wireHit, (wx, wy));
                         if (createdWire != null)
                         {
                             HistoryManager?.Record(new AddWireAction(Circuit, createdWire));
@@ -440,10 +452,68 @@ public partial class CircuitCanvas
                 return;
             }
 
+            // Check if clicked a Wire vertex or segment to drag
+            if (_hoveredWireVertex != null)
+            {
+                var wire = _hoveredWireVertex.Value.Wire;
+                SelectedWire = wire;
+                SelectedDevice = null;
+                SelectedDevices.Clear();
+                SelectedWires.Clear();
+                SelectedWires.Add(wire);
+
+                _isDraggingWire = true;
+                _draggedWire = wire;
+                _draggedVertexIndex = _hoveredWireVertex.Value.VertexIndex;
+                _draggedSegmentIndex = -1;
+                _wireDragOriginalPath = wire.ClonePath();
+                _wireDragOriginalCustom = wire.IsCustomPath;
+                e.Pointer.Capture(this);
+                InvalidateVisual();
+                e.Handled = true;
+                return;
+            }
+
+            if (_hoveredWireSegment != null)
+            {
+                var wire = _hoveredWireSegment.Value.Wire;
+                SelectedWire = wire;
+                SelectedDevice = null;
+                SelectedDevices.Clear();
+                SelectedWires.Clear();
+                SelectedWires.Add(wire);
+
+                if (point.Properties.IsLeftButtonPressed && e.ClickCount == 2)
+                {
+                    ResetWireToAutoRoute(wire);
+                    e.Handled = true;
+                    return;
+                }
+
+                _isDraggingWire = true;
+                _draggedWire = wire;
+                _draggedSegmentIndex = _hoveredWireSegment.Value.SegmentIndex;
+                _draggedVertexIndex = -1;
+                _isDraggingHorizontalSegment = _hoveredWireSegment.Value.IsHorizontal;
+                _wireDragOriginalPath = wire.ClonePath();
+                _wireDragOriginalCustom = wire.IsCustomPath;
+                e.Pointer.Capture(this);
+                InvalidateVisual();
+                e.Handled = true;
+                return;
+            }
+
             // Check if clicked a Wire
             var clickedWire = FindWireAt(wx, wy, tolerance: 0.4);
             if (clickedWire != null)
             {
+                if (point.Properties.IsLeftButtonPressed && e.ClickCount == 2)
+                {
+                    ResetWireToAutoRoute(clickedWire);
+                    e.Handled = true;
+                    return;
+                }
+
                 SelectedWire = clickedWire;
                 SelectedDevice = null;
                 SelectedDevices.Clear();
@@ -501,11 +571,13 @@ public partial class CircuitCanvas
             double targetX = Math.Round(wx + _deviceDragOffset.X);
             double targetY = Math.Round(wy + _deviceDragOffset.Y);
 
-            _isDragCollision = Circuit != null && Circuit.Devices.Any(d =>
+            var draggedBounds = Device.GetBoundsFor(_draggedDevice.Type, targetX, targetY, _draggedDevice.Transform.Rotation, padding: 0.15);
+            _dragCollisionDevice = Circuit?.Devices.FirstOrDefault(d =>
                 !ReferenceEquals(d, _draggedDevice) &&
                 !SelectedDevices.Contains(d) &&
-                Math.Abs(d.LocationX - targetX) < 0.6 &&
-                Math.Abs(d.LocationY - targetY) < 0.6);
+                Device.BoundsIntersect(draggedBounds, d.GetBoundingBox(padding: 0.15)));
+            _isDragCollision = _dragCollisionDevice != null;
+            Cursor = _isDragCollision ? new Cursor(StandardCursorType.No) : new Cursor(StandardCursorType.SizeAll);
 
             if (_draggedDevice.LocationX != targetX || _draggedDevice.LocationY != targetY)
             {
@@ -570,6 +642,167 @@ public partial class CircuitCanvas
             return;
         }
 
+        if (_isDraggingWire && _draggedWire != null)
+        {
+            var pts = _draggedWire.PathPoints;
+            if (pts != null && pts.Count >= 2)
+            {
+                if (_draggedVertexIndex > 0 && _draggedVertexIndex < pts.Count - 1)
+                {
+                    double snapX = Math.Round(wx);
+                    double snapY = Math.Round(wy);
+
+                    int i = _draggedVertexIndex;
+                    // Preserve Manhattan orthogonality with adjacent segments
+                    bool prevIsH = Math.Abs(pts[i - 1].Y - pts[i].Y) < 1e-4;
+                    bool nextIsH = Math.Abs(pts[i + 1].Y - pts[i].Y) < 1e-4;
+
+                    if (prevIsH && !nextIsH)
+                    {
+                        // prev segment is Horizontal, next segment is Vertical
+                        if (i - 1 == 0) snapY = pts[0].Y;
+                        else pts[i - 1] = (pts[i - 1].X, snapY);
+
+                        if (i + 1 == pts.Count - 1) snapX = pts[^1].X;
+                        else pts[i + 1] = (snapX, pts[i + 1].Y);
+                    }
+                    else if (!prevIsH && nextIsH)
+                    {
+                        // prev segment is Vertical, next segment is Horizontal
+                        if (i - 1 == 0) snapX = pts[0].X;
+                        else pts[i - 1] = (snapX, pts[i - 1].Y);
+
+                        if (i + 1 == pts.Count - 1) snapY = pts[^1].Y;
+                        else pts[i + 1] = (pts[i + 1].X, snapY);
+                    }
+                    else if (prevIsH && nextIsH)
+                    {
+                        // Collinear horizontal
+                        if (i - 1 == 0) snapY = pts[0].Y;
+                        else pts[i - 1] = (pts[i - 1].X, snapY);
+
+                        if (i + 1 < pts.Count - 1) pts[i + 1] = (pts[i + 1].X, snapY);
+                    }
+                    else
+                    {
+                        // Collinear vertical
+                        if (i - 1 == 0) snapX = pts[0].X;
+                        else pts[i - 1] = (snapX, pts[i - 1].Y);
+
+                        if (i + 1 < pts.Count - 1) pts[i + 1] = (snapX, pts[i + 1].Y);
+                    }
+
+                    pts[i] = (snapX, snapY);
+                    _draggedWire.IsCustomPath = true;
+                    InvalidateVisual();
+                }
+                else if (_draggedSegmentIndex >= 0 && _draggedSegmentIndex < pts.Count - 1)
+                {
+                    int seg = _draggedSegmentIndex;
+                    if (_isDraggingHorizontalSegment)
+                    {
+                        double targetY = Math.Round(wy);
+                        if (pts.Count == 2)
+                        {
+                            var p0 = pts[0];
+                            var p1 = pts[1];
+                            pts.Clear();
+                            pts.Add(p0);
+                            pts.Add((p0.X, targetY));
+                            pts.Add((p1.X, targetY));
+                            pts.Add(p1);
+                            _draggedSegmentIndex = 1;
+                        }
+                        else if (seg == 0)
+                        {
+                            var p0 = pts[0];
+                            pts.Insert(1, (p0.X, targetY));
+                            pts[2] = (pts[2].X, targetY);
+                            _draggedSegmentIndex = 1;
+                        }
+                        else if (seg == pts.Count - 2)
+                        {
+                            var pEnd = pts[^1];
+                            pts[seg] = (pts[seg].X, targetY);
+                            pts.Insert(seg + 1, (pEnd.X, targetY));
+                            _draggedSegmentIndex = seg;
+                        }
+                        else
+                        {
+                            pts[seg] = (pts[seg].X, targetY);
+                            pts[seg + 1] = (pts[seg + 1].X, targetY);
+                        }
+                    }
+                    else
+                    {
+                        double targetX = Math.Round(wx);
+                        if (pts.Count == 2)
+                        {
+                            var p0 = pts[0];
+                            var p1 = pts[1];
+                            pts.Clear();
+                            pts.Add(p0);
+                            pts.Add((targetX, p0.Y));
+                            pts.Add((targetX, p1.Y));
+                            pts.Add(p1);
+                            _draggedSegmentIndex = 1;
+                        }
+                        else if (seg == 0)
+                        {
+                            var p0 = pts[0];
+                            pts.Insert(1, (targetX, p0.Y));
+                            pts[2] = (targetX, pts[2].Y);
+                            _draggedSegmentIndex = 1;
+                        }
+                        else if (seg == pts.Count - 2)
+                        {
+                            var pEnd = pts[^1];
+                            pts[seg] = (targetX, pts[seg].Y);
+                            pts.Insert(seg + 1, (targetX, pEnd.Y));
+                            _draggedSegmentIndex = seg;
+                        }
+                        else
+                        {
+                            pts[seg] = (targetX, pts[seg].Y);
+                            pts[seg + 1] = (targetX, pts[seg + 1].Y);
+                        }
+                    }
+
+                    _draggedWire.IsCustomPath = true;
+
+                    // Wire collision check against component bodies
+                    _wireCollisionDevice = null;
+                    if (Circuit != null)
+                    {
+                        var dev1 = Circuit.Devices.FirstOrDefault(d => d.Id == _draggedWire.FromDeviceId);
+                        var dev2 = Circuit.Devices.FirstOrDefault(d => d.Id == _draggedWire.ToDeviceId);
+                        for (int s = 0; s < pts.Count - 1; s++)
+                        {
+                            var hit = SchematicWireRouter.FindCollidingDeviceForSegment(Circuit, pts[s].X, pts[s].Y, pts[s + 1].X, pts[s + 1].Y, dev1, dev2);
+                            if (hit != null)
+                            {
+                                _wireCollisionDevice = hit;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (_wireCollisionDevice != null)
+                    {
+                        Cursor = new Cursor(StandardCursorType.No);
+                    }
+                    else
+                    {
+                        Cursor = _draggedVertexIndex > 0 ? new Cursor(StandardCursorType.Hand) :
+                            (_isDraggingHorizontalSegment ? new Cursor(StandardCursorType.SizeNorthSouth) : new Cursor(StandardCursorType.SizeWestEast));
+                    }
+
+                    InvalidateVisual();
+                }
+            }
+            return;
+        }
+
         if (_isWiring)
         {
             // 1. Check if hovering near a valid target pin
@@ -615,18 +848,61 @@ public partial class CircuitCanvas
         if (!string.IsNullOrEmpty(PlacingDeviceType))
         {
             _placementCursorPos = (Math.Round(wx), Math.Round(wy));
+            var testBounds = Device.GetBoundsFor(PlacingDeviceType, _placementCursorPos.Wx, _placementCursorPos.Wy, _placementRotation, padding: 0.15);
+            _placementCollisionDevice = Circuit?.Devices.FirstOrDefault(d => Device.BoundsIntersect(testBounds, d.GetBoundingBox(padding: 0.15)));
+            _isPlacementCollision = _placementCollisionDevice != null;
+            Cursor = _isPlacementCollision ? new Cursor(StandardCursorType.No) : new Cursor(StandardCursorType.Cross);
             InvalidateVisual();
             return;
         }
 
-        // Hover tracking for pins and wires
+        // Hover tracking for pins, wire vertices, wire segments, and wires
         var newHoveredPin = Circuit?.FindPinAt(wx, wy, tolerance: 0.55);
         var newHoveredWire = newHoveredPin == null ? FindWireAt(wx, wy, tolerance: 0.4) : null;
-        if (newHoveredPin?.Device != _hoveredPin?.Device || newHoveredPin?.PinIndex != _hoveredPin?.PinIndex || newHoveredWire != _hoveredWire)
+        var newHoveredVertex = newHoveredPin == null ? FindWireVertexAt(wx, wy, tolerance: 0.5) : null;
+        var newHoveredSegment = (newHoveredPin == null && newHoveredVertex == null) ? FindWireSegmentAt(wx, wy, tolerance: 0.4) : null;
+
+        if (newHoveredPin?.Device != _hoveredPin?.Device ||
+            newHoveredPin?.PinIndex != _hoveredPin?.PinIndex ||
+            newHoveredWire != _hoveredWire ||
+            newHoveredVertex != _hoveredWireVertex ||
+            newHoveredSegment != _hoveredWireSegment)
         {
             _hoveredPin = newHoveredPin;
             _hoveredWire = newHoveredWire;
+            _hoveredWireVertex = newHoveredVertex;
+            _hoveredWireSegment = newHoveredSegment;
             InvalidateVisual();
+        }
+
+        if (!_isDraggingDevice && !_isDraggingWire && !_isPanning && !_isWiring && !_isMarqueeSelecting && string.IsNullOrEmpty(PlacingDeviceType))
+        {
+            if (newHoveredVertex != null)
+            {
+                Cursor = new Cursor(StandardCursorType.Hand);
+            }
+            else if (newHoveredSegment != null)
+            {
+                Cursor = newHoveredSegment.Value.IsHorizontal
+                    ? new Cursor(StandardCursorType.SizeNorthSouth)
+                    : new Cursor(StandardCursorType.SizeWestEast);
+            }
+            else if (newHoveredPin != null)
+            {
+                Cursor = new Cursor(StandardCursorType.Cross);
+            }
+            else if (FindDeviceAt(wx, wy) != null)
+            {
+                Cursor = new Cursor(StandardCursorType.Hand);
+            }
+            else if (newHoveredWire != null)
+            {
+                Cursor = new Cursor(StandardCursorType.Hand);
+            }
+            else
+            {
+                Cursor = _isSpaceDown ? new Cursor(StandardCursorType.Hand) : new Cursor(StandardCursorType.Arrow);
+            }
         }
     }
 
@@ -693,31 +969,48 @@ public partial class CircuitCanvas
         {
             if (_draggedDevice != null && Circuit != null)
             {
+                var curBounds = Device.GetBoundsFor(_draggedDevice.Type, _draggedDevice.LocationX, _draggedDevice.LocationY, _draggedDevice.Transform.Rotation, padding: 0.15);
                 var collidingDev = Circuit.Devices.FirstOrDefault(d =>
                     !ReferenceEquals(d, _draggedDevice) &&
                     !SelectedDevices.Contains(d) &&
-                    Math.Abs(d.LocationX - _draggedDevice.LocationX) < 0.6 &&
-                    Math.Abs(d.LocationY - _draggedDevice.LocationY) < 0.6);
+                    Device.BoundsIntersect(curBounds, d.GetBoundingBox(padding: 0.15)));
 
                 if (collidingDev != null)
                 {
-                    (int Ox, int Oy)[] searchOffsets = { (0, 2), (0, -2), (2, 0), (-2, 0), (2, 2), (-2, -2) };
+                    bool resolved = false;
+                    (int Ox, int Oy)[] searchOffsets = {
+                        (0, 2), (0, -2), (2, 0), (-2, 0),
+                        (2, 2), (-2, -2), (2, -2), (-2, 2),
+                        (0, 3), (0, -3), (3, 0), (-3, 0),
+                        (0, 4), (0, -4), (4, 0), (-4, 0)
+                    };
                     foreach (var (ox, oy) in searchOffsets)
                     {
                         double testX = _draggedDevice.LocationX + ox;
                         double testY = _draggedDevice.LocationY + oy;
-                        if (!Circuit.Devices.Any(d => !ReferenceEquals(d, _draggedDevice) && Math.Abs(d.LocationX - testX) < 0.6 && Math.Abs(d.LocationY - testY) < 0.6))
+                        var testB = Device.GetBoundsFor(_draggedDevice.Type, testX, testY, _draggedDevice.Transform.Rotation, padding: 0.15);
+                        if (!Circuit.Devices.Any(d => !ReferenceEquals(d, _draggedDevice) && !SelectedDevices.Contains(d) && Device.BoundsIntersect(testB, d.GetBoundingBox(padding: 0.15))))
                         {
                             _draggedDevice.LocationX = testX;
                             _draggedDevice.LocationY = testY;
+                            resolved = true;
                             break;
                         }
                     }
+
+                    if (!resolved)
+                    {
+                        // Snap back to drag start position if no non-overlapping spot nearby
+                        _draggedDevice.LocationX = _deviceDragStartPos.X;
+                        _draggedDevice.LocationY = _deviceDragStartPos.Y;
+                    }
+
                     Circuit.RouteAllWires();
                     ParticleEngine.SyncWithCircuit(Circuit);
                 }
             }
             _isDragCollision = false;
+            _dragCollisionDevice = null;
 
             if (SelectedDevices.Count > 1)
             {
@@ -767,6 +1060,53 @@ public partial class CircuitCanvas
             _draggedDevice = null;
             _multiDragStartPositions.Clear();
             e.Pointer.Capture(null);
+        }
+
+        if (_isDraggingWire)
+        {
+            if (_draggedWire != null)
+            {
+                if (_wireCollisionDevice != null && _wireDragOriginalPath != null && _wireDragOriginalPath.Count > 0)
+                {
+                    // Revert wire path if released while cutting through a component body
+                    _draggedWire.PathPoints = _wireDragOriginalPath.Select(p => (p.X, p.Y)).ToList();
+                    _draggedWire.IsCustomPath = _wireDragOriginalCustom;
+                }
+                else
+                {
+                    _draggedWire.SimplifyCollinear();
+                    _draggedWire.IsCustomPath = true;
+
+                    bool pathChanged = _wireDragOriginalPath == null ||
+                        _wireDragOriginalPath.Count != _draggedWire.PathPoints.Count ||
+                        !_wireDragOriginalPath.SequenceEqual(_draggedWire.PathPoints);
+
+                    if (pathChanged && HistoryManager != null && _wireDragOriginalPath != null)
+                    {
+                        HistoryManager.Record(new ModifyWirePathAction(
+                            _draggedWire,
+                            _wireDragOriginalPath,
+                            _draggedWire.PathPoints,
+                            _wireDragOriginalCustom,
+                            true));
+                    }
+                }
+
+                if (Circuit != null)
+                {
+                    ParticleEngine.SyncWithCircuit(Circuit);
+                }
+            }
+
+            _isDraggingWire = false;
+            _draggedWire = null;
+            _draggedSegmentIndex = -1;
+            _draggedVertexIndex = -1;
+            _wireCollisionDevice = null;
+            _wireDragOriginalPath?.Clear();
+            e.Pointer.Capture(null);
+            Cursor = new Cursor(StandardCursorType.Arrow);
+            InvalidateVisual();
         }
     }
 
@@ -820,7 +1160,14 @@ public partial class CircuitCanvas
         switch (e.Key)
         {
             case Key.R:
-                RotateSelected(clockwise: true);
+                if (SelectedWire != null && SelectedDevice == null)
+                {
+                    ResetWireToAutoRoute(SelectedWire);
+                }
+                else
+                {
+                    RotateSelected(clockwise: true);
+                }
                 e.Handled = true;
                 break;
 
@@ -1041,4 +1388,74 @@ public partial class CircuitCanvas
         double projY = y1 + t * (y2 - y1);
         return Math.Sqrt((px - projX) * (px - projX) + (py - projY) * (py - projY));
     }
+
+    public (CircuitWire Wire, int VertexIndex)? FindWireVertexAt(double wx, double wy, double tolerance = 0.5)
+    {
+        if (Circuit == null) return null;
+        foreach (var wire in Circuit.Wires)
+        {
+            var pts = wire.PathPoints;
+            if (pts == null || pts.Count < 3) continue;
+
+            // Only intermediate corner bend vertices can be dragged (exclude pin endpoints)
+            for (int i = 1; i < pts.Count - 1; i++)
+            {
+                double dx = pts[i].X - wx;
+                double dy = pts[i].Y - wy;
+                if ((dx * dx + dy * dy) <= tolerance * tolerance)
+                {
+                    return (wire, i);
+                }
+            }
+        }
+        return null;
+    }
+
+    public (CircuitWire Wire, int SegmentIndex, bool IsHorizontal)? FindWireSegmentAt(double wx, double wy, double tolerance = 0.4)
+    {
+        if (Circuit == null) return null;
+        foreach (var wire in Circuit.Wires)
+        {
+            var pts = wire.PathPoints;
+            if (pts == null || pts.Count < 2) continue;
+
+            for (int i = 0; i < pts.Count - 1; i++)
+            {
+                double x1 = pts[i].X;
+                double y1 = pts[i].Y;
+                double x2 = pts[i + 1].X;
+                double y2 = pts[i + 1].Y;
+
+                bool isH = Math.Abs(y1 - y2) < 1e-4;
+                bool isV = Math.Abs(x1 - x2) < 1e-4;
+
+                double dist = PointToLineDistance(wx, wy, x1, y1, x2, y2);
+                if (dist <= tolerance)
+                {
+                    return (wire, i, isH);
+                }
+            }
+        }
+        return null;
+    }
+
+    public void ResetWireToAutoRoute(CircuitWire wire)
+    {
+        if (Circuit == null) return;
+        var oldPath = wire.ClonePath();
+        bool oldCustom = wire.IsCustomPath;
+
+        wire.IsCustomPath = false;
+        var dev1 = Circuit.Devices.FirstOrDefault(d => d.Id == wire.FromDeviceId);
+        var dev2 = Circuit.Devices.FirstOrDefault(d => d.Id == wire.ToDeviceId);
+        if (dev1 != null && dev2 != null)
+        {
+            wire.PathPoints = SchematicWireRouter.RouteWire(Circuit, dev1, wire.FromPinIndex, dev2, wire.ToPinIndex);
+        }
+
+        HistoryManager?.Record(new ModifyWirePathAction(wire, oldPath, wire.PathPoints, oldCustom, false));
+        ParticleEngine.SyncWithCircuit(Circuit);
+        InvalidateVisual();
+    }
 }
+

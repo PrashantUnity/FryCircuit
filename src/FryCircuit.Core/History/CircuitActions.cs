@@ -124,6 +124,39 @@ public class RemoveWireAction : IUndoableAction
     }
 }
 
+public class ModifyWirePathAction : IUndoableAction
+{
+    private readonly CircuitWire _wire;
+    private readonly List<(double X, double Y)> _oldPath;
+    private readonly List<(double X, double Y)> _newPath;
+    private readonly bool _oldCustom;
+    private readonly bool _newCustom;
+
+    public string Description => $"Reroute Wire #{_wire.Id} (Node {_wire.NodeId})";
+
+    public ModifyWirePathAction(CircuitWire wire, IEnumerable<(double X, double Y)> oldPath, IEnumerable<(double X, double Y)> newPath, bool oldCustom, bool newCustom)
+    {
+        _wire = wire;
+        _oldPath = oldPath.Select(p => (p.X, p.Y)).ToList();
+        _newPath = newPath.Select(p => (p.X, p.Y)).ToList();
+        _oldCustom = oldCustom;
+        _newCustom = newCustom;
+    }
+
+    public void Undo()
+    {
+        _wire.PathPoints = _oldPath.Select(p => (p.X, p.Y)).ToList();
+        _wire.IsCustomPath = _oldCustom;
+    }
+
+    public void Redo()
+    {
+        _wire.PathPoints = _newPath.Select(p => (p.X, p.Y)).ToList();
+        _wire.IsCustomPath = _newCustom;
+    }
+}
+
+
 public class MoveDeviceAction : IUndoableAction
 {
     private readonly Circuit? _circuit;

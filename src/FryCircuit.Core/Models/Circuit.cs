@@ -216,7 +216,7 @@ public class Circuit
     /// <summary>
     /// Connects a device pin to an existing wire net, forming a T-junction.
     /// </summary>
-    public CircuitWire? ConnectPinToWire(Device dev, int pinIndex, CircuitWire targetWire)
+    public CircuitWire? ConnectPinToWire(Device dev, int pinIndex, CircuitWire targetWire, (double X, double Y)? tapPoint = null)
     {
         var targetDev = Devices.FirstOrDefault(d => d.Id == targetWire.FromDeviceId) ??
                         Devices.FirstOrDefault(d => d.Id == targetWire.ToDeviceId);
@@ -224,8 +224,57 @@ public class Circuit
 
         int targetPinIdx = (targetDev.Id == targetWire.FromDeviceId) ? targetWire.FromPinIndex : targetWire.ToPinIndex;
         var wire = ConnectPins(dev, pinIndex, targetDev, targetPinIdx);
-        RouteAllWires();
+
+        if (tapPoint.HasValue)
+        {
+            double tx = Math.Round(tapPoint.Value.X * 2.0) / 2.0;
+            double ty = Math.Round(tapPoint.Value.Y * 2.0) / 2.0;
+
+            // Insert tap vertex into target wire if not present
+            InsertVertexIfMissing(targetWire, tx, ty);
+
+            // Route new wire from dev pin directly to the tap point
+            var (px, py) = dev.GetAbsolutePinPosition(pinIndex);
+            var (dx, dy) = dev.GetPinNormal(pinIndex);
+            var tapRoute = SchematicWireRouter.RouteWire(this, px, py, dx, dy, tx, ty, 0, 0, dev, null);
+
+            wire.PathPoints = tapRoute;
+            wire.IsCustomPath = true;
+            targetWire.IsCustomPath = true;
+        }
+        else
+        {
+            RouteAllWires();
+        }
+
         return wire;
+    }
+
+    private static void InsertVertexIfMissing(CircuitWire wire, double x, double y)
+    {
+        if (wire.PathPoints == null || wire.PathPoints.Count < 2) return;
+
+        // Check if point already exists
+        if (wire.PathPoints.Any(p => Math.Abs(p.X - x) < 1e-3 && Math.Abs(p.Y - y) < 1e-3))
+            return;
+
+        // Find which segment contains (x, y)
+        for (int i = 0; i < wire.PathPoints.Count - 1; i++)
+        {
+            double x1 = wire.PathPoints[i].X;
+            double y1 = wire.PathPoints[i].Y;
+            double x2 = wire.PathPoints[i + 1].X;
+            double y2 = wire.PathPoints[i + 1].Y;
+
+            bool onH = Math.Abs(y1 - y2) < 1e-3 && Math.Abs(y - y1) < 1e-3 && x >= Math.Min(x1, x2) - 1e-3 && x <= Math.Max(x1, x2) + 1e-3;
+            bool onV = Math.Abs(x1 - x2) < 1e-3 && Math.Abs(x - x1) < 1e-3 && y >= Math.Min(y1, y2) - 1e-3 && y <= Math.Max(y1, y2) + 1e-3;
+
+            if (onH || onV)
+            {
+                wire.PathPoints.Insert(i + 1, (x, y));
+                break;
+            }
+        }
     }
 
     /// <summary>
@@ -447,6 +496,13 @@ public class Circuit
             }
         }
 
+        // If any wires are marked as custom on this node, preserve them
+        if (Wires.Any(w => w.NodeId == nodeId && w.IsCustomPath))
+        {
+            RouteAllWires();
+            return;
+        }
+
         // Remove old wires for this node
         Wires.RemoveAll(w => w.NodeId == nodeId);
 
@@ -571,6 +627,8 @@ public class Circuit
 
     /// <summary>
     /// Recalculates intelligent orthogonal routes for all wires in the circuit.
+    /// Custom routed wires adapt their terminal segments to remain locked to moving device pins,
+    /// preserving Manhattan orthogonality and the user's custom intermediate waypoints.
     /// </summary>
     public void RouteAllWires()
     {
@@ -578,9 +636,266 @@ public class Circuit
         {
             var dev1 = Devices.FirstOrDefault(d => d.Id == wire.FromDeviceId);
             var dev2 = Devices.FirstOrDefault(d => d.Id == wire.ToDeviceId);
-            if (dev1 != null && dev2 != null)
+            if (dev1 == null || dev2 == null) continue;
+
+            if (wire.IsCustomPath && wire.PathPoints != null && wire.PathPoints.Count >= 2)
             {
-                wire.PathPoints = SchematicWireRouter.RouteWire(this, dev1, wire.FromPinIndex, dev2, wire.ToPinIndex);
+                AdaptCustomWireEndpoints(wire, dev1, dev2);
+                continue;
+            }
+
+            wire.PathPoints = SchematicWireRouter.RouteWire(this, dev1, wire.FromPinIndex, dev2, wire.ToPinIndex);
+        }
+    }
+
+    /// <summary>
+    /// Adapts the terminal points of a custom routed wire when connected devices move,
+    /// maintaining strict Manhattan orthogonality and preserving intermediate custom routing.
+    /// </summary>
+    public void AdaptCustomWireEndpoints(CircuitWire wire, Device dev1, Device dev2)
+    {
+        if (wire.PathPoints == null || wire.PathPoints.Count < 2) return;
+
+        var pStart = dev1.GetAbsolutePinPosition(wire.FromPinIndex);
+        var pEnd = dev2.GetAbsolutePinPosition(wire.ToPinIndex);
+        var pts = wire.PathPoints;
+
+        // Check if both devices moved by the exact same delta from their wire endpoints (e.g. multi-select drag)
+        double deltaStartDx = pStart.X - pts[0].X;
+        double deltaStartDy = pStart.Y - pts[0].Y;
+        double deltaEndDx = pEnd.X - pts[^1].X;
+        double deltaEndDy = pEnd.Y - pts[^1].Y;
+
+        if (Math.Abs(deltaStartDx - deltaEndDx) < 1e-4 && Math.Abs(deltaStartDy - deltaEndDy) < 1e-4 &&
+            (Math.Abs(deltaStartDx) > 1e-4 || Math.Abs(deltaStartDy) > 1e-4))
+        {
+            // Both devices moved together by (deltaStartDx, deltaStartDy) - translate entire custom polyline rigidly
+            for (int i = 0; i < pts.Count; i++)
+            {
+                pts[i] = (pts[i].X + deltaStartDx, pts[i].Y + deltaStartDy);
+            }
+            return;
+        }
+
+        bool startMoved = Math.Abs(pts[0].X - pStart.X) > 1e-4 || Math.Abs(pts[0].Y - pStart.Y) > 1e-4;
+        bool endMoved = Math.Abs(pts[^1].X - pEnd.X) > 1e-4 || Math.Abs(pts[^1].Y - pEnd.Y) > 1e-4;
+        if (!startMoved && !endMoved)
+        {
+            // Neither connected device moved: preserve user custom path as-is
+            return;
+        }
+
+        // 1. Adapt start endpoint if dev1 pin moved
+        if (startMoved)
+        {
+            AdaptStartEndpoint(pts, pStart, dev1.GetPinNormal(wire.FromPinIndex));
+        }
+
+        // 2. Adapt end endpoint if dev2 pin moved
+        if (endMoved)
+        {
+            AdaptEndEndpoint(pts, pEnd, dev2.GetPinNormal(wire.ToPinIndex));
+        }
+
+        // 3. Ensure strict Manhattan orthogonality throughout the entire path
+        EnsureManhattanPath(pts, dev1, wire.FromPinIndex, dev2, wire.ToPinIndex);
+
+        // 4. Simplify any redundant collinear segments
+        wire.SimplifyCollinear();
+
+        // 5. Look for devices! If any segment of the adapted wire collides with or penetrates any component body,
+        // automatically reroute cleanly around all obstacles in the circuit.
+        bool collidesWithDevice = false;
+        for (int i = 0; i < wire.PathPoints.Count - 1; i++)
+        {
+            if (SchematicWireRouter.FindCollidingDeviceForSegment(this, wire.PathPoints[i].X, wire.PathPoints[i].Y, wire.PathPoints[i + 1].X, wire.PathPoints[i + 1].Y, dev1, dev2) != null)
+            {
+                collidesWithDevice = true;
+                break;
+            }
+        }
+
+        if (collidesWithDevice)
+        {
+            wire.PathPoints = SchematicWireRouter.RouteWire(this, dev1, wire.FromPinIndex, dev2, wire.ToPinIndex);
+            wire.IsCustomPath = false;
+        }
+    }
+
+    private static void AdaptStartEndpoint(List<(double X, double Y)> pts, (double X, double Y) pStart, (int Dx, int Dy) normal)
+    {
+        if (pts.Count == 2)
+        {
+            pts[0] = pStart;
+            if (Math.Abs(pStart.X - pts[1].X) > 1e-4 && Math.Abs(pStart.Y - pts[1].Y) > 1e-4)
+            {
+                var corner = (normal.Dx != 0) ? (pts[1].X, pStart.Y) : (pStart.X, pts[1].Y);
+                pts.Insert(1, corner);
+            }
+            return;
+        }
+
+        if (pts.Count == 3)
+        {
+            // With 3 points: pts[0] is start pin, pts[1] is end pin's entry corner, pts[2] is end pin.
+            // Do NOT overwrite pts[1] because that could violate end pin's entry direction!
+            var corner = pts[1];
+            var endPt = pts[2];
+            pts[0] = pStart;
+
+            bool lastIsH = Math.Abs(corner.Y - endPt.Y) < 1e-4;
+            if (lastIsH)
+            {
+                if (Math.Abs(pStart.X - corner.X) > 1e-4 && Math.Abs(pStart.Y - corner.Y) > 1e-4)
+                {
+                    pts.Insert(1, (pStart.X, corner.Y));
+                }
+            }
+            else
+            {
+                if (Math.Abs(pStart.X - corner.X) > 1e-4 && Math.Abs(pStart.Y - corner.Y) > 1e-4)
+                {
+                    pts.Insert(1, (corner.X, pStart.Y));
+                }
+            }
+            return;
+        }
+
+        var p0 = pts[0];
+        var p1 = pts[1];
+        bool wasH = Math.Abs(p0.Y - p1.Y) < 1e-4;
+        bool wasV = Math.Abs(p0.X - p1.X) < 1e-4;
+
+        if (wasH)
+        {
+            if (Math.Abs(pStart.Y - p1.Y) < 1e-4)
+            {
+                pts[0] = pStart;
+            }
+            else
+            {
+                pts[0] = pStart;
+                pts[1] = (p1.X, pStart.Y);
+            }
+        }
+        else if (wasV)
+        {
+            if (Math.Abs(pStart.X - p1.X) < 1e-4)
+            {
+                pts[0] = pStart;
+            }
+            else
+            {
+                pts[0] = pStart;
+                pts[1] = (pStart.X, p1.Y);
+            }
+        }
+        else
+        {
+            pts[0] = pStart;
+            var corner = (normal.Dx != 0) ? (pts[1].X, pStart.Y) : (pStart.X, pts[1].Y);
+            pts.Insert(1, corner);
+        }
+    }
+
+    private static void AdaptEndEndpoint(List<(double X, double Y)> pts, (double X, double Y) pEnd, (int Dx, int Dy) normal)
+    {
+        if (pts.Count == 2)
+        {
+            pts[^1] = pEnd;
+            if (Math.Abs(pEnd.X - pts[0].X) > 1e-4 && Math.Abs(pEnd.Y - pts[0].Y) > 1e-4)
+            {
+                var corner = (normal.Dx != 0) ? (pts[0].X, pEnd.Y) : (pEnd.X, pts[0].Y);
+                pts.Insert(1, corner);
+            }
+            return;
+        }
+
+        if (pts.Count == 3)
+        {
+            // With 3 points: pts[0] is start pin, pts[1] is start pin's escape corner, pts[2] is end pin.
+            // Do NOT overwrite pts[1] because that violates start pin's escape direction!
+            var p0 = pts[0];
+            var p1 = pts[1];
+            pts[^1] = pEnd;
+
+            bool firstIsH = Math.Abs(p0.Y - p1.Y) < 1e-4;
+            if (firstIsH)
+            {
+                if (Math.Abs(p1.Y - pEnd.Y) > 1e-4 && Math.Abs(p1.X - pEnd.X) > 1e-4)
+                {
+                    pts.Insert(2, (p1.X, pEnd.Y));
+                }
+            }
+            else
+            {
+                if (Math.Abs(p1.X - pEnd.X) > 1e-4 && Math.Abs(p1.Y - pEnd.Y) > 1e-4)
+                {
+                    pts.Insert(2, (pEnd.X, p1.Y));
+                }
+            }
+            return;
+        }
+
+        var pLast = pts[^1];
+        var pPrev = pts[^2];
+        bool wasH = Math.Abs(pPrev.Y - pLast.Y) < 1e-4;
+        bool wasV = Math.Abs(pPrev.X - pLast.X) < 1e-4;
+
+        if (wasH)
+        {
+            if (Math.Abs(pEnd.Y - pPrev.Y) < 1e-4)
+            {
+                pts[^1] = pEnd;
+            }
+            else
+            {
+                pts[^1] = pEnd;
+                pts[^2] = (pPrev.X, pEnd.Y);
+            }
+        }
+        else if (wasV)
+        {
+            if (Math.Abs(pEnd.X - pPrev.X) < 1e-4)
+            {
+                pts[^1] = pEnd;
+            }
+            else
+            {
+                pts[^1] = pEnd;
+                pts[^2] = (pEnd.X, pPrev.Y);
+            }
+        }
+        else
+        {
+            pts[^1] = pEnd;
+            var corner = (normal.Dx != 0) ? (pEnd.X, pts[^2].Y) : (pts[^2].X, pEnd.Y);
+            pts.Insert(pts.Count - 1, corner);
+        }
+    }
+
+    private static void EnsureManhattanPath(List<(double X, double Y)> pts, Device dev1, int pin1, Device dev2, int pin2)
+    {
+        for (int i = 0; i < pts.Count - 1; i++)
+        {
+            double dx = Math.Abs(pts[i].X - pts[i + 1].X);
+            double dy = Math.Abs(pts[i].Y - pts[i + 1].Y);
+            if (dx > 1e-4 && dy > 1e-4)
+            {
+                // Diagonal segment detected! Repair into orthogonal dogleg
+                (double X, double Y) corner;
+                if (i == 0)
+                {
+                    var (normDx, _) = dev1.GetPinNormal(pin1);
+                    corner = normDx != 0 ? (pts[i + 1].X, pts[i].Y) : (pts[i].X, pts[i + 1].Y);
+                }
+                else
+                {
+                    var (normDx, _) = dev2.GetPinNormal(pin2);
+                    corner = normDx != 0 ? (pts[i].X, pts[i + 1].Y) : (pts[i + 1].X, pts[i].Y);
+                }
+                pts.Insert(i + 1, corner);
+                i++;
             }
         }
     }
