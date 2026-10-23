@@ -19,6 +19,8 @@ using FryCircuit.UI.Controls;
 using FryWorld.Sdk.Plugins;
 using FryWorld.Sdk.Services;
 using FryWorld.Sdk.Shortcuts;
+using FryCircuit.Core.Control;
+using FryCircuit.Core.Devices.Control;
 using Material.Icons;
 
 namespace FryCircuit.UI.ViewModels;
@@ -374,6 +376,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public bool IsMetersSelected => SelectedPaletteCategory == "Meters & Switches";
     public bool IsDronesVisible => SelectedPaletteCategory == "All" || SelectedPaletteCategory == "Drones & Aero";
     public bool IsDronesSelected => SelectedPaletteCategory == "Drones & Aero";
+    public bool IsControlVisible => SelectedPaletteCategory == "All" || SelectedPaletteCategory == "Control Systems";
+    public bool IsControlSelected => SelectedPaletteCategory == "Control Systems";
 
     public IReadOnlyList<PaletteItemViewModel> AllPaletteItems { get; } = new List<PaletteItemViewModel>
     {
@@ -434,7 +438,35 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         new() { Code = "lamp", Name = "Lamp", Symbol = "LAMP", Category = "Meters & Switches", Hotkey = "LAMP", ToolTip = "Thermal tungsten filament dynamic load indicator" },
         new() { Code = "voltmeter", Name = "Voltmeter", Symbol = "[V]", Category = "Meters & Switches", Hotkey = "VM", ToolTip = "High-impedance potential difference meter" },
         new() { Code = "amperemeter", Name = "Ammeter", Symbol = "[A]", Category = "Meters & Switches", Hotkey = "AM", ToolTip = "Series low-resistance branch current meter" },
-        new() { Code = "ohmmeter", Name = "Ohmmeter", Symbol = "[Ω]", Category = "Meters & Switches", Hotkey = "OHM", ToolTip = "Active 2-terminal resistance measurement probe" }
+        new() { Code = "ohmmeter", Name = "Ohmmeter", Symbol = "[Ω]", Category = "Meters & Switches", Hotkey = "OHM", ToolTip = "Active 2-terminal resistance measurement probe" },
+
+        // Control Systems (Feedback Fundamentals & Loop Dynamics)
+        new() { Code = "tf", Name = "Transfer Function", Symbol = "G(s)", Category = "Control Systems", Hotkey = "TF", ToolTip = "SISO LTI rational transfer function block G(s) = N(s)/D(s)" },
+        new() { Code = "sum", Name = "Summing Junction", Symbol = "Σ", Category = "Control Systems", Hotkey = "SUM", ToolTip = "Multi-input summing/differencing algebraic junction (+/-)" },
+        new() { Code = "pid", Name = "PID Controller", Symbol = "PID", Category = "Control Systems", Hotkey = "PID", ToolTip = "Proportional-Integral-Derivative controller block with anti-windup" },
+        new() { Code = "gain", Name = "Gain Block", Symbol = "×K", Category = "Control Systems", Hotkey = "K", ToolTip = "Linear scalar scaling gain amplifier block" },
+        new() { Code = "step", Name = "Step Source", Symbol = "STEP", Category = "Control Systems", Hotkey = "U(t)", ToolTip = "Heaviside unit step reference command input" },
+        new() { Code = "integrator", Name = "Integrator", Symbol = "1/s", Category = "Control Systems", Hotkey = "INT", ToolTip = "Continuous time integrator state block" },
+        new() { Code = "derivative", Name = "Derivative", Symbol = "s", Category = "Control Systems", Hotkey = "DER", ToolTip = "Filtered differentiator block with high-frequency rolloff" },
+        new() { Code = "saturation", Name = "Saturation", Symbol = "SAT", Category = "Control Systems", Hotkey = "SAT", ToolTip = "Nonlinear actuator amplitude limiter [Min, Max]" },
+        new() { Code = "delay", Name = "Time Delay", Symbol = "e^-sτ", Category = "Control Systems", Hotkey = "TAU", ToolTip = "Transport pure time delay buffer" },
+
+        // Universal Control & System Dynamics (MIMO State-Space, Math, Physical Plants & Discrete)
+        new() { Code = "statespace", Name = "State-Space", Symbol = "[A,B]", Category = "Control Systems", Hotkey = "SS", ToolTip = "MIMO/SISO continuous dynamical state-space block dx/dt = Ax + Bu, y = Cx + Du" },
+        new() { Code = "mult", Name = "Multiplier", Symbol = "A×B", Category = "Control Systems", Hotkey = "MUL", ToolTip = "Analog signal product block y = Scale * (uA * uB)" },
+        new() { Code = "div", Name = "Divider", Symbol = "A÷B", Category = "Control Systems", Hotkey = "DIV", ToolTip = "Signal quotient divider block y = Scale * (uA / (uB + ε))" },
+        new() { Code = "mathexpr", Name = "Math Function", Symbol = "f(u)", Category = "Control Systems", Hotkey = "FN", ToolTip = "Arbitrary user-defined nonlinear math expression y = f(u)" },
+        new() { Code = "dcmotor", Name = "DC Motor Plant", Symbol = "MTR", Category = "Control Systems", Hotkey = "MOT", ToolTip = "Physical DC motor electromechanical actuator plant (Ra, La, J, B, Ke, Kt)" },
+        new() { Code = "ramp", Name = "Ramp Source", Symbol = "RAMP", Category = "Control Systems", Hotkey = "RMP", ToolTip = "Continuous linear ramp excitation r(t) = a*t for Type 1/2 tracking error specs" },
+        new() { Code = "const", Name = "Constant Setpoint", Symbol = "K₀", Category = "Control Systems", Hotkey = "SET", ToolTip = "Steady constant reference command setpoint / DC bias block" },
+        new() { Code = "noise", Name = "Noise Generator", Symbol = "NOISE", Category = "Control Systems", Hotkey = "WGN", ToolTip = "Band-limited Gaussian white noise generator for sensor noise simulation" },
+        new() { Code = "pulse", Name = "Pulse Generator", Symbol = "PLS", Category = "Control Systems", Hotkey = "PUL", ToolTip = "Periodic rectangular pulse/square train reference command" },
+        new() { Code = "zoh", Name = "Zero-Order Hold", Symbol = "ZOH", Category = "Control Systems", Hotkey = "ZOH", ToolTip = "Discrete-time sample-and-hold block y(t) = u(k*Ts)" },
+        new() { Code = "unitdelay", Name = "Unit Delay", Symbol = "z⁻¹", Category = "Control Systems", Hotkey = "Z1", ToolTip = "Discrete-time unit sample delay block y[k] = u[k-1]" },
+        new() { Code = "discretetf", Name = "Discrete TF", Symbol = "H(z)", Category = "Control Systems", Hotkey = "HZ", ToolTip = "Discrete-time pulse transfer function difference equation H(z) = B(z)/A(z)" },
+        new() { Code = "deadzone", Name = "Dead-Zone", Symbol = "DZ", Category = "Control Systems", Hotkey = "DZ", ToolTip = "Nonlinear actuator deadband threshold limiter [-W, +W]" },
+        new() { Code = "relay", Name = "Relay (Hysteresis)", Symbol = "REL", Category = "Control Systems", Hotkey = "RLY", ToolTip = "Bang-bang switching relay with hysteresis threshold band" },
+        new() { Code = "ratelimiter", Name = "Rate Limiter", Symbol = "SLEW", Category = "Control Systems", Hotkey = "RT", ToolTip = "Actuator maximum slew-rate velocity limiter |du/dt| <= R" }
     };
 
     public ObservableCollection<PaletteItemViewModel> FilteredPaletteItems { get; } = new();
@@ -485,6 +517,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsMetersSelected));
         OnPropertyChanged(nameof(IsDronesVisible));
         OnPropertyChanged(nameof(IsDronesSelected));
+        OnPropertyChanged(nameof(IsControlVisible));
+        OnPropertyChanged(nameof(IsControlSelected));
     }
 
     [ObservableProperty]
@@ -765,11 +799,429 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public bool IsCapacitorSelected => SelectedDevice != null && SelectedDevice.Type == "capacitor";
     public bool IsInductorSelected => SelectedDevice != null && SelectedDevice.Type == "inductor";
     public bool IsLedSelected => SelectedDevice != null && (SelectedDevice is LedDevice || SelectedDevice.Type == "led");
+    public bool IsControlDeviceSelected => SelectedDevice is TransferFunctionDevice ||
+                                           SelectedDevice is SummingJunctionDevice ||
+                                           SelectedDevice is PidControllerDevice ||
+                                           SelectedDevice is GainBlockDevice ||
+                                           SelectedDevice is StepSourceDevice ||
+                                           SelectedDevice is IntegratorDevice ||
+                                           SelectedDevice is DerivativeDevice ||
+                                           SelectedDevice is SaturationDevice ||
+                                           SelectedDevice is TimeDelayDevice ||
+                                           SelectedDevice is RampSourceDevice ||
+                                           SelectedDevice is ConstantSourceDevice ||
+                                           SelectedDevice is NoiseSourceDevice ||
+                                           SelectedDevice is PulseSourceDevice ||
+                                           SelectedDevice is MultiplierDevice ||
+                                           SelectedDevice is DividerDevice ||
+                                           SelectedDevice is MathExpressionDevice ||
+                                           SelectedDevice is DeadZoneDevice ||
+                                           SelectedDevice is RelayDevice ||
+                                           SelectedDevice is RateLimiterDevice ||
+                                           SelectedDevice is StateSpaceBlockDevice ||
+                                           SelectedDevice is DcMotorPlantDevice ||
+                                           SelectedDevice is ZeroOrderHoldDevice ||
+                                           SelectedDevice is UnitDelayDevice ||
+                                           SelectedDevice is DiscreteTransferFunctionDevice;
+
+    public bool IsTransferFunctionSelected => SelectedDevice is TransferFunctionDevice;
+    public bool IsSummingJunctionSelected => SelectedDevice is SummingJunctionDevice;
+    public bool IsStateSpaceSelected => SelectedDevice is StateSpaceBlockDevice;
+    public bool IsMathExpressionSelected => SelectedDevice is MathExpressionDevice;
+    public bool IsDiscreteTfSelected => SelectedDevice is DiscreteTransferFunctionDevice;
+    public bool IsDcMotorSelected => SelectedDevice is DcMotorPlantDevice;
+
+    public TransferFunctionDevice? SelectedTransferFunction => SelectedDevice as TransferFunctionDevice;
+    public SummingJunctionDevice? SelectedSummingJunction => SelectedDevice as SummingJunctionDevice;
+    public StateSpaceBlockDevice? SelectedStateSpace => SelectedDevice as StateSpaceBlockDevice;
+    public MathExpressionDevice? SelectedMathExpression => SelectedDevice as MathExpressionDevice;
+    public DiscreteTransferFunctionDevice? SelectedDiscreteTf => SelectedDevice as DiscreteTransferFunctionDevice;
+    public DcMotorPlantDevice? SelectedDcMotor => SelectedDevice as DcMotorPlantDevice;
+
+    public string SelectedTfNumerator
+    {
+        get => SelectedTransferFunction?.NumeratorString ?? "1";
+        set
+        {
+            if (SelectedTransferFunction != null && SelectedTransferFunction.NumeratorString != value)
+            {
+                SelectedTransferFunction.NumeratorString = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(SelectedDeviceDisplayName));
+                OnPropertyChanged(nameof(SelectedTfNumeratorAcademic));
+                ReinitializeSolver();
+                InvalidateAllCanvases();
+            }
+        }
+    }
+
+    public string SelectedTfDenominator
+    {
+        get => SelectedTransferFunction?.DenominatorString ?? "1, 1";
+        set
+        {
+            if (SelectedTransferFunction != null && SelectedTransferFunction.DenominatorString != value)
+            {
+                SelectedTransferFunction.DenominatorString = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(SelectedDeviceDisplayName));
+                OnPropertyChanged(nameof(SelectedTfDenominatorAcademic));
+                ReinitializeSolver();
+                InvalidateAllCanvases();
+            }
+        }
+    }
+
+    public string SelectedTfNumeratorAcademic => SelectedTransferFunction != null
+        ? SelectedTransferFunction.CurrentTransferFunction.Numerator.ToAcademicString("s")
+        : "1";
+
+    public string SelectedTfDenominatorAcademic => SelectedTransferFunction != null
+        ? SelectedTransferFunction.CurrentTransferFunction.Denominator.ToAcademicString("s")
+        : "s + 1";
+
+    public string SelectedSumSigns
+    {
+        get => SelectedSummingJunction?.Signs ?? "+-";
+        set
+        {
+            if (SelectedSummingJunction != null && SelectedSummingJunction.Signs != value)
+            {
+                SelectedSummingJunction.Signs = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(SelectedDeviceDisplayName));
+                ReinitializeSolver();
+                InvalidateAllCanvases();
+            }
+        }
+    }
+
+    public string SelectedStateSpaceA
+    {
+        get => SelectedStateSpace?.AString ?? "0, 1; -2, -3";
+        set
+        {
+            if (SelectedStateSpace != null && SelectedStateSpace.AString != value)
+            {
+                SelectedStateSpace.AString = value;
+                SelectedStateSpace.RebuildModel();
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(SelectedDeviceDisplayName));
+                ReinitializeSolver();
+                InvalidateAllCanvases();
+            }
+        }
+    }
+
+    public string SelectedStateSpaceB
+    {
+        get => SelectedStateSpace?.BString ?? "0; 1";
+        set
+        {
+            if (SelectedStateSpace != null && SelectedStateSpace.BString != value)
+            {
+                SelectedStateSpace.BString = value;
+                SelectedStateSpace.RebuildModel();
+                OnPropertyChanged();
+                ReinitializeSolver();
+                InvalidateAllCanvases();
+            }
+        }
+    }
+
+    public string SelectedStateSpaceC
+    {
+        get => SelectedStateSpace?.CString ?? "1, 0";
+        set
+        {
+            if (SelectedStateSpace != null && SelectedStateSpace.CString != value)
+            {
+                SelectedStateSpace.CString = value;
+                SelectedStateSpace.RebuildModel();
+                OnPropertyChanged();
+                ReinitializeSolver();
+                InvalidateAllCanvases();
+            }
+        }
+    }
+
+    public string SelectedStateSpaceD
+    {
+        get => SelectedStateSpace?.DString ?? "0";
+        set
+        {
+            if (SelectedStateSpace != null && SelectedStateSpace.DString != value)
+            {
+                SelectedStateSpace.DString = value;
+                SelectedStateSpace.RebuildModel();
+                OnPropertyChanged();
+                ReinitializeSolver();
+                InvalidateAllCanvases();
+            }
+        }
+    }
+
+    public string SelectedMathExpr
+    {
+        get => SelectedMathExpression?.Expression ?? "sin(u)";
+        set
+        {
+            if (SelectedMathExpression != null && SelectedMathExpression.Expression != value)
+            {
+                SelectedMathExpression.Expression = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(SelectedDeviceDisplayName));
+                ReinitializeSolver();
+                InvalidateAllCanvases();
+            }
+        }
+    }
+
+    public string SelectedDiscreteTfNum
+    {
+        get => SelectedDiscreteTf?.NumeratorString ?? "0.1, 0.05";
+        set
+        {
+            if (SelectedDiscreteTf != null && SelectedDiscreteTf.NumeratorString != value)
+            {
+                SelectedDiscreteTf.NumeratorString = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(SelectedDeviceDisplayName));
+                ReinitializeSolver();
+                InvalidateAllCanvases();
+            }
+        }
+    }
+
+    public string SelectedDiscreteTfDen
+    {
+        get => SelectedDiscreteTf?.DenominatorString ?? "1, -0.85";
+        set
+        {
+            if (SelectedDiscreteTf != null && SelectedDiscreteTf.DenominatorString != value)
+            {
+                SelectedDiscreteTf.DenominatorString = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(SelectedDeviceDisplayName));
+                ReinitializeSolver();
+                InvalidateAllCanvases();
+            }
+        }
+    }
+
+    [RelayCommand]
+    public void SetSelectedSumSigns(string signs)
+    {
+        SelectedSumSigns = signs;
+    }
+
+    [RelayCommand]
+    public void SetSelectedTfPreset(string preset)
+    {
+        if (SelectedTransferFunction == null) return;
+        switch (preset)
+        {
+            case "first_order":
+                SelectedTfNumerator = "1";
+                SelectedTfDenominator = "1, 1";
+                break;
+            case "second_order_osc":
+                SelectedTfNumerator = "100";
+                SelectedTfDenominator = "1, 6, 100";
+                break;
+            case "integrator":
+                SelectedTfNumerator = "1";
+                SelectedTfDenominator = "1, 0";
+                break;
+            case "double_integrator":
+                SelectedTfNumerator = "1";
+                SelectedTfDenominator = "1, 0, 0";
+                break;
+        }
+    }
+
+    public double SelectedDcMotorRa
+    {
+        get => SelectedDcMotor?.ResistanceRa ?? 1.0;
+        set
+        {
+            if (SelectedDcMotor != null && Math.Abs(SelectedDcMotor.ResistanceRa - value) > 1e-6)
+            {
+                SelectedDcMotor.ResistanceRa = value;
+                OnPropertyChanged();
+                ReinitializeSolver();
+                InvalidateAllCanvases();
+            }
+        }
+    }
+
+    public double SelectedDcMotorLa
+    {
+        get => SelectedDcMotor?.InductanceLa ?? 0.005;
+        set
+        {
+            if (SelectedDcMotor != null && Math.Abs(SelectedDcMotor.InductanceLa - value) > 1e-6)
+            {
+                SelectedDcMotor.InductanceLa = value;
+                OnPropertyChanged();
+                ReinitializeSolver();
+                InvalidateAllCanvases();
+            }
+        }
+    }
+
+    public double SelectedDcMotorKt
+    {
+        get => SelectedDcMotor?.TorqueConstantKt ?? 0.05;
+        set
+        {
+            if (SelectedDcMotor != null && Math.Abs(SelectedDcMotor.TorqueConstantKt - value) > 1e-6)
+            {
+                SelectedDcMotor.TorqueConstantKt = value;
+                OnPropertyChanged();
+                ReinitializeSolver();
+                InvalidateAllCanvases();
+            }
+        }
+    }
+
+    public double SelectedDcMotorKe
+    {
+        get => SelectedDcMotor?.BackEmfConstantKe ?? 0.05;
+        set
+        {
+            if (SelectedDcMotor != null && Math.Abs(SelectedDcMotor.BackEmfConstantKe - value) > 1e-6)
+            {
+                SelectedDcMotor.BackEmfConstantKe = value;
+                OnPropertyChanged();
+                ReinitializeSolver();
+                InvalidateAllCanvases();
+            }
+        }
+    }
+
+    public double SelectedDcMotorJ
+    {
+        get => SelectedDcMotor?.RotorInertiaJ ?? 0.001;
+        set
+        {
+            if (SelectedDcMotor != null && Math.Abs(SelectedDcMotor.RotorInertiaJ - value) > 1e-6)
+            {
+                SelectedDcMotor.RotorInertiaJ = value;
+                OnPropertyChanged();
+                ReinitializeSolver();
+                InvalidateAllCanvases();
+            }
+        }
+    }
+
+    public double SelectedDcMotorB
+    {
+        get => SelectedDcMotor?.ViscousDampingB ?? 0.002;
+        set
+        {
+            if (SelectedDcMotor != null && Math.Abs(SelectedDcMotor.ViscousDampingB - value) > 1e-6)
+            {
+                SelectedDcMotor.ViscousDampingB = value;
+                OnPropertyChanged();
+                ReinitializeSolver();
+                InvalidateAllCanvases();
+            }
+        }
+    }
+
+    [RelayCommand]
+    public void SetSelectedMathExprPreset(string expr)
+    {
+        SelectedMathExpr = expr;
+    }
+
+    [RelayCommand]
+    public void SetSelectedStateSpacePreset(string preset)
+    {
+        if (SelectedStateSpace == null) return;
+        switch (preset)
+        {
+            case "second_order_osc":
+                SelectedStateSpaceA = "0, 1; -100, -6";
+                SelectedStateSpaceB = "0; 100";
+                SelectedStateSpaceC = "1, 0";
+                SelectedStateSpaceD = "0";
+                break;
+            case "double_integrator":
+                SelectedStateSpaceA = "0, 1; 0, 0";
+                SelectedStateSpaceB = "0; 1";
+                SelectedStateSpaceC = "1, 0";
+                SelectedStateSpaceD = "0";
+                break;
+            case "first_order_lag":
+                SelectedStateSpaceA = "-10";
+                SelectedStateSpaceB = "10";
+                SelectedStateSpaceC = "1";
+                SelectedStateSpaceD = "0";
+                break;
+        }
+    }
+
+    [RelayCommand]
+    public void SetSelectedDiscreteTfPreset(string preset)
+    {
+        if (SelectedDiscreteTf == null) return;
+        switch (preset)
+        {
+            case "first_order_iir":
+                SelectedDiscreteTfNum = "0.1";
+                SelectedDiscreteTfDen = "1, -0.9";
+                break;
+            case "accumulator":
+                SelectedDiscreteTfNum = "1";
+                SelectedDiscreteTfDen = "1, -1";
+                break;
+            case "moving_average_2":
+                SelectedDiscreteTfNum = "0.5, 0.5";
+                SelectedDiscreteTfDen = "1";
+                break;
+        }
+    }
+
+    [RelayCommand]
+    public void SetSelectedDcMotorPreset(string preset)
+    {
+        if (SelectedDcMotor == null) return;
+        switch (preset)
+        {
+            case "drone_motor":
+                SelectedDcMotorRa = 0.25;
+                SelectedDcMotorLa = 0.0001;
+                SelectedDcMotorKt = 0.015;
+                SelectedDcMotorKe = 0.015;
+                SelectedDcMotorJ = 0.00005;
+                SelectedDcMotorB = 0.0005;
+                break;
+            case "small_servo":
+                SelectedDcMotorRa = 2.5;
+                SelectedDcMotorLa = 0.002;
+                SelectedDcMotorKt = 0.08;
+                SelectedDcMotorKe = 0.08;
+                SelectedDcMotorJ = 0.0005;
+                SelectedDcMotorB = 0.001;
+                break;
+            case "industrial_dc":
+                SelectedDcMotorRa = 0.8;
+                SelectedDcMotorLa = 0.01;
+                SelectedDcMotorKt = 0.25;
+                SelectedDcMotorKe = 0.25;
+                SelectedDcMotorJ = 0.02;
+                SelectedDcMotorB = 0.01;
+                break;
+        }
+    }
+
     public LedDevice? SelectedLed => SelectedDevice as LedDevice;
     public string SelectedLedColorHex => SelectedLed?.ColorHex ?? "#FF2020";
     public string SelectedLedColorName => SelectedLed?.ColorName ?? "Red";
     public double SelectedLedForwardVoltage => SelectedLed?.ForwardVoltage ?? 1.8;
-    public bool ShowPrimaryKnob => HasSelectedDevice && !IsLedSelected;
+    public bool ShowPrimaryKnob => HasSelectedDevice && !IsLedSelected && !IsTransferFunctionSelected && !IsSummingJunctionSelected && !IsStateSpaceSelected && !IsMathExpressionSelected && !IsDiscreteTfSelected && !IsDcMotorSelected && DeviceRegistry.GetPrimaryParameter(SelectedDevice!) != null;
 
     public bool IsRedSelected => string.Equals(SelectedLedColorName, "Red", StringComparison.OrdinalIgnoreCase);
     public bool IsOrangeSelected => string.Equals(SelectedLedColorName, "Orange", StringComparison.OrdinalIgnoreCase);
@@ -868,6 +1320,37 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsCapacitorSelected));
         OnPropertyChanged(nameof(IsInductorSelected));
         OnPropertyChanged(nameof(IsLedSelected));
+        OnPropertyChanged(nameof(IsControlDeviceSelected));
+        OnPropertyChanged(nameof(IsTransferFunctionSelected));
+        OnPropertyChanged(nameof(IsSummingJunctionSelected));
+        OnPropertyChanged(nameof(IsStateSpaceSelected));
+        OnPropertyChanged(nameof(IsMathExpressionSelected));
+        OnPropertyChanged(nameof(IsDiscreteTfSelected));
+        OnPropertyChanged(nameof(IsDcMotorSelected));
+        OnPropertyChanged(nameof(SelectedTransferFunction));
+        OnPropertyChanged(nameof(SelectedSummingJunction));
+        OnPropertyChanged(nameof(SelectedStateSpace));
+        OnPropertyChanged(nameof(SelectedMathExpression));
+        OnPropertyChanged(nameof(SelectedDiscreteTf));
+        OnPropertyChanged(nameof(SelectedDcMotor));
+        OnPropertyChanged(nameof(SelectedTfNumerator));
+        OnPropertyChanged(nameof(SelectedTfDenominator));
+        OnPropertyChanged(nameof(SelectedTfNumeratorAcademic));
+        OnPropertyChanged(nameof(SelectedTfDenominatorAcademic));
+        OnPropertyChanged(nameof(SelectedSumSigns));
+        OnPropertyChanged(nameof(SelectedStateSpaceA));
+        OnPropertyChanged(nameof(SelectedStateSpaceB));
+        OnPropertyChanged(nameof(SelectedStateSpaceC));
+        OnPropertyChanged(nameof(SelectedStateSpaceD));
+        OnPropertyChanged(nameof(SelectedMathExpr));
+        OnPropertyChanged(nameof(SelectedDiscreteTfNum));
+        OnPropertyChanged(nameof(SelectedDiscreteTfDen));
+        OnPropertyChanged(nameof(SelectedDcMotorRa));
+        OnPropertyChanged(nameof(SelectedDcMotorLa));
+        OnPropertyChanged(nameof(SelectedDcMotorKt));
+        OnPropertyChanged(nameof(SelectedDcMotorKe));
+        OnPropertyChanged(nameof(SelectedDcMotorJ));
+        OnPropertyChanged(nameof(SelectedDcMotorB));
         NotifyLedPropertiesChanged();
 
         DeviceParameters.Clear();
@@ -2184,6 +2667,359 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         LlmCircuitText = LlmPromptGenerator.GetSampleTemplate(templateName);
         LlmDrawerTab = 0;
         StatusText = $"Loaded template '{templateName}'. Click 'Import & Simulate' to run.";
+    }
+
+    // ========================================================
+    // CONTROL SYSTEMS STUDIO STATE & TELEMETRY
+    // ========================================================
+    [ObservableProperty]
+    private bool _isControlStudioDrawerOpen = false;
+
+    [ObservableProperty]
+    private string _controlStudioActiveTab = "Bode"; // Bode, Nyquist, GangOfFour, StepResponse, RootLocus, ProblemSolver
+
+    public bool IsControlBodeTab => ControlStudioActiveTab == "Bode";
+    public bool IsControlNyquistTab => ControlStudioActiveTab == "Nyquist";
+    public bool IsControlGangOfFourTab => ControlStudioActiveTab == "GangOfFour";
+    public bool IsControlStepTab => ControlStudioActiveTab == "StepResponse";
+    public bool IsControlRootLocusTab => ControlStudioActiveTab == "RootLocus";
+    public bool IsControlProblemSolverTab => ControlStudioActiveTab == "ProblemSolver";
+
+    [ObservableProperty]
+    private string _controlNumeratorText = "1";
+
+    [ObservableProperty]
+    private string _controlDenominatorText = "1, 3, 3, 1";
+
+    [ObservableProperty]
+    private string _controlControllerNumText = "3, 2";
+
+    [ObservableProperty]
+    private string _controlControllerDenText = "1, 0";
+
+    [ObservableProperty]
+    private TransferFunction? _controlPlant;
+
+    [ObservableProperty]
+    private TransferFunction? _controlController;
+
+    [ObservableProperty]
+    private double _controlLocusGain = 1.0;
+
+    [ObservableProperty]
+    private double _controlProblem4Overshoot = 9.5;
+
+    [ObservableProperty]
+    private double _controlProblem4SettlingTime = 0.74;
+
+    [ObservableProperty]
+    private double _controlProblem5PoleA = 1.0;
+
+    [ObservableProperty]
+    private double _controlProblem5GainK = 5.0;
+
+    [ObservableProperty]
+    private bool _isControlSystemStable = true;
+
+    [ObservableProperty]
+    private string _controlSystemStabilityText = "STABLE";
+
+    [ObservableProperty]
+    private string _controlGainMarginText = "∞ dB";
+
+    [ObservableProperty]
+    private string _controlPhaseMarginText = "53.4°";
+
+    [ObservableProperty]
+    private string _controlCrossoverFreqText = "1.24 rad/s";
+
+    [ObservableProperty]
+    private string _controlMsText = "1.32";
+
+    [ObservableProperty]
+    private string _controlMtText = "1.00";
+
+    [ObservableProperty]
+    private string _controlBandwidthText = "1.15 rad/s";
+
+    [ObservableProperty]
+    private string _controlRiseTimeText = "1.28 s";
+
+    [ObservableProperty]
+    private string _controlOvershootText = "9.48 %";
+
+    [ObservableProperty]
+    private string _controlSettlingTimeText = "0.74 s";
+
+    [ObservableProperty]
+    private string _controlSteadyStateErrorText = "0.000";
+
+    [ObservableProperty]
+    private string _controlPolesZerosText = "Poles: -1, -1, -1 | Zeros: none";
+
+    [ObservableProperty]
+    private string _controlPolesAcademicText = "• s₁,₂ = -0.03 ± j1.15  (ζ = 0.026, ωn = 1.15 rad/s)\n• s₃ = -0.66\n• s₄ = -2.29";
+
+    [ObservableProperty]
+    private string _controlZerosAcademicText = "• z₁ = -0.67";
+
+    [ObservableProperty]
+    private string _controlOrderBadgeText = "Order n = 4, Zeros m = 1";
+
+    [ObservableProperty]
+    private string _controlStabilityBadgeText = "✓ Hurwitz (All LHP)";
+
+    [ObservableProperty]
+    private bool _controlIsHurwitzStable = true;
+
+    [ObservableProperty]
+    private string _controlClosedLoopTfNumText = "3s + 2";
+
+    [ObservableProperty]
+    private string _controlClosedLoopTfDenText = "s⁴ + 3s³ + 3s² + 4s + 2";
+
+    [ObservableProperty]
+    private string _controlClosedLoopTfFullText = "T(s) = (3s + 2) / (s⁴ + 3s³ + 3s² + 4s + 2)";
+
+    [ObservableProperty]
+    private string _controlWaterbedText = "Bode Integral = 0.000 (No RHP poles)";
+
+    [ObservableProperty]
+    private string _controlProblem4SolutionText = "";
+
+    [ObservableProperty]
+    private string _controlProblem5SolutionText = "";
+
+    [ObservableProperty]
+    private string _selectedControlPreset = "Åström Gang of Four Benchmark";
+
+    public ObservableCollection<string> ControlPresetsList { get; } = new()
+    {
+        "Åström Gang of Four Benchmark",
+        "2nd-Order Step Specs Synthesis (%OS, Ts)",
+        "Speed Plant Sensitivity & Rejection",
+        "Feedback Loop Block Diagram Equivalence",
+        "PID Motor Speed Control",
+        "Second-Order Underdamped (OS = 9.5%)",
+        "Type 1 Integrator System (1/s(s+1))"
+    };
+
+    [RelayCommand]
+    public void ToggleControlStudioDrawer()
+    {
+        IsControlStudioDrawerOpen = !IsControlStudioDrawerOpen;
+        if (IsControlStudioDrawerOpen)
+        {
+            RecalculateControlStudio();
+        }
+    }
+
+    [RelayCommand]
+    public void SetControlStudioTab(string tab)
+    {
+        ControlStudioActiveTab = tab;
+        OnPropertyChanged(nameof(IsControlBodeTab));
+        OnPropertyChanged(nameof(IsControlNyquistTab));
+        OnPropertyChanged(nameof(IsControlGangOfFourTab));
+        OnPropertyChanged(nameof(IsControlStepTab));
+        OnPropertyChanged(nameof(IsControlRootLocusTab));
+        OnPropertyChanged(nameof(IsControlProblemSolverTab));
+    }
+
+    [RelayCommand]
+    public void SelectControlPreset(string preset)
+    {
+        SelectedControlPreset = preset;
+        switch (preset)
+        {
+            case "Åström Gang of Four Benchmark":
+                ControlNumeratorText = "1";
+                ControlDenominatorText = "1, 3, 3, 1"; // 1/(s+1)^3
+                ControlControllerNumText = "3, 2";       // (3s + 2)/s
+                ControlControllerDenText = "1, 0";
+                break;
+            case "2nd-Order Step Specs Synthesis (%OS, Ts)":
+            case "Problem 4 - Second-Order Step Specs":
+                // OS = 9.5% => zeta = 0.6, Ts = 0.74 => wn = 9.0 => G = wn^2 / (s^2 + 2*zeta*wn*s)
+                ControlNumeratorText = "81.08";
+                ControlDenominatorText = "1, 10.81, 0";
+                ControlControllerNumText = "1";
+                ControlControllerDenText = "1";
+                ControlProblem4Overshoot = 9.5;
+                ControlProblem4SettlingTime = 0.74;
+                break;
+            case "Speed Plant Sensitivity & Rejection":
+            case "Problem 5 - Plant Speed & Disturbance":
+                ControlNumeratorText = "1";
+                ControlDenominatorText = "1, 1"; // 1/(s+1)
+                ControlControllerNumText = "5"; // K = 5
+                ControlControllerDenText = "1";
+                ControlProblem5PoleA = 1.0;
+                ControlProblem5GainK = 5.0;
+                break;
+            case "Feedback Loop Block Diagram Equivalence":
+            case "Image 2 - Loop Equivalence":
+                // (s^2 + 3s + 2) / (s^3 + 4s^2 + 4s + 1)
+                ControlNumeratorText = "1, 3, 2";
+                ControlDenominatorText = "1, 4, 4, 1";
+                ControlControllerNumText = "1";
+                ControlControllerDenText = "1";
+                break;
+            case "PID Motor Speed Control":
+                ControlNumeratorText = "2";
+                ControlDenominatorText = "0.5, 1.5, 1";
+                ControlControllerNumText = "2.5, 3.0, 0.5";
+                ControlControllerDenText = "1, 0";
+                break;
+            case "Second-Order Underdamped (OS = 9.5%)":
+                ControlNumeratorText = "16";
+                ControlDenominatorText = "1, 4.8, 16";
+                ControlControllerNumText = "1";
+                ControlControllerDenText = "1";
+                break;
+            case "Type 1 Integrator System (1/s(s+1))":
+                ControlNumeratorText = "1";
+                ControlDenominatorText = "1, 1, 0";
+                ControlControllerNumText = "2";
+                ControlControllerDenText = "1";
+                break;
+        }
+        RecalculateControlStudio();
+    }
+
+    [RelayCommand]
+    public void SyncControlStudioFromSchematic()
+    {
+        if (SelectedDevice is TransferFunctionDevice tfDev)
+        {
+            ControlNumeratorText = tfDev.NumeratorString;
+            ControlDenominatorText = tfDev.DenominatorString;
+            ControlControllerNumText = "1";
+            ControlControllerDenText = "1";
+            StatusText = $"Synced Control Studio from selected block #{tfDev.Id}";
+            RecalculateControlStudio();
+            return;
+        }
+
+        if (CurrentCircuit != null)
+        {
+            var firstTf = CurrentCircuit.Devices.OfType<TransferFunctionDevice>().FirstOrDefault();
+            if (firstTf != null)
+            {
+                ControlNumeratorText = firstTf.NumeratorString;
+                ControlDenominatorText = firstTf.DenominatorString;
+                StatusText = $"Synced Control Studio from schematic block #{firstTf.Id}";
+                RecalculateControlStudio();
+                return;
+            }
+        }
+
+        StatusText = "No transfer function blocks found in active schematic.";
+    }
+
+    [RelayCommand]
+    public void OpenControlStudioForSelectedDevice()
+    {
+        if (SelectedDevice is TransferFunctionDevice tfDev)
+        {
+            ControlNumeratorText = tfDev.NumeratorString;
+            ControlDenominatorText = tfDev.DenominatorString;
+        }
+        else if (SelectedDevice is GainBlockDevice gb)
+        {
+            ControlControllerNumText = gb.Gain.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            ControlControllerDenText = "1";
+        }
+        else if (SelectedDevice is PidControllerDevice pid)
+        {
+            ControlControllerNumText = $"{pid.Kd}, {pid.Kp}, {pid.Ki}";
+            ControlControllerDenText = "1, 0";
+        }
+        IsControlStudioDrawerOpen = true;
+        RecalculateControlStudio();
+    }
+
+    [RelayCommand]
+    public void RecalculateControlStudio()
+    {
+        try
+        {
+            var p = TransferFunction.Parse(ControlNumeratorText, ControlDenominatorText);
+            var c = TransferFunction.Parse(ControlControllerNumText, ControlControllerDenText);
+            ControlPlant = p;
+            ControlController = c;
+
+            var loop = c * p;
+            var cl = loop.Feedback(TransferFunction.One);
+
+            // Bode & Margins
+            var bode = BodeAnalyzer.Analyze(loop);
+            IsControlSystemStable = bode.IsStable;
+            ControlSystemStabilityText = bode.IsStable ? "STABLE" : "UNSTABLE";
+            ControlGainMarginText = (bode.GainMarginDb.HasValue && !double.IsInfinity(bode.GainMarginDb.Value)) ? $"{bode.GainMarginDb.Value:F1} dB" : "∞ dB";
+            ControlPhaseMarginText = bode.PhaseMarginDeg.HasValue ? $"{bode.PhaseMarginDeg.Value:F1}°" : "N/A";
+            ControlCrossoverFreqText = bode.GainCrossoverFrequency.HasValue ? $"{bode.GainCrossoverFrequency.Value:F2} rad/s" : "N/A";
+
+            // Gang of Four (Astrom Ch. 5)
+            var gof = GangOfFourAnalyzer.Analyze(p, c);
+            ControlMsText = $"{gof.PeakSensitivityMs:F2}";
+            ControlMtText = $"{gof.PeakCompSensitivityMt:F2}";
+            ControlBandwidthText = $"{gof.DisturbanceBandwidthWb:F2} rad/s";
+            ControlWaterbedText = $"Integral = {gof.BodeSensitivityIntegralValue:F3} (Target: {gof.TheoreticalWaterbedTarget:F3})";
+
+            // Step Response
+            var step = StepResponseAnalyzer.Analyze(cl, 10.0, 300);
+            ControlRiseTimeText = $"{step.RiseTime:F2} s";
+            ControlOvershootText = $"{step.OvershootPercent:F1} %";
+            ControlSettlingTimeText = $"{step.SettlingTime:F2} s";
+            ControlSteadyStateErrorText = $"{step.SteadyStateError:F3}";
+
+            // Academic Poles and Zeros Formatting (Åström-Murray & Ogata standard notation)
+            var academicPoles = AcademicMathFormatter.GroupAndFormatRoots(cl.Poles, "s");
+            var academicZeros = AcademicMathFormatter.GroupAndFormatRoots(cl.Zeros, "z");
+
+            var poleLines = new List<string>();
+            bool hasRhp = false;
+            foreach (var pRoot in academicPoles)
+            {
+                if (pRoot.IsRhp) hasRhp = true;
+                string detail = !string.IsNullOrEmpty(pRoot.DampingDetails) ? $"  ({pRoot.DampingDetails})" : "";
+                string rhpWarning = pRoot.IsRhp ? "  ⚠ RHP (Unstable)" : "";
+                poleLines.Add($"• {pRoot.Label} = {pRoot.ValueString}{detail}{rhpWarning}");
+            }
+            ControlPolesAcademicText = poleLines.Count > 0 ? string.Join("\n", poleLines) : "• None (No poles)";
+
+            var zeroLines = new List<string>();
+            foreach (var zRoot in academicZeros)
+            {
+                zeroLines.Add($"• {zRoot.Label} = {zRoot.ValueString}");
+            }
+            ControlZerosAcademicText = zeroLines.Count > 0 ? string.Join("\n", zeroLines) : "• None (All-pole plant)";
+
+            ControlOrderBadgeText = $"Order n = {cl.Poles.Count}" + (cl.Zeros.Count > 0 ? $", Zeros m = {cl.Zeros.Count}" : ", All-Pole");
+            ControlIsHurwitzStable = !hasRhp;
+            ControlStabilityBadgeText = hasRhp ? "⚠ Unstable (RHP Poles)" : "✓ Hurwitz (All LHP)";
+
+            string polesSummary = string.Join(", ", academicPoles.Select(p => $"{p.Label} = {p.ValueString}"));
+            string zerosSummary = academicZeros.Count > 0 ? string.Join(", ", academicZeros.Select(z => $"{z.Label} = {z.ValueString}")) : "none";
+            ControlPolesZerosText = $"Poles: [{polesSummary}] | Zeros: [{zerosSummary}]";
+
+            // Closed-Loop Transfer Function Math Strings
+            ControlClosedLoopTfNumText = cl.Numerator.ToAcademicString("s");
+            ControlClosedLoopTfDenText = cl.Denominator.ToAcademicString("s");
+            ControlClosedLoopTfFullText = $"T(s) = ({ControlClosedLoopTfNumText}) / ({ControlClosedLoopTfDenText})";
+
+            // Problem 4 & 5 Solutions
+            var p4 = ControlSpecsSolver.SolveProblem4Specs(ControlProblem4Overshoot, ControlProblem4SettlingTime);
+            ControlProblem4SolutionText = $"ζ = {p4.DampingRatioZeta:F4}, ωn = {p4.NaturalFrequencyWn:F2} rad/s, Req K = {p4.RequiredGainK:F2}, Req a = {p4.ParameterA:F2}, Tp = {p4.PeakTimeTp:F2}s";
+
+            var p5 = ControlSpecsSolver.SolveProblem5SpeedPlant(ControlProblem5PoleA, ControlProblem5GainK);
+            ControlProblem5SolutionText = $"Closed pole: -{p5.ClosedLoopPoleReal:F2}, DC Sens |Sa^T(0)| = {p5.LowFrequencySensitivity:F4}, ess(Step) = {p5.SteadyStateErrorStep:F4}, ess(Dist) = {p5.SteadyStateErrorDisturbance:F4}";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Control studio syntax error: {ex.Message}";
+        }
     }
 
     /// <summary>

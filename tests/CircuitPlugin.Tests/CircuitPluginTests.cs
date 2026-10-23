@@ -196,8 +196,14 @@ public sealed class CircuitPluginTests
     public void MainWindowViewModel_PaletteCatalog_FiltersByCategoryAndSearchQuery()
     {
         var vm = new FryCircuit.UI.ViewModels.MainWindowViewModel();
-        Assert.Equal(45, vm.AllPaletteItems.Count);
-        Assert.Equal(45, vm.FilteredPaletteItems.Count);
+        Assert.Equal(69, vm.AllPaletteItems.Count);
+        Assert.Equal(69, vm.FilteredPaletteItems.Count);
+
+        // Filter by category: Control Systems
+        vm.SelectPaletteCategoryCommand.Execute("Control Systems");
+        Assert.Equal("Control Systems", vm.SelectedPaletteCategory);
+        Assert.Equal(24, vm.FilteredPaletteItems.Count); // Expanded with 15 universal control & dynamical system blocks
+        Assert.All(vm.FilteredPaletteItems, item => Assert.Equal("Control Systems", item.Category));
 
         // Filter by category: Drones & Aero
         vm.SelectPaletteCategoryCommand.Execute("Drones & Aero");
@@ -224,7 +230,7 @@ public sealed class CircuitPluginTests
 
         // Clear search
         vm.ComponentSearchQuery = "";
-        Assert.Equal(45, vm.FilteredPaletteItems.Count);
+        Assert.Equal(69, vm.FilteredPaletteItems.Count);
 
         vm.Dispose();
     }

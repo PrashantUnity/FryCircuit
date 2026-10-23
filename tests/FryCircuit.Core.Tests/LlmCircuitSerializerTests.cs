@@ -1,8 +1,10 @@
 using FryCircuit.Core.Devices;
+using FryCircuit.Core.Devices.Control;
 using FryCircuit.Core.Devices.Ground;
 using FryCircuit.Core.Devices.VoltageSource;
 using FryCircuit.Core.IO;
 using FryCircuit.Core.Presets;
+using FryCircuit.Core.Simulation;
 using Xunit;
 
 namespace FryCircuit.Core.Tests;
@@ -294,5 +296,89 @@ public class LlmCircuitSerializerTests
         Assert.Contains("RC Low-Pass Filter", prompt);
         Assert.Contains("components", prompt);
         Assert.Contains("Engineering Units", prompt);
+    }
+
+    [Fact]
+    public void RoundTrip_ControlBlockDiagramEquivalence_PreservesPolynomialsAndSigns()
+    {
+        var original = CircuitPresets.CreateFeedbackBlockDiagramEquivalence();
+        string json = LlmCircuitSerializer.Serialize(original);
+
+        Assert.NotEmpty(json);
+        Assert.Contains("\"numerator\": \"1, 2\"", json);
+        Assert.Contains("\"denominator\": \"1, 3, 3\"", json);
+        Assert.Contains("\"signs\": \"+-\"", json);
+
+        var restored = LlmCircuitSerializer.Deserialize(json);
+        Assert.Equal(original.Devices.Count, restored.Devices.Count);
+
+        var origTf = original.Devices.OfType<TransferFunctionDevice>().First(d => d.Id == 5);
+        var restTf = restored.Devices.OfType<TransferFunctionDevice>().First(d => d.Id == 5);
+        Assert.Equal(origTf.NumeratorString, restTf.NumeratorString);
+        Assert.Equal(origTf.DenominatorString, restTf.DenominatorString);
+
+        var origSum = original.Devices.OfType<SummingJunctionDevice>().First();
+        var restSum = restored.Devices.OfType<SummingJunctionDevice>().First();
+        Assert.Equal(origSum.Signs, restSum.Signs);
+    }
+
+    [Fact]
+    public void Deserialize_ControlClosedLoop_SimulatesCorrectlyInMna()
+    {
+        string json =
+            """
+            {
+              "name": "Closed Loop Control Test",
+              "components": [
+                {
+                  "id": "STEP1",
+                  "type": "step",
+                  "step_time": "0.0",
+                  "initial_value": "0.0",
+                  "final_value": "1.0",
+                  "pins": { "out": "ref", "ref": "gnd" }
+                },
+                {
+                  "id": "SUM1",
+                  "type": "sum",
+                  "signs": "+-",
+                  "pins": { "in1": "ref", "in2": "feedback", "out": "err", "ref": "gnd" }
+                },
+                {
+                  "id": "TF1",
+                  "type": "tf",
+                  "numerator": "1",
+                  "denominator": "1, 1",
+                  "pins": { "in": "err", "out": "feedback", "ref": "gnd" }
+                },
+                {
+                  "id": "GND1",
+                  "type": "ground",
+                  "pins": { "gnd": "gnd" }
+                }
+              ]
+            }
+            """;
+
+        var circuit = LlmCircuitSerializer.Deserialize(json);
+        Assert.Equal(4, circuit.Devices.Count);
+
+        var solver = new MnaSolver(circuit);
+
+        // Step simulation for 1000 steps of 1ms (1.0 second)
+        // For G(s) = 1/(s+1) in unity negative feedback, closed loop is T(s) = 1/(s + 2)
+        // Step response: y(t) = 0.5 * (1 - e^(-2t))
+        // At t = 1.0s, expected = 0.5 * (1 - e^(-2)) = 0.5 * (1 - 0.1353) ~= 0.4323 V
+        for (int i = 0; i < 1000; i++)
+        {
+            solver.Step(1e-3);
+        }
+
+        var tfDev = circuit.Devices.OfType<TransferFunctionDevice>().First();
+        int outNode = tfDev.Pins[1].NodeId;
+        double vOut = circuit.Nodes[outNode].Voltage;
+
+        double expected = 0.5 * (1.0 - Math.Exp(-2.0));
+        Assert.True(Math.Abs(vOut - expected) < 0.05, $"Expected {expected} but got {vOut}");
     }
 }

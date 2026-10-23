@@ -567,6 +567,33 @@ Supported parameters:
             Function = AIFunctionFactory.Create(circuitTools.Redo, "circuit_redo", "Redoes the last undone canvas edit.")
         });
 
+        ctx.RegisterAiTool(new AiToolDescriptor
+        {
+            Name = "circuit_analyze_control_system",
+            Description = "Analyzes feedback loop stability, frequency response (Bode GM/PM, Nyquist encirclements, Gang of Four sensitivity S/T/PS/CS), and step transient specifications for given plant and controller transfer functions.",
+            Category = "Control Systems",
+            RequiresConfirmation = false,
+            Function = AIFunctionFactory.Create(circuitTools.AnalyzeControlSystem, "circuit_analyze_control_system", "Analyzes feedback loop frequency response, margins, Nyquist stability, Gang of Four, and transient metrics.")
+        });
+
+        ctx.RegisterAiTool(new AiToolDescriptor
+        {
+            Name = "circuit_step_response",
+            Description = "Simulates and downsamples the unit step response of any continuous SISO LTI transfer function, reporting rise time, peak time, percent overshoot (%OS), settling time, and trajectory points.",
+            Category = "Control Systems",
+            RequiresConfirmation = false,
+            Function = AIFunctionFactory.Create(circuitTools.ComputeStepResponse, "circuit_step_response", "Simulates continuous LTI transfer function unit step response.")
+        });
+
+        ctx.RegisterAiTool(new AiToolDescriptor
+        {
+            Name = "circuit_solve_control_problem",
+            Description = "Analytically solves canonical feedback control problems: 2nd-order transient specifications synthesis (%OS, Ts -> zeta, wn, K, a), speed plant sensitivity SaT & steady-state disturbance errors, and block diagram feedback reduction.",
+            Category = "Control Systems",
+            RequiresConfirmation = false,
+            Function = AIFunctionFactory.Create(circuitTools.SolveControlProblem, "circuit_solve_control_problem", "Solves analytical control problems and sensitivity calculations.")
+        });
+
         // 9. Turnkey Engineering Prompts
         ctx.RegisterAiPrompt(new AiPromptDescriptor
         {

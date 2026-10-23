@@ -188,5 +188,33 @@ public static class DeviceRegistry
         Register(new BecDescriptor(), "bec", "buck", "dcdc");
         Register(new PiezoBuzzerDescriptor(), "buzzer", "piezo", "beeper");
         Register(new TvsDiodeDescriptor(), "tvs", "tvsdiode");
+
+        // Control Systems & Feedback Engineering (Astrom & Murray CDS 101)
+        Register(new FryCircuit.Core.Devices.Control.TransferFunctionDescriptor(), "tf", "transferfunction");
+        Register(new FryCircuit.Core.Devices.Control.SummingJunctionDescriptor(), "sum", "comparator", "summingjunction");
+        Register(new FryCircuit.Core.Devices.Control.PidControllerDescriptor(), "pid", "pidcontroller");
+        Register(new FryCircuit.Core.Devices.Control.GainBlockDescriptor(), "gain", "multiplier");
+        Register(new FryCircuit.Core.Devices.Control.StepSourceDescriptor(), "step", "stepsource", "stepgen");
+        Register(new FryCircuit.Core.Devices.Control.IntegratorDescriptor(), "integrator", "integ");
+        Register(new FryCircuit.Core.Devices.Control.DerivativeDescriptor(), "derivative", "deriv");
+        Register(new FryCircuit.Core.Devices.Control.SaturationDescriptor(), "saturation", "limiter");
+        Register(new FryCircuit.Core.Devices.Control.TimeDelayDescriptor(), "delay", "timedelay");
+
+        // Universal Control & System Dynamics Extensions
+        Register(new FryCircuit.Core.Devices.Control.RampSourceDescriptor(), "ramp", "rampsource", "rampgen");
+        Register(new FryCircuit.Core.Devices.Control.ConstantSourceDescriptor(), "const", "constant", "setpoint");
+        Register(new FryCircuit.Core.Devices.Control.NoiseSourceDescriptor(), "noise", "whitenoise", "noisegen");
+        Register(new FryCircuit.Core.Devices.Control.PulseSourceDescriptor(), "pulse", "pulsesource", "pulsegen");
+        Register(new FryCircuit.Core.Devices.Control.MultiplierDescriptor(), "mult", "prod", "product");
+        Register(new FryCircuit.Core.Devices.Control.DividerDescriptor(), "div", "divider", "quotient");
+        Register(new FryCircuit.Core.Devices.Control.MathExpressionDescriptor(), "mathexpr", "function", "mathfunc");
+        Register(new FryCircuit.Core.Devices.Control.DeadZoneDescriptor(), "deadzone", "deadband");
+        Register(new FryCircuit.Core.Devices.Control.RelayDescriptor(), "relay", "hysteresis");
+        Register(new FryCircuit.Core.Devices.Control.RateLimiterDescriptor(), "ratelimiter", "slew", "slewrate");
+        Register(new FryCircuit.Core.Devices.Control.StateSpaceBlockDescriptor(), "statespace", "ss", "statespacemodel");
+        Register(new FryCircuit.Core.Devices.Control.DcMotorPlantDescriptor(), "dcmotor", "motorplant", "dcmotorplant");
+        Register(new FryCircuit.Core.Devices.Control.ZeroOrderHoldDescriptor(), "zoh", "samplehold");
+        Register(new FryCircuit.Core.Devices.Control.UnitDelayDescriptor(), "unitdelay", "zdelay", "zinv");
+        Register(new FryCircuit.Core.Devices.Control.DiscreteTransferFunctionDescriptor(), "discretetf", "dtf", "ztrans");
     }
 }

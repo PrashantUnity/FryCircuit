@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using FryCircuit.Core.Devices;
 using FryCircuit.Core.Devices.Base;
+using FryCircuit.Core.Devices.Control;
 using FryCircuit.Core.Devices.VoltageSource;
 using FryCircuit.Core.Models;
 
@@ -129,6 +130,54 @@ public static class LlmCircuitSerializer
                 {
                     compObj["parameters"] = paramsObj;
                 }
+            }
+
+            if (dev is TransferFunctionDevice tfDev)
+            {
+                var paramsObj = compObj["parameters"] as JsonObject ?? new JsonObject();
+                paramsObj["numerator"] = tfDev.NumeratorString;
+                paramsObj["denominator"] = tfDev.DenominatorString;
+                compObj["parameters"] = paramsObj;
+            }
+            else if (dev is SummingJunctionDevice sumDev)
+            {
+                var paramsObj = compObj["parameters"] as JsonObject ?? new JsonObject();
+                paramsObj["signs"] = sumDev.Signs;
+                compObj["parameters"] = paramsObj;
+            }
+            else if (dev is StateSpaceBlockDevice ssDev)
+            {
+                var paramsObj = compObj["parameters"] as JsonObject ?? new JsonObject();
+                paramsObj["a"] = ssDev.AString;
+                paramsObj["b"] = ssDev.BString;
+                paramsObj["c"] = ssDev.CString;
+                paramsObj["d"] = ssDev.DString;
+                compObj["parameters"] = paramsObj;
+            }
+            else if (dev is MathExpressionDevice mathDev)
+            {
+                var paramsObj = compObj["parameters"] as JsonObject ?? new JsonObject();
+                paramsObj["expression"] = mathDev.Expression;
+                compObj["parameters"] = paramsObj;
+            }
+            else if (dev is DiscreteTransferFunctionDevice dtfDev)
+            {
+                var paramsObj = compObj["parameters"] as JsonObject ?? new JsonObject();
+                paramsObj["numerator"] = dtfDev.NumeratorString;
+                paramsObj["denominator"] = dtfDev.DenominatorString;
+                paramsObj["sample_time"] = dtfDev.SampleTime;
+                compObj["parameters"] = paramsObj;
+            }
+            else if (dev is DcMotorPlantDevice motorDev)
+            {
+                var paramsObj = compObj["parameters"] as JsonObject ?? new JsonObject();
+                paramsObj["ra"] = FormatEngineeringValue(motorDev.ResistanceRa, "Ω");
+                paramsObj["la"] = FormatEngineeringValue(motorDev.InductanceLa, "H");
+                paramsObj["kt"] = FormatEngineeringValue(motorDev.TorqueConstantKt, "N·m/A");
+                paramsObj["ke"] = FormatEngineeringValue(motorDev.BackEmfConstantKe, "V/(rad/s)");
+                paramsObj["j"] = FormatEngineeringValue(motorDev.RotorInertiaJ, "kg·m²");
+                paramsObj["b"] = FormatEngineeringValue(motorDev.ViscousDampingB, "N·m·s");
+                compObj["parameters"] = paramsObj;
             }
 
             // Coordinates
@@ -467,8 +516,11 @@ public static class LlmCircuitSerializer
             }
         }
 
-        // Strip trailing units: OHM, OHMS, HZ, SEC, V, F, H, A, S (case-insensitive)
-        string[] unitSuffixes = ["OHMS", "OHM", "HZ", "SEC", "DEG", "V", "F", "H", "A", "S", "Ω"];
+        // Strip trailing units (case-insensitive) - longest composite first
+        string[] unitSuffixes = [
+            "V/(RAD/S)", "V/RAD/S", "N·M/A", "N*M/A", "N·M·S", "N*M*S", "KG·M²", "KG*M^2", "RAD/S",
+            "OHMS", "OHM", "RPM", "N·M", "N*M", "HZ", "SEC", "DEG", "V", "F", "H", "A", "S", "Ω"
+        ];
         foreach (var u in unitSuffixes)
         {
             if (s.EndsWith(u, StringComparison.OrdinalIgnoreCase) && s.Length > u.Length)
@@ -657,6 +709,69 @@ public static class LlmCircuitSerializer
             if (pinSpec is "out" or "y" or "q") return 1;
         }
 
+        // Control Blocks (tf, sum, pid, gain, step, integrator, derivative, saturation, delay)
+        if (type is "tf" or "transferfunction" or "gain" or "integrator" or "derivative" or "saturation" or "delay")
+        {
+            if (pinSpec is "in" or "input" or "u" or "r" or "in1" or "sig_in") return 0;
+            if (pinSpec is "out" or "output" or "y" or "out1" or "sig_out") return 1;
+            if (pinSpec is "ref" or "gnd" or "ground" or "common" or "0") return 2;
+        }
+
+        if (type is "sum" or "summingjunction" or "comparator")
+        {
+            if (pinSpec is "in1" or "ina" or "in_a" or "inputa" or "input_a" or "r" or "+" or "pos") return 0;
+            if (pinSpec is "in2" or "inb" or "in_b" or "inputb" or "input_b" or "fb" or "feedback" or "-" or "neg") return 1;
+            if (pinSpec is "in3" or "inc" or "in_c" or "inputc" or "input_c") return 2;
+            if (pinSpec is "out" or "output" or "err" or "error" or "e" or "sum" or "diff") return 3;
+            if (pinSpec is "ref" or "gnd" or "ground" or "common" or "0") return 4;
+        }
+
+        if (type is "pid" or "pidcontroller")
+        {
+            if (pinSpec is "err" or "error" or "in" or "input" or "e") return 0;
+            if (pinSpec is "out" or "output" or "u" or "ctrl" or "control") return 1;
+            if (pinSpec is "ref" or "gnd" or "ground" or "common") return 2;
+        }
+
+        if (type is "step" or "stepsource" or "ramp" or "rampsource" or "const" or "constant" or "noise" or "pulse")
+        {
+            if (pinSpec is "out" or "output" or "+" or "pos" or "step" or "sig") return 0;
+            if (pinSpec is "ref" or "gnd" or "ground" or "-" or "neg") return 1;
+        }
+
+        if (type is "mult" or "multiplier" or "prod" or "product")
+        {
+            if (pinSpec is "in1" or "ina" or "in_a" or "inputa" or "input1" or "a") return 0;
+            if (pinSpec is "in2" or "inb" or "in_b" or "inputb" or "input2" or "b") return 1;
+            if (pinSpec is "out" or "output" or "prod" or "y") return 2;
+            if (pinSpec is "ref" or "gnd" or "ground" or "common") return 3;
+        }
+
+        if (type is "div" or "divider")
+        {
+            if (pinSpec is "num" or "numerator" or "in1" or "ina" or "a") return 0;
+            if (pinSpec is "den" or "denominator" or "in2" or "inb" or "b") return 1;
+            if (pinSpec is "out" or "output" or "quot" or "y") return 2;
+            if (pinSpec is "ref" or "gnd" or "ground" or "common") return 3;
+        }
+
+        if (type is "statespace" or "ss" or "discretetf" or "dtf" or "zoh" or "unitdelay" or "deadzone" or "relay" or "ratelimiter" or "mathexpr")
+        {
+            if (pinSpec is "in" or "input" or "u" or "x" or "in1") return 0;
+            if (pinSpec is "out" or "output" or "y" or "out1") return 1;
+            if (pinSpec is "ref" or "gnd" or "ground" or "common") return 2;
+        }
+
+        if (type is "dcmotor" or "motorplant")
+        {
+            if (pinSpec is "arm+" or "armature+" or "in+" or "pos" or "va+" or "+") return 0;
+            if (pinSpec is "arm-" or "armature-" or "in-" or "neg" or "va-" or "-") return 1;
+            if (pinSpec is "tl" or "load" or "torque" or "t_load") return 2;
+            if (pinSpec is "w" or "omega" or "speed" or "rpm" or "rad_s") return 3;
+            if (pinSpec is "theta" or "angle" or "pos_out" or "position") return 4;
+            if (pinSpec is "ref" or "gnd" or "ground" or "mech_gnd") return 5;
+        }
+
         // Default 2-terminal fallback
         if (dev.Pins.Count >= 2)
         {
@@ -732,6 +847,82 @@ public static class LlmCircuitSerializer
         if (comp.TryGetProperty("inductance", out var indProp)) ApplyPrimaryValue(device, ParseEngineeringValue(indProp));
         if (comp.TryGetProperty("voltage", out var voltProp)) ApplyPrimaryValue(device, ParseEngineeringValue(voltProp));
         if (comp.TryGetProperty("current", out var curProp)) ApplyPrimaryValue(device, ParseEngineeringValue(curProp));
+
+        if (device is TransferFunctionDevice tfComp)
+        {
+            if (comp.TryGetProperty("numerator", out var numProp))
+                tfComp.NumeratorString = numProp.GetString() ?? numProp.GetRawText();
+            if (comp.TryGetProperty("denominator", out var denProp))
+                tfComp.DenominatorString = denProp.GetString() ?? denProp.GetRawText();
+        }
+        else if (device is SummingJunctionDevice sumComp)
+        {
+            if (comp.TryGetProperty("signs", out var signsProp))
+                sumComp.Signs = signsProp.GetString() ?? "+-";
+        }
+        else if (device is StepSourceDevice stepComp)
+        {
+            if (comp.TryGetProperty("step_time", out var stProp)) stepComp.StepTime = ParseEngineeringValue(stProp, 0.01);
+            if (comp.TryGetProperty("initial_value", out var ivProp) || comp.TryGetProperty("init_val", out ivProp)) stepComp.InitialValue = ParseEngineeringValue(ivProp, 0.0);
+            if (comp.TryGetProperty("final_value", out var fvProp) || comp.TryGetProperty("final_val", out fvProp)) stepComp.FinalValue = ParseEngineeringValue(fvProp, 1.0);
+        }
+        else if (device is PidControllerDevice pidComp)
+        {
+            if (comp.TryGetProperty("kp", out var kpProp)) pidComp.Kp = ParseEngineeringValue(kpProp, 1.0);
+            if (comp.TryGetProperty("ki", out var kiProp)) pidComp.Ki = ParseEngineeringValue(kiProp, 0.0);
+            if (comp.TryGetProperty("kd", out var kdProp)) pidComp.Kd = ParseEngineeringValue(kdProp, 0.0);
+        }
+        else if (device is GainBlockDevice gainComp)
+        {
+            if (comp.TryGetProperty("gain", out var gProp)) gainComp.Gain = ParseEngineeringValue(gProp, 1.0);
+            else if (comp.TryGetProperty("k", out var kProp)) gainComp.Gain = ParseEngineeringValue(kProp, 1.0);
+        }
+        else if (device is StateSpaceBlockDevice ssComp)
+        {
+            if (comp.TryGetProperty("a", out var aProp)) ssComp.AString = aProp.GetString() ?? aProp.GetRawText();
+            if (comp.TryGetProperty("b", out var bProp)) ssComp.BString = bProp.GetString() ?? bProp.GetRawText();
+            if (comp.TryGetProperty("c", out var cProp)) ssComp.CString = cProp.GetString() ?? cProp.GetRawText();
+            if (comp.TryGetProperty("d", out var dProp)) ssComp.DString = dProp.GetString() ?? dProp.GetRawText();
+            ssComp.RebuildModel();
+        }
+        else if (device is MathExpressionDevice mathComp)
+        {
+            if (comp.TryGetProperty("expression", out var expProp) || comp.TryGetProperty("expr", out expProp) || comp.TryGetProperty("func", out expProp))
+                mathComp.Expression = expProp.GetString() ?? expProp.GetRawText();
+        }
+        else if (device is DiscreteTransferFunctionDevice dtfComp)
+        {
+            if (comp.TryGetProperty("numerator", out var numProp)) dtfComp.NumeratorString = numProp.GetString() ?? numProp.GetRawText();
+            if (comp.TryGetProperty("denominator", out var denProp)) dtfComp.DenominatorString = denProp.GetString() ?? denProp.GetRawText();
+            if (comp.TryGetProperty("sample_time", out var tsProp) || comp.TryGetProperty("ts", out tsProp))
+                dtfComp.SampleTime = ParseEngineeringValue(tsProp, 0.01);
+        }
+        else if (device is RampSourceDevice rampComp)
+        {
+            if (comp.TryGetProperty("slope", out var sProp)) rampComp.Slope = ParseEngineeringValue(sProp, 1.0);
+            if (comp.TryGetProperty("start_time", out var stProp)) rampComp.StartTime = ParseEngineeringValue(stProp, 0.0);
+            if (comp.TryGetProperty("initial_value", out var ivProp)) rampComp.InitialValue = ParseEngineeringValue(ivProp, 0.0);
+        }
+        else if (device is ConstantSourceDevice constComp)
+        {
+            if (comp.TryGetProperty("value", out var vProp) || comp.TryGetProperty("val", out vProp) || comp.TryGetProperty("k", out vProp))
+                constComp.Value = ParseEngineeringValue(vProp, 1.0);
+        }
+        else if (device is DcMotorPlantDevice motorComp)
+        {
+            if (comp.TryGetProperty("ra", out var raP) || comp.TryGetProperty("resistancera", out raP) || comp.TryGetProperty("resistance", out raP))
+                motorComp.ResistanceRa = ParseEngineeringValue(raP, 1.0);
+            if (comp.TryGetProperty("la", out var laP) || comp.TryGetProperty("inductancela", out laP) || comp.TryGetProperty("inductance", out laP))
+                motorComp.InductanceLa = ParseEngineeringValue(laP, 0.005);
+            if (comp.TryGetProperty("kt", out var ktP) || comp.TryGetProperty("torqueconstantkt", out ktP))
+                motorComp.TorqueConstantKt = ParseEngineeringValue(ktP, 0.05);
+            if (comp.TryGetProperty("ke", out var keP) || comp.TryGetProperty("backemfconstantke", out keP))
+                motorComp.BackEmfConstantKe = ParseEngineeringValue(keP, 0.05);
+            if (comp.TryGetProperty("j", out var jP) || comp.TryGetProperty("rotorinertiaj", out jP) || comp.TryGetProperty("inertia", out jP))
+                motorComp.RotorInertiaJ = ParseEngineeringValue(jP, 0.001);
+            if (comp.TryGetProperty("b", out var bP) || comp.TryGetProperty("viscousdampingb", out bP) || comp.TryGetProperty("damping", out bP))
+                motorComp.ViscousDampingB = ParseEngineeringValue(bP, 0.002);
+        }
     }
 
     private static void ApplyParameterObject(Device device, JsonElement paramsElem)
@@ -752,8 +943,75 @@ public static class LlmCircuitSerializer
                 continue;
             }
 
+            if (device is TransferFunctionDevice tfObj)
+            {
+                if (key is "numerator" or "num")
+                {
+                    tfObj.NumeratorString = prop.Value.ValueKind == JsonValueKind.String ? prop.Value.GetString()! : prop.Value.GetRawText();
+                    continue;
+                }
+                if (key is "denominator" or "den")
+                {
+                    tfObj.DenominatorString = prop.Value.ValueKind == JsonValueKind.String ? prop.Value.GetString()! : prop.Value.GetRawText();
+                    continue;
+                }
+            }
+            if (device is SummingJunctionDevice sumObj && key is "signs" or "polarity")
+            {
+                sumObj.Signs = prop.Value.GetString() ?? "+-";
+                continue;
+            }
+            if (device is StepSourceDevice stepObj)
+            {
+                if (key is "step_time" or "steptime") { stepObj.StepTime = ParseEngineeringValue(prop.Value, 0.01); continue; }
+                if (key is "initial_value" or "init_val" or "initial") { stepObj.InitialValue = ParseEngineeringValue(prop.Value, 0.0); continue; }
+                if (key is "final_value" or "final_val" or "final") { stepObj.FinalValue = ParseEngineeringValue(prop.Value, 1.0); continue; }
+            }
+            if (device is PidControllerDevice pidObj)
+            {
+                if (key is "kp" or "p") { pidObj.Kp = ParseEngineeringValue(prop.Value, 1.0); continue; }
+                if (key is "ki" or "i") { pidObj.Ki = ParseEngineeringValue(prop.Value, 0.0); continue; }
+                if (key is "kd" or "d") { pidObj.Kd = ParseEngineeringValue(prop.Value, 0.0); continue; }
+            }
+            if (device is GainBlockDevice gainObj && key is "gain" or "k")
+            {
+                gainObj.Gain = ParseEngineeringValue(prop.Value, 1.0);
+                continue;
+            }
+            if (device is StateSpaceBlockDevice ssObj)
+            {
+                if (key == "a") { ssObj.AString = prop.Value.ValueKind == JsonValueKind.String ? prop.Value.GetString()! : prop.Value.GetRawText(); continue; }
+                if (key == "b") { ssObj.BString = prop.Value.ValueKind == JsonValueKind.String ? prop.Value.GetString()! : prop.Value.GetRawText(); continue; }
+                if (key == "c") { ssObj.CString = prop.Value.ValueKind == JsonValueKind.String ? prop.Value.GetString()! : prop.Value.GetRawText(); continue; }
+                if (key == "d") { ssObj.DString = prop.Value.ValueKind == JsonValueKind.String ? prop.Value.GetString()! : prop.Value.GetRawText(); continue; }
+            }
+            if (device is MathExpressionDevice mathObj && key is "expression" or "expr" or "func")
+            {
+                mathObj.Expression = prop.Value.GetString() ?? prop.Value.GetRawText();
+                continue;
+            }
+            if (device is DiscreteTransferFunctionDevice dtfObj)
+            {
+                if (key is "numerator" or "num") { dtfObj.NumeratorString = prop.Value.GetString() ?? prop.Value.GetRawText(); continue; }
+                if (key is "denominator" or "den") { dtfObj.DenominatorString = prop.Value.GetString() ?? prop.Value.GetRawText(); continue; }
+            }
+            if (device is DcMotorPlantDevice motorObj)
+            {
+                if (key is "ra" or "resistance" or "resistancera" or "r") { motorObj.ResistanceRa = ParseEngineeringValue(prop.Value, 1.0); continue; }
+                if (key is "la" or "inductance" or "inductancela" or "l") { motorObj.InductanceLa = ParseEngineeringValue(prop.Value, 0.005); continue; }
+                if (key is "kt" or "torqueconstant" or "torqueconstantkt") { motorObj.TorqueConstantKt = ParseEngineeringValue(prop.Value, 0.05); continue; }
+                if (key is "ke" or "backemfconstant" or "backemfconstantke") { motorObj.BackEmfConstantKe = ParseEngineeringValue(prop.Value, 0.05); continue; }
+                if (key is "j" or "inertia" or "rotorinertiaj") { motorObj.RotorInertiaJ = ParseEngineeringValue(prop.Value, 0.001); continue; }
+                if (key is "b" or "damping" or "viscousdampingb") { motorObj.ViscousDampingB = ParseEngineeringValue(prop.Value, 0.002); continue; }
+            }
+
             double val = ParseEngineeringValue(prop.Value);
             device.SetParameter(key, val);
+        }
+
+        if (device is StateSpaceBlockDevice ssFinal)
+        {
+            ssFinal.RebuildModel();
         }
     }
 
@@ -785,6 +1043,26 @@ public static class LlmCircuitSerializer
             "buck" or "dcdc" => "bec",
             "piezo" or "beeper" => "buzzer",
             "tvsdiode" => "tvs",
+            "transfer_function" or "transferfunction" or "plant" => "tf",
+            "summing_junction" or "summer" or "adder" => "sum",
+            "pid_controller" => "pid",
+            "gain_block" => "gain",
+            "step_source" or "step_gen" => "step",
+            "ramp_source" or "rampgen" => "ramp",
+            "constant_source" or "setpoint" => "const",
+            "noise_source" or "whitenoise" or "noisegen" => "noise",
+            "pulse_source" or "pulsegen" => "pulse",
+            "multiplier" or "product" => "mult",
+            "divider" or "quotient" => "div",
+            "math_expression" or "function" or "mathfunc" => "mathexpr",
+            "dead_zone" or "deadband" => "deadzone",
+            "relay_block" or "hysteresis" => "relay",
+            "rate_limiter" or "slew" or "slewrate" => "ratelimiter",
+            "state_space" or "statespacemodel" => "statespace",
+            "dc_motor" or "motor_plant" or "dcmotorplant" => "dcmotor",
+            "zero_order_hold" or "sample_hold" or "samplehold" => "zoh",
+            "unit_delay" or "z_delay" or "zdelay" or "zinv" => "unitdelay",
+            "discrete_transfer_function" or "discrete_tf" or "dtf" or "ztrans" => "discretetf",
             _ => t
         };
     }

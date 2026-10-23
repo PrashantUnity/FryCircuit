@@ -668,6 +668,13 @@
                                         <TextBlock Text="BOM" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold"/>
                                     </StackPanel>
                                 </Button>
+                                <Button Classes="modebtn" Height="24" Padding="7,2" Command="{Binding ToggleControlStudioDrawerCommand}" 
+                                        ToolTip.Tip="Open Control Systems Studio (Bode, Nyquist, Gang of 4, Step Response, Root Locus, Problem Solver)">
+                                    <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
+                                        <material:MaterialIcon Kind="ChartTimelineVariantShimmer" Width="12" Height="12" Foreground="{DynamicResource CircuitAccentBrush}"/>
+                                        <TextBlock Text="CONTROL" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold"/>
+                                    </StackPanel>
+                                </Button>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -744,6 +751,7 @@
                                 <Button Classes="categoryTab" Classes.active="{Binding IsQuantumSelected}" Content="Quantum" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Quantum &amp; RF" Margin="1,2"/>
                                 <Button Classes="categoryTab" Classes.active="{Binding IsLogicSelected}" Content="Logic" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Logic &amp; ICs" Margin="1,2"/>
                                 <Button Classes="categoryTab" Classes.active="{Binding IsMetersSelected}" Content="Meters" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Meters &amp; Switches" Margin="1,2"/>
+                                <Button Classes="categoryTab" Classes.active="{Binding IsControlSelected}" Content="Control" Command="{Binding SelectPaletteCategoryCommand}" CommandParameter="Control Systems" Margin="1,2"/>
                             </WrapPanel>
 
                             <!-- Scrollable List of Component Cards -->
@@ -1313,6 +1321,362 @@
                                     </Border>
                                 </Grid>
 
+                                <!-- Control Block Live Inspector & Studio Launcher -->
+                                <StackPanel Spacing="6" Margin="0,4" IsVisible="{Binding IsControlDeviceSelected}">
+                                    <!-- Direct Transfer Function Inspector -->
+                                    <Border Background="{DynamicResource CircuitSurfaceLowBrush}"
+                                            BorderBrush="{DynamicResource CircuitAccentBrush}" BorderThickness="1"
+                                            CornerRadius="{DynamicResource CircuitRadiusMd}" Padding="10,8"
+                                            IsVisible="{Binding IsTransferFunctionSelected}">
+                                        <StackPanel Spacing="6">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Text="TRANSFER FUNCTION G(s)" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold" Foreground="{DynamicResource CircuitAccentBrush}"/>
+                                                <Button Grid.Column="1" Classes="chip" Command="{Binding OpenControlStudioForSelectedDeviceCommand}" ToolTip.Tip="Open in Control Systems Studio" Padding="6,2">
+                                                    <StackPanel Orientation="Horizontal" Spacing="3">
+                                                        <material:MaterialIcon Kind="AutoMode" Width="12" Height="12" Foreground="{DynamicResource CircuitAccentBrush}"/>
+                                                        <TextBlock Text="Studio" FontSize="{DynamicResource CircuitFontSizeSmall}"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </Grid>
+
+                                            <!-- Numerator -->
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="Numerator N(s):" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitTextDimBrush}" FontWeight="SemiBold"/>
+                                                <TextBox Text="{Binding SelectedTfNumerator, Mode=TwoWay}" PlaceholderText="e.g. 100 or s+2"
+                                                         FontSize="{DynamicResource CircuitFontSizeBodySm}" FontFamily="{DynamicResource CircuitCodeFont}"
+                                                         Background="{DynamicResource CircuitSurfaceLowestBrush}"
+                                                         BorderBrush="{DynamicResource CircuitBorderBrush}"
+                                                         CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="6,4"/>
+                                            </StackPanel>
+
+                                            <!-- Denominator -->
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="Denominator D(s):" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitTextDimBrush}" FontWeight="SemiBold"/>
+                                                <TextBox Text="{Binding SelectedTfDenominator, Mode=TwoWay}" PlaceholderText="e.g. 1, 6, 100 or s^2+6s+100"
+                                                         FontSize="{DynamicResource CircuitFontSizeBodySm}" FontFamily="{DynamicResource CircuitCodeFont}"
+                                                         Background="{DynamicResource CircuitSurfaceLowestBrush}"
+                                                         BorderBrush="{DynamicResource CircuitBorderBrush}"
+                                                         CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="6,4"/>
+                                            </StackPanel>
+
+                                            <!-- Academic Mathematical Fraction Preview -->
+                                            <Border Background="{DynamicResource CircuitSurfaceLowestBrush}"
+                                                    BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1"
+                                                    CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="8,6" Margin="0,2,0,2">
+                                                <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+                                                    <TextBlock Grid.Column="0" Text="G(s) =" FontSize="{DynamicResource CircuitFontSizeBodySm}" 
+                                                               FontWeight="Bold" FontStyle="Italic" Foreground="{DynamicResource CircuitAccentBrush}" 
+                                                               VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                    <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                                                        <TextBlock Text="{Binding SelectedTfNumeratorAcademic, FallbackValue='1'}" 
+                                                                   FontSize="{DynamicResource CircuitFontSizeSmall}" FontWeight="SemiBold" 
+                                                                   Foreground="{DynamicResource CircuitTextBrush}" HorizontalAlignment="Center"/>
+                                                        <Rectangle Height="1.2" Fill="{DynamicResource CircuitTextMutedBrush}" HorizontalAlignment="Stretch" Margin="0,2"/>
+                                                        <TextBlock Text="{Binding SelectedTfDenominatorAcademic, FallbackValue='s + 1'}" 
+                                                                   FontSize="{DynamicResource CircuitFontSizeSmall}" FontWeight="SemiBold" 
+                                                                   Foreground="{DynamicResource CircuitTextBrush}" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+
+                                            <!-- Quick Order Templates -->
+                                            <TextBlock Text="Quick Templates:" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextMutedBrush}" Margin="0,2,0,0"/>
+                                            <WrapPanel Orientation="Horizontal">
+                                                <Button Classes="chip" Command="{Binding SetSelectedTfPresetCommand}" CommandParameter="first_order" ToolTip.Tip="1st Order Lag: 1 / (s + 1)" Margin="1,2" Padding="5,2">
+                                                    <TextBlock Text="1/(s+1)" FontSize="{DynamicResource CircuitFontSizeMicro}"/>
+                                                </Button>
+                                                <Button Classes="chip" Command="{Binding SetSelectedTfPresetCommand}" CommandParameter="integrator" ToolTip.Tip="Pure Integrator: 1 / s" Margin="1,2" Padding="5,2">
+                                                    <TextBlock Text="1/s" FontSize="{DynamicResource CircuitFontSizeMicro}"/>
+                                                </Button>
+                                                <Button Classes="chip" Command="{Binding SetSelectedTfPresetCommand}" CommandParameter="second_order_osc" ToolTip.Tip="2nd Order Oscillatory: 100 / (s² + 6s + 100)" Margin="1,2" Padding="5,2">
+                                                    <TextBlock Text="100/(s²+6s+100)" FontSize="{DynamicResource CircuitFontSizeMicro}"/>
+                                                </Button>
+                                                <Button Classes="chip" Command="{Binding SetSelectedTfPresetCommand}" CommandParameter="double_integrator" ToolTip.Tip="Double Integrator: 1 / s²" Margin="1,2" Padding="5,2">
+                                                    <TextBlock Text="1/s²" FontSize="{DynamicResource CircuitFontSizeMicro}"/>
+                                                </Button>
+                                            </WrapPanel>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Direct Summing Junction Inspector -->
+                                    <Border Background="{DynamicResource CircuitSurfaceLowBrush}"
+                                            BorderBrush="{DynamicResource CircuitSecondaryBrush}" BorderThickness="1"
+                                            CornerRadius="{DynamicResource CircuitRadiusMd}" Padding="10,8"
+                                            IsVisible="{Binding IsSummingJunctionSelected}">
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Text="SUMMING JUNCTION POLARITY" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold" Foreground="{DynamicResource CircuitSecondaryBrush}"/>
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="Signs (A, B, C):" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitTextDimBrush}" FontWeight="SemiBold"/>
+                                                <TextBox Text="{Binding SelectedSumSigns, Mode=TwoWay}" PlaceholderText="e.g. +-"
+                                                         FontSize="{DynamicResource CircuitFontSizeBodySm}" FontFamily="{DynamicResource CircuitCodeFont}"
+                                                         Background="{DynamicResource CircuitSurfaceLowestBrush}"
+                                                         BorderBrush="{DynamicResource CircuitBorderBrush}"
+                                                         CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="6,4"/>
+                                            </StackPanel>
+
+                                            <TextBlock Text="Quick Configurations:" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextMutedBrush}" Margin="0,2,0,0"/>
+                                            <WrapPanel Orientation="Horizontal">
+                                                <Button Classes="chip" Command="{Binding SetSelectedSumSignsCommand}" CommandParameter="+-" ToolTip.Tip="Standard Negative Feedback (+ -)" Margin="1,2" Padding="6,3">
+                                                    <TextBlock Text="+ - (Negative Feedback)" FontSize="{DynamicResource CircuitFontSizeMicro}"/>
+                                                </Button>
+                                                <Button Classes="chip" Command="{Binding SetSelectedSumSignsCommand}" CommandParameter="++" ToolTip.Tip="Additive Summing (+ +)" Margin="1,2" Padding="6,3">
+                                                    <TextBlock Text="+ + (Additive)" FontSize="{DynamicResource CircuitFontSizeMicro}"/>
+                                                </Button>
+                                                <Button Classes="chip" Command="{Binding SetSelectedSumSignsCommand}" CommandParameter="+--" ToolTip.Tip="Dual Negative Inputs (+ - -)" Margin="1,2" Padding="6,3">
+                                                    <TextBlock Text="+ - - (Dual Subtraction)" FontSize="{DynamicResource CircuitFontSizeMicro}"/>
+                                                </Button>
+                                            </WrapPanel>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- State-Space System Inspector -->
+                                    <Border Background="{DynamicResource CircuitSurfaceLowBrush}"
+                                            BorderBrush="{DynamicResource CircuitAccentBrush}" BorderThickness="1"
+                                            CornerRadius="{DynamicResource CircuitRadiusMd}" Padding="10,8"
+                                            IsVisible="{Binding IsStateSpaceSelected}">
+                                        <StackPanel Spacing="6">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Text="STATE-SPACE MODEL [A, B, C, D]" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold" Foreground="{DynamicResource CircuitAccentBrush}"/>
+                                                <Button Grid.Column="1" Classes="chip" Command="{Binding OpenControlStudioForSelectedDeviceCommand}" ToolTip.Tip="Open in Control Systems Studio" Padding="6,2">
+                                                    <StackPanel Orientation="Horizontal" Spacing="3">
+                                                        <material:MaterialIcon Kind="AutoMode" Width="12" Height="12" Foreground="{DynamicResource CircuitAccentBrush}"/>
+                                                        <TextBlock Text="Studio" FontSize="{DynamicResource CircuitFontSizeSmall}"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </Grid>
+
+                                            <!-- Matrix A -->
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="System Matrix A (rows ; separated):" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitTextDimBrush}" FontWeight="SemiBold"/>
+                                                <TextBox Text="{Binding SelectedStateSpaceA, Mode=TwoWay}" PlaceholderText="e.g. 0, 1; -2, -3"
+                                                         FontSize="{DynamicResource CircuitFontSizeBodySm}" FontFamily="{DynamicResource CircuitCodeFont}"
+                                                         Background="{DynamicResource CircuitSurfaceLowestBrush}"
+                                                         BorderBrush="{DynamicResource CircuitBorderBrush}"
+                                                         CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="6,4"/>
+                                            </StackPanel>
+
+                                            <!-- Matrix B -->
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="Input Matrix B:" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitTextDimBrush}" FontWeight="SemiBold"/>
+                                                <TextBox Text="{Binding SelectedStateSpaceB, Mode=TwoWay}" PlaceholderText="e.g. 0; 1"
+                                                         FontSize="{DynamicResource CircuitFontSizeBodySm}" FontFamily="{DynamicResource CircuitCodeFont}"
+                                                         Background="{DynamicResource CircuitSurfaceLowestBrush}"
+                                                         BorderBrush="{DynamicResource CircuitBorderBrush}"
+                                                         CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="6,4"/>
+                                            </StackPanel>
+
+                                            <!-- Matrix C -->
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="Output Matrix C:" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitTextDimBrush}" FontWeight="SemiBold"/>
+                                                <TextBox Text="{Binding SelectedStateSpaceC, Mode=TwoWay}" PlaceholderText="e.g. 1, 0"
+                                                         FontSize="{DynamicResource CircuitFontSizeBodySm}" FontFamily="{DynamicResource CircuitCodeFont}"
+                                                         Background="{DynamicResource CircuitSurfaceLowestBrush}"
+                                                         BorderBrush="{DynamicResource CircuitBorderBrush}"
+                                                         CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="6,4"/>
+                                            </StackPanel>
+
+                                            <!-- Matrix D -->
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="Feedthrough D:" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitTextDimBrush}" FontWeight="SemiBold"/>
+                                                <TextBox Text="{Binding SelectedStateSpaceD, Mode=TwoWay}" PlaceholderText="e.g. 0"
+                                                         FontSize="{DynamicResource CircuitFontSizeBodySm}" FontFamily="{DynamicResource CircuitCodeFont}"
+                                                         Background="{DynamicResource CircuitSurfaceLowestBrush}"
+                                                         BorderBrush="{DynamicResource CircuitBorderBrush}"
+                                                         CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="6,4"/>
+                                            </StackPanel>
+
+                                            <!-- Quick Templates -->
+                                            <TextBlock Text="Quick Models:" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextMutedBrush}" Margin="0,2,0,0"/>
+                                            <WrapPanel Orientation="Horizontal">
+                                                <Button Classes="chip" Command="{Binding SetSelectedStateSpacePresetCommand}" CommandParameter="second_order_osc" ToolTip.Tip="2nd Order Harmonic Oscillator" Margin="1,2" Padding="5,2">
+                                                    <TextBlock Text="2nd Order Osc" FontSize="{DynamicResource CircuitFontSizeMicro}"/>
+                                                </Button>
+                                                <Button Classes="chip" Command="{Binding SetSelectedStateSpacePresetCommand}" CommandParameter="double_integrator" ToolTip.Tip="Double Integrator (Mass)" Margin="1,2" Padding="5,2">
+                                                    <TextBlock Text="Double Integrator" FontSize="{DynamicResource CircuitFontSizeMicro}"/>
+                                                </Button>
+                                                <Button Classes="chip" Command="{Binding SetSelectedStateSpacePresetCommand}" CommandParameter="first_order_lag" ToolTip.Tip="1st Order Lag" Margin="1,2" Padding="5,2">
+                                                    <TextBlock Text="1st Order Lag" FontSize="{DynamicResource CircuitFontSizeMicro}"/>
+                                                </Button>
+                                            </WrapPanel>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Nonlinear Math Expression Inspector -->
+                                    <Border Background="{DynamicResource CircuitSurfaceLowBrush}"
+                                            BorderBrush="{DynamicResource CircuitAccentBrush}" BorderThickness="1"
+                                            CornerRadius="{DynamicResource CircuitRadiusMd}" Padding="10,8"
+                                            IsVisible="{Binding IsMathExpressionSelected}">
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Text="NONLINEAR MATH FUNCTION f(u)" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold" Foreground="{DynamicResource CircuitAccentBrush}"/>
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="Expression (variable: u):" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitTextDimBrush}" FontWeight="SemiBold"/>
+                                                <TextBox Text="{Binding SelectedMathExpr, Mode=TwoWay}" PlaceholderText="e.g. sin(u), u^2, exp(-u)"
+                                                         FontSize="{DynamicResource CircuitFontSizeBodySm}" FontFamily="{DynamicResource CircuitCodeFont}"
+                                                         Background="{DynamicResource CircuitSurfaceLowestBrush}"
+                                                         BorderBrush="{DynamicResource CircuitBorderBrush}"
+                                                         CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="6,4"/>
+                                            </StackPanel>
+
+                                            <TextBlock Text="Preset Formulas:" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextMutedBrush}" Margin="0,2,0,0"/>
+                                            <WrapPanel Orientation="Horizontal">
+                                                <Button Classes="chip" Command="{Binding SetSelectedMathExprPresetCommand}" CommandParameter="sin(u)" ToolTip.Tip="Sine Wave Shaper: sin(u)" Margin="1,2" Padding="5,2">
+                                                    <TextBlock Text="sin(u)" FontSize="{DynamicResource CircuitFontSizeMicro}"/>
+                                                </Button>
+                                                <Button Classes="chip" Command="{Binding SetSelectedMathExprPresetCommand}" CommandParameter="u^2" ToolTip.Tip="Quadratic / Power: u^2" Margin="1,2" Padding="5,2">
+                                                    <TextBlock Text="uÂ²" FontSize="{DynamicResource CircuitFontSizeMicro}"/>
+                                                </Button>
+                                                <Button Classes="chip" Command="{Binding SetSelectedMathExprPresetCommand}" CommandParameter="exp(-u)" ToolTip.Tip="Exponential Decay: exp(-u)" Margin="1,2" Padding="5,2">
+                                                    <TextBlock Text="exp(-u)" FontSize="{DynamicResource CircuitFontSizeMicro}"/>
+                                                </Button>
+                                                <Button Classes="chip" Command="{Binding SetSelectedMathExprPresetCommand}" CommandParameter="tanh(u)" ToolTip.Tip="Hyperbolic Tangent Soft Limiter: tanh(u)" Margin="1,2" Padding="5,2">
+                                                    <TextBlock Text="tanh(u)" FontSize="{DynamicResource CircuitFontSizeMicro}"/>
+                                                </Button>
+                                            </WrapPanel>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Discrete Transfer Function Inspector -->
+                                    <Border Background="{DynamicResource CircuitSurfaceLowBrush}"
+                                            BorderBrush="{DynamicResource CircuitAccentBrush}" BorderThickness="1"
+                                            CornerRadius="{DynamicResource CircuitRadiusMd}" Padding="10,8"
+                                            IsVisible="{Binding IsDiscreteTfSelected}">
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Text="DISCRETE TRANSFER FUNCTION H(z)" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold" Foreground="{DynamicResource CircuitAccentBrush}"/>
+
+                                            <!-- Numerator -->
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="Numerator B(z) (zâ»â°, zâ»Â¹, ...):" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitTextDimBrush}" FontWeight="SemiBold"/>
+                                                <TextBox Text="{Binding SelectedDiscreteTfNum, Mode=TwoWay}" PlaceholderText="e.g. 0.1, 0.05"
+                                                         FontSize="{DynamicResource CircuitFontSizeBodySm}" FontFamily="{DynamicResource CircuitCodeFont}"
+                                                         Background="{DynamicResource CircuitSurfaceLowestBrush}"
+                                                         BorderBrush="{DynamicResource CircuitBorderBrush}"
+                                                         CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="6,4"/>
+                                            </StackPanel>
+
+                                            <!-- Denominator -->
+                                            <StackPanel Spacing="2">
+                                                <TextBlock Text="Denominator A(z) (zâ»â°, zâ»Â¹, ...):" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitTextDimBrush}" FontWeight="SemiBold"/>
+                                                <TextBox Text="{Binding SelectedDiscreteTfDen, Mode=TwoWay}" PlaceholderText="e.g. 1, -0.85"
+                                                         FontSize="{DynamicResource CircuitFontSizeBodySm}" FontFamily="{DynamicResource CircuitCodeFont}"
+                                                         Background="{DynamicResource CircuitSurfaceLowestBrush}"
+                                                         BorderBrush="{DynamicResource CircuitBorderBrush}"
+                                                         CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="6,4"/>
+                                            </StackPanel>
+
+                                            <!-- Quick Templates -->
+                                            <TextBlock Text="Quick Filters:" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextMutedBrush}" Margin="0,2,0,0"/>
+                                            <WrapPanel Orientation="Horizontal">
+                                                <Button Classes="chip" Command="{Binding SetSelectedDiscreteTfPresetCommand}" CommandParameter="first_order_iir" ToolTip.Tip="1st Order IIR: 0.1 / (1 - 0.9 zâ»Â¹)" Margin="1,2" Padding="5,2">
+                                                    <TextBlock Text="1st Order IIR" FontSize="{DynamicResource CircuitFontSizeMicro}"/>
+                                                </Button>
+                                                <Button Classes="chip" Command="{Binding SetSelectedDiscreteTfPresetCommand}" CommandParameter="accumulator" ToolTip.Tip="Discrete Integrator / Accumulator: 1 / (1 - zâ»Â¹)" Margin="1,2" Padding="5,2">
+                                                    <TextBlock Text="Accumulator" FontSize="{DynamicResource CircuitFontSizeMicro}"/>
+                                                </Button>
+                                                <Button Classes="chip" Command="{Binding SetSelectedDiscreteTfPresetCommand}" CommandParameter="moving_average_2" ToolTip.Tip="2-Point Moving Average: 0.5 + 0.5 zâ»Â¹" Margin="1,2" Padding="5,2">
+                                                    <TextBlock Text="2-pt MA" FontSize="{DynamicResource CircuitFontSizeMicro}"/>
+                                                </Button>
+                                            </WrapPanel>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- DC Motor Plant Inspector -->
+                                    <Border Background="{DynamicResource CircuitSurfaceLowBrush}"
+                                            BorderBrush="{DynamicResource CircuitAccentBrush}" BorderThickness="1"
+                                            CornerRadius="{DynamicResource CircuitRadiusMd}" Padding="10,8"
+                                            IsVisible="{Binding IsDcMotorSelected}">
+                                        <StackPanel Spacing="6">
+                                            <TextBlock Text="DC MOTOR PLANT PARAMETERS" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold" Foreground="{DynamicResource CircuitAccentBrush}"/>
+
+                                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto">
+                                                <!-- Ra -->
+                                                <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2" Margin="0,0,4,4">
+                                                    <TextBlock Text="Armature Ra (Î©):" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextDimBrush}"/>
+                                                    <TextBox Text="{Binding SelectedDcMotorRa, Mode=TwoWay}"
+                                                             FontSize="{DynamicResource CircuitFontSizeBodySm}" FontFamily="{DynamicResource CircuitCodeFont}"
+                                                             Background="{DynamicResource CircuitSurfaceLowestBrush}"
+                                                             BorderBrush="{DynamicResource CircuitBorderBrush}"
+                                                             CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="4,3"/>
+                                                </StackPanel>
+                                                <!-- La -->
+                                                <StackPanel Grid.Row="0" Grid.Column="1" Spacing="2" Margin="4,0,0,4">
+                                                    <TextBlock Text="Armature La (H):" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextDimBrush}"/>
+                                                    <TextBox Text="{Binding SelectedDcMotorLa, Mode=TwoWay}"
+                                                             FontSize="{DynamicResource CircuitFontSizeBodySm}" FontFamily="{DynamicResource CircuitCodeFont}"
+                                                             Background="{DynamicResource CircuitSurfaceLowestBrush}"
+                                                             BorderBrush="{DynamicResource CircuitBorderBrush}"
+                                                             CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="4,3"/>
+                                                </StackPanel>
+                                                <!-- Kt -->
+                                                <StackPanel Grid.Row="1" Grid.Column="0" Spacing="2" Margin="0,2,4,4">
+                                                    <TextBlock Text="Torque Kt (NÂ·m/A):" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextDimBrush}"/>
+                                                    <TextBox Text="{Binding SelectedDcMotorKt, Mode=TwoWay}"
+                                                             FontSize="{DynamicResource CircuitFontSizeBodySm}" FontFamily="{DynamicResource CircuitCodeFont}"
+                                                             Background="{DynamicResource CircuitSurfaceLowestBrush}"
+                                                             BorderBrush="{DynamicResource CircuitBorderBrush}"
+                                                             CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="4,3"/>
+                                                </StackPanel>
+                                                <!-- Ke -->
+                                                <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2" Margin="4,2,0,4">
+                                                    <TextBlock Text="Back-EMF Ke (V/rad/s):" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextDimBrush}"/>
+                                                    <TextBox Text="{Binding SelectedDcMotorKe, Mode=TwoWay}"
+                                                             FontSize="{DynamicResource CircuitFontSizeBodySm}" FontFamily="{DynamicResource CircuitCodeFont}"
+                                                             Background="{DynamicResource CircuitSurfaceLowestBrush}"
+                                                             BorderBrush="{DynamicResource CircuitBorderBrush}"
+                                                             CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="4,3"/>
+                                                </StackPanel>
+                                                <!-- J -->
+                                                <StackPanel Grid.Row="2" Grid.Column="0" Spacing="2" Margin="0,2,4,2">
+                                                    <TextBlock Text="Inertia J (kgÂ·mÂ²):" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextDimBrush}"/>
+                                                    <TextBox Text="{Binding SelectedDcMotorJ, Mode=TwoWay}"
+                                                             FontSize="{DynamicResource CircuitFontSizeBodySm}" FontFamily="{DynamicResource CircuitCodeFont}"
+                                                             Background="{DynamicResource CircuitSurfaceLowestBrush}"
+                                                             BorderBrush="{DynamicResource CircuitBorderBrush}"
+                                                             CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="4,3"/>
+                                                </StackPanel>
+                                                <!-- B -->
+                                                <StackPanel Grid.Row="2" Grid.Column="1" Spacing="2" Margin="4,2,0,2">
+                                                    <TextBlock Text="Damping B (NÂ·mÂ·s):" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextDimBrush}"/>
+                                                    <TextBox Text="{Binding SelectedDcMotorB, Mode=TwoWay}"
+                                                             FontSize="{DynamicResource CircuitFontSizeBodySm}" FontFamily="{DynamicResource CircuitCodeFont}"
+                                                             Background="{DynamicResource CircuitSurfaceLowestBrush}"
+                                                             BorderBrush="{DynamicResource CircuitBorderBrush}"
+                                                             CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="4,3"/>
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <!-- Motor Presets -->
+                                            <TextBlock Text="Standard Motors:" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextMutedBrush}" Margin="0,2,0,0"/>
+                                            <WrapPanel Orientation="Horizontal">
+                                                <Button Classes="chip" Command="{Binding SetSelectedDcMotorPresetCommand}" CommandParameter="drone_motor" ToolTip.Tip="High-speed brushless/coreless Drone Motor" Margin="1,2" Padding="5,2">
+                                                    <TextBlock Text="Drone BLDC" FontSize="{DynamicResource CircuitFontSizeMicro}"/>
+                                                </Button>
+                                                <Button Classes="chip" Command="{Binding SetSelectedDcMotorPresetCommand}" CommandParameter="small_servo" ToolTip.Tip="Small RC Hobby Servo Motor" Margin="1,2" Padding="5,2">
+                                                    <TextBlock Text="RC Servo" FontSize="{DynamicResource CircuitFontSizeMicro}"/>
+                                                </Button>
+                                                <Button Classes="chip" Command="{Binding SetSelectedDcMotorPresetCommand}" CommandParameter="industrial_dc" ToolTip.Tip="Heavy Industrial DC Drive" Margin="1,2" Padding="5,2">
+                                                    <TextBlock Text="Industrial DC" FontSize="{DynamicResource CircuitFontSizeMicro}"/>
+                                                </Button>
+                                            </WrapPanel>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Generic Control Studio Launch Button for other control blocks -->
+                                    <Border Background="{DynamicResource CircuitSurfaceLowBrush}"
+                                            BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1"
+                                            CornerRadius="{DynamicResource CircuitRadiusMd}" Padding="8,6"
+                                            IsVisible="{Binding !IsTransferFunctionSelected}">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel Grid.Column="0" Spacing="2">
+                                                <TextBlock Text="LOOP DYNAMICS" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold" Foreground="{DynamicResource CircuitAccentBrush}"/>
+                                                <TextBlock Text="Analyze in Control Systems Studio" FontSize="{DynamicResource CircuitFontSizeBodySm}" Foreground="{DynamicResource CircuitTextBrush}"/>
+                                            </StackPanel>
+                                            <Button Grid.Column="1" Classes="chip" Command="{Binding OpenControlStudioForSelectedDeviceCommand}" ToolTip.Tip="Open in Control Systems Studio">
+                                                <material:MaterialIcon Kind="OpenInApp" Width="14" Height="14" Foreground="{DynamicResource CircuitAccentBrush}"/>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+
                                 <!-- LED Color & Optics Selector -->
                                 <StackPanel Spacing="6" IsVisible="{Binding IsLedSelected}">
                                     <TextBlock Text="LED Color &amp; Optics:" FontSize="{DynamicResource CircuitFontSizeSmall}" 
@@ -1868,6 +2232,306 @@
                                     CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="8,4">
                                 <TextBlock Text="Prompt &amp; JSON compatible with Claude 3.7, GPT-4o, Gemini 2.0, DeepSeek, &amp; Ollama" 
                                            FontSize="{DynamicResource CircuitFontSizeBodySm}" Foreground="{DynamicResource CircuitTextMutedBrush}" VerticalAlignment="Center"/>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Border>
+
+            <!-- ============================================== -->
+            <!-- CONTROL SYSTEMS STUDIO MODAL DRAWER            -->
+            <!-- ============================================== -->
+            <Border Grid.Column="0" Grid.ColumnSpan="3" Background="{DynamicResource CircuitScrimBrush}" IsVisible="{Binding IsControlStudioDrawerOpen}" ZIndex="100">
+                <Border Width="1200" Height="700" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Background="{DynamicResource CircuitSurfaceBrush}"
+                        BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
+                        CornerRadius="{DynamicResource CircuitRadiusXl}"
+                        BoxShadow="{DynamicResource CircuitModalShadow}" Padding="18">
+                    <Grid RowDefinitions="Auto,Auto,*,Auto">
+                        <!-- Header -->
+                        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,10">
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                <Border Background="{DynamicResource CircuitSurfaceHighBrush}" 
+                                        BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
+                                        CornerRadius="{DynamicResource CircuitRadiusMd}" Padding="8,4">
+                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                        <material:MaterialIcon Kind="ChartTimelineVariantShimmer" Width="14" Height="14" Foreground="{DynamicResource CircuitAccentBrush}"/>
+                                        <TextBlock Text="CALTECH CDS 101/110 • ÅSTRÖM CH. 5" FontSize="{DynamicResource CircuitFontSizeBodySm}" 
+                                                   FontWeight="Bold" Foreground="{DynamicResource CircuitAccentBrush}" FontFamily="{DynamicResource CircuitCodeFont}"/>
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock Text="Control Systems Studio • Loop Dynamics &amp; Feedback Fundamentals" 
+                                           FontWeight="Bold" FontSize="{DynamicResource CircuitFontSizeHeading}" 
+                                           Foreground="{DynamicResource CircuitTextWhiteBrush}" VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <Button Grid.Column="2" Classes="chip" Command="{Binding ToggleControlStudioDrawerCommand}" ToolTip.Tip="Close Control Systems Studio (Esc)">
+                                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                    <material:MaterialIcon Kind="Close" Width="12" Height="12" Foreground="{DynamicResource CircuitDangerBrush}"/>
+                                    <TextBlock Text="Close" FontSize="{DynamicResource CircuitFontSizeBodySm}" Foreground="{DynamicResource CircuitTextBrush}"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+
+                        <!-- Top Toolbar / Formula Bar / Model Inputs -->
+                        <Border Grid.Row="1" Background="{DynamicResource CircuitSurfaceLowestBrush}" 
+                                BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
+                                CornerRadius="{DynamicResource CircuitRadiusMd}" Padding="10,8" Margin="0,0,0,10">
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" VerticalAlignment="Center">
+                                <!-- Preset Dropdown -->
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                    <TextBlock Text="PRESET:" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold" Foreground="{DynamicResource CircuitTextMutedBrush}" VerticalAlignment="Center"/>
+                                    <ComboBox ItemsSource="{Binding ControlPresetsList}" SelectedItem="{Binding SelectedControlPreset, Mode=TwoWay}"
+                                              FontSize="{DynamicResource CircuitFontSizeBodySm}" Width="230" Height="26" VerticalAlignment="Center">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" FontSize="{DynamicResource CircuitFontSizeBodySm}"/>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                    <Button Classes="chip" Command="{Binding SelectControlPresetCommand}" CommandParameter="{Binding SelectedControlPreset}" ToolTip.Tip="Load Selected Preset" Padding="6,2">
+                                        <TextBlock Text="Load" FontSize="{DynamicResource CircuitFontSizeBodySm}" FontWeight="SemiBold"/>
+                                    </Button>
+                                </StackPanel>
+
+                                <!-- Polynomial Inputs -->
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <!-- Plant P(s) -->
+                                    <Border Background="{DynamicResource CircuitSurfaceLowBrush}" BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="6,2">
+                                        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                            <TextBlock Text="P(s) = " FontSize="{DynamicResource CircuitFontSizeBodySm}" FontWeight="Bold" Foreground="{DynamicResource CircuitAccentBrush}" VerticalAlignment="Center"/>
+                                            <TextBox Text="{Binding ControlNumeratorText, Mode=TwoWay}" PlaceholderText="Num (e.g. 1)" Width="65" Height="22" FontSize="{DynamicResource CircuitFontSizeSmall}" VerticalAlignment="Center"/>
+                                            <TextBlock Text="/" FontSize="{DynamicResource CircuitFontSizeBodySm}" FontWeight="Bold" Foreground="{DynamicResource CircuitTextMutedBrush}" VerticalAlignment="Center"/>
+                                            <TextBox Text="{Binding ControlDenominatorText, Mode=TwoWay}" PlaceholderText="Den (e.g. 1, 3, 3, 1)" Width="95" Height="22" FontSize="{DynamicResource CircuitFontSizeSmall}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- Controller C(s) -->
+                                    <Border Background="{DynamicResource CircuitSurfaceLowBrush}" BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="6,2">
+                                        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                            <TextBlock Text="C(s) = " FontSize="{DynamicResource CircuitFontSizeBodySm}" FontWeight="Bold" Foreground="{DynamicResource CircuitSecondaryBrush}" VerticalAlignment="Center"/>
+                                            <TextBox Text="{Binding ControlControllerNumText, Mode=TwoWay}" PlaceholderText="Num (e.g. 3, 2)" Width="65" Height="22" FontSize="{DynamicResource CircuitFontSizeSmall}" VerticalAlignment="Center"/>
+                                            <TextBlock Text="/" FontSize="{DynamicResource CircuitFontSizeBodySm}" FontWeight="Bold" Foreground="{DynamicResource CircuitTextMutedBrush}" VerticalAlignment="Center"/>
+                                            <TextBox Text="{Binding ControlControllerDenText, Mode=TwoWay}" PlaceholderText="Den (e.g. 1, 0)" Width="75" Height="22" FontSize="{DynamicResource CircuitFontSizeSmall}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Button Classes="chip" Command="{Binding RecalculateControlStudioCommand}" ToolTip.Tip="Recalculate Loop Frequency &amp; Transient Response" Padding="8,2">
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <material:MaterialIcon Kind="Refresh" Width="12" Height="12" Foreground="{DynamicResource CircuitAccentBrush}"/>
+                                            <TextBlock Text="Solve" FontSize="{DynamicResource CircuitFontSizeBodySm}" FontWeight="Bold"/>
+                                        </StackPanel>
+                                    </Button>
+
+                                    <!-- Academic Closed-Loop Equation Badge -->
+                                    <Border Background="{DynamicResource CircuitSurfaceLowestBrush}" BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="8,2" ToolTip.Tip="Closed-loop Transfer Function T(s) = PC / (1 + PC)">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                            <TextBlock Text="T(s) =" FontSize="{DynamicResource CircuitFontSizeSmall}" FontWeight="Bold" FontStyle="Italic" Foreground="{DynamicResource CircuitAccentBrush}" VerticalAlignment="Center"/>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding ControlClosedLoopTfNumText}" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="SemiBold" Foreground="{DynamicResource CircuitTextBrush}" HorizontalAlignment="Center"/>
+                                                <Rectangle Height="1" Fill="{DynamicResource CircuitTextMutedBrush}" HorizontalAlignment="Stretch" Margin="0,1"/>
+                                                <TextBlock Text="{Binding ControlClosedLoopTfDenText}" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="SemiBold" Foreground="{DynamicResource CircuitTextBrush}" HorizontalAlignment="Center"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Schematic Sync -->
+                                <Button Grid.Column="2" Classes="toolbtn" Command="{Binding SyncControlStudioFromSchematicCommand}" ToolTip.Tip="Sync transfer function from selected schematic block">
+                                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                        <material:MaterialIcon Kind="Sync" Width="12" Height="12"/>
+                                        <TextBlock Text="Sync Block" FontSize="{DynamicResource CircuitFontSizeBodySm}" FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+                        </Border>
+
+                        <!-- Central Analysis View: Tab Bar + Plot Area + Metrics HUD -->
+                        <Grid Grid.Row="2" ColumnDefinitions="*,280" ColumnSpacing="12">
+                            <!-- Left: Mode Tab Switcher + Interactive Canvas -->
+                            <Grid Grid.Column="0" RowDefinitions="Auto,*">
+                                <!-- Analysis Mode Tabs -->
+                                <Border Grid.Row="0" Background="{DynamicResource CircuitSurfaceLowestBrush}" 
+                                        BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1,1,1,0" 
+                                        CornerRadius="6,6,0,0" Padding="4,3">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <Button Classes="categoryTab" Classes.active="{Binding IsControlBodeTab}" Content="Bode Plot" Command="{Binding SetControlStudioTabCommand}" CommandParameter="Bode" Padding="12,4"/>
+                                        <Button Classes="categoryTab" Classes.active="{Binding IsControlNyquistTab}" Content="Nyquist Plot" Command="{Binding SetControlStudioTabCommand}" CommandParameter="Nyquist" Padding="12,4"/>
+                                        <Button Classes="categoryTab" Classes.active="{Binding IsControlGangOfFourTab}" Content="Gang of Four (Åström Ch. 5)" Command="{Binding SetControlStudioTabCommand}" CommandParameter="GangOfFour" Padding="12,4"/>
+                                        <Button Classes="categoryTab" Classes.active="{Binding IsControlStepTab}" Content="Step Response" Command="{Binding SetControlStudioTabCommand}" CommandParameter="StepResponse" Padding="12,4"/>
+                                        <Button Classes="categoryTab" Classes.active="{Binding IsControlRootLocusTab}" Content="Root Locus" Command="{Binding SetControlStudioTabCommand}" CommandParameter="RootLocus" Padding="12,4"/>
+                                        <Button Classes="categoryTab" Classes.active="{Binding IsControlProblemSolverTab}" Content="Specs &amp; Synthesis" Command="{Binding SetControlStudioTabCommand}" CommandParameter="ProblemSolver" Padding="12,4"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Plot Canvas -->
+                                <Border Grid.Row="1" Background="{DynamicResource CircuitSurfaceLowestBrush}" 
+                                        BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
+                                        CornerRadius="0,0,6,6">
+                                    <controls:ControlStudioCanvas x:Name="ControlStudioCanvasHost"
+                                                                  Plant="{Binding ControlPlant}"
+                                                                  Controller="{Binding ControlController}"
+                                                                  ActiveTab="{Binding ControlStudioActiveTab}"
+                                                                  GainK="{Binding ControlLocusGain, Mode=TwoWay}"
+                                                                  Problem4Overshoot="{Binding ControlProblem4Overshoot}"
+                                                                  Problem4SettlingTime="{Binding ControlProblem4SettlingTime}"
+                                                                  Problem5PoleA="{Binding ControlProblem5PoleA}"
+                                                                  Problem5GainK="{Binding ControlProblem5GainK}"/>
+                                </Border>
+                            </Grid>
+
+                            <!-- Right: Metrics & Telemetry HUD Sidebar -->
+                            <Border Grid.Column="1" Background="{DynamicResource CircuitSurfaceLowestBrush}" 
+                                    BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
+                                    CornerRadius="{DynamicResource CircuitRadiusMd}" Padding="12,10">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <StackPanel Spacing="10">
+                                        <!-- Stability Banner -->
+                                        <Border Background="{DynamicResource CircuitSurfaceLowBrush}" 
+                                                BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
+                                                CornerRadius="{DynamicResource CircuitRadiusMd}" Padding="10,8">
+                                            <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                                <StackPanel Grid.Column="0">
+                                                    <TextBlock Text="CLOSED-LOOP STABILITY" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold" Foreground="{DynamicResource CircuitTextMutedBrush}"/>
+                                                    <TextBlock Text="{Binding ControlSystemStabilityText}" FontSize="{DynamicResource CircuitFontSizeHeading}" FontWeight="Bold" Foreground="{DynamicResource CircuitAccentBrush}" Margin="0,2,0,0"/>
+                                                </StackPanel>
+                                                <material:MaterialIcon Grid.Column="1" Kind="ShieldCheck" Width="22" Height="22" Foreground="{DynamicResource CircuitAccentBrush}" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Margins & Crossover Card -->
+                                        <Border Background="{DynamicResource CircuitSurfaceLowBrush}" 
+                                                BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
+                                                CornerRadius="{DynamicResource CircuitRadiusMd}" Padding="10,8">
+                                            <StackPanel Spacing="6">
+                                                <TextBlock Text="ROBUST MARGINS (ÅSTRÖM CH. 5)" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold" Foreground="{DynamicResource CircuitTextMutedBrush}"/>
+                                                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" Margin="0,2,0,0">
+                                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Gain Margin (GM):" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextDimBrush}"/>
+                                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ControlGainMarginText}" FontWeight="Bold" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitWarningBrush}" HorizontalAlignment="Right"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Phase Margin (PM):" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextDimBrush}" Margin="0,4,0,0"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ControlPhaseMarginText}" FontWeight="Bold" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitWarningBrush}" HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                                </Grid>
+                                                <Grid ColumnDefinitions="*,*" Margin="0,2,0,0">
+                                                    <TextBlock Grid.Column="0" Text="Crossover Freq ωgc:" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextDimBrush}"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding ControlCrossoverFreqText}" FontWeight="SemiBold" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitTextBrush}" HorizontalAlignment="Right"/>
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Gang of Four Peaks Card -->
+                                        <Border Background="{DynamicResource CircuitSurfaceLowBrush}" 
+                                                BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
+                                                CornerRadius="{DynamicResource CircuitRadiusMd}" Padding="10,8">
+                                            <StackPanel Spacing="6">
+                                                <TextBlock Text="GANG OF FOUR PEAK SENSITIVITIES" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold" Foreground="{DynamicResource CircuitTextMutedBrush}"/>
+                                                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" Margin="0,2,0,0">
+                                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Peak Ms = sup |S|:" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextDimBrush}"/>
+                                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ControlMsText}" FontWeight="Bold" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitAccentBrush}" HorizontalAlignment="Right"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Peak Mt = sup |T|:" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextDimBrush}" Margin="0,4,0,0"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ControlMtText}" FontWeight="Bold" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitSecondaryBrush}" HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Bandwidth ωb (-3dB):" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextDimBrush}" Margin="0,4,0,0"/>
+                                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ControlBandwidthText}" FontWeight="SemiBold" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitTextBrush}" HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Step Transient Specifications Card -->
+                                        <Border Background="{DynamicResource CircuitSurfaceLowBrush}" 
+                                                BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
+                                                CornerRadius="{DynamicResource CircuitRadiusMd}" Padding="10,8">
+                                            <StackPanel Spacing="6">
+                                                <TextBlock Text="STEP RESPONSE METRICS" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold" Foreground="{DynamicResource CircuitTextMutedBrush}"/>
+                                                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,2,0,0">
+                                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Rise Time Tr (10-90%):" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextDimBrush}"/>
+                                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding ControlRiseTimeText}" FontWeight="SemiBold" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitTextBrush}" HorizontalAlignment="Right"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Peak Overshoot %OS:" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextDimBrush}" Margin="0,4,0,0"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ControlOvershootText}" FontWeight="Bold" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitWarningBrush}" HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Settling Time Ts (2%):" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextDimBrush}" Margin="0,4,0,0"/>
+                                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ControlSettlingTimeText}" FontWeight="SemiBold" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitTextBrush}" HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Steady Error ess:" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextDimBrush}" Margin="0,4,0,0"/>
+                                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding ControlSteadyStateErrorText}" FontWeight="SemiBold" FontSize="{DynamicResource CircuitFontSizeSmall}" Foreground="{DynamicResource CircuitTextBrush}" HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Academic Closed-Loop Eigenvalues & Stability Card -->
+                                        <Border Background="{DynamicResource CircuitSurfaceLowBrush}" 
+                                                BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" 
+                                                CornerRadius="{DynamicResource CircuitRadiusMd}" Padding="10,8">
+                                            <StackPanel Spacing="6">
+                                                <Grid ColumnDefinitions="*,Auto">
+                                                    <StackPanel Grid.Column="0" Spacing="1">
+                                                        <TextBlock Text="CLOSED-LOOP EIGENVALUES" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold" Foreground="{DynamicResource CircuitTextMutedBrush}"/>
+                                                        <TextBlock Text="{Binding ControlOrderBadgeText}" FontSize="{DynamicResource CircuitFontSizeMicro}" Foreground="{DynamicResource CircuitTextDimBrush}"/>
+                                                    </StackPanel>
+                                                    
+                                                    <!-- Hurwitz Stability Badge -->
+                                                    <Border Grid.Column="1" Background="#1A22C55E" BorderBrush="{DynamicResource CircuitSuccessBrush}" BorderThickness="1"
+                                                            CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="6,2" VerticalAlignment="Center"
+                                                            IsVisible="{Binding ControlIsHurwitzStable}">
+                                                        <TextBlock Text="{Binding ControlStabilityBadgeText}" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold" Foreground="{DynamicResource CircuitSuccessBrush}"/>
+                                                    </Border>
+                                                    <Border Grid.Column="1" Background="#1AEF4444" BorderBrush="{DynamicResource CircuitDangerBrush}" BorderThickness="1"
+                                                            CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="6,2" VerticalAlignment="Center"
+                                                            IsVisible="{Binding !ControlIsHurwitzStable}">
+                                                        <TextBlock Text="{Binding ControlStabilityBadgeText}" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold" Foreground="{DynamicResource CircuitDangerBrush}"/>
+                                                    </Border>
+                                                </Grid>
+
+                                                <!-- Closed-Loop Transfer Function Math Fraction T(s) -->
+                                                <Border Background="{DynamicResource CircuitSurfaceLowestBrush}"
+                                                        BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1"
+                                                        CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="8,5" Margin="0,2,0,0">
+                                                    <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+                                                        <TextBlock Grid.Column="0" Text="T(s) =" FontSize="{DynamicResource CircuitFontSizeBodySm}" 
+                                                                   FontWeight="Bold" FontStyle="Italic" Foreground="{DynamicResource CircuitSecondaryBrush}" 
+                                                                   VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                        <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                                                            <TextBlock Text="{Binding ControlClosedLoopTfNumText}" 
+                                                                       FontSize="{DynamicResource CircuitFontSizeSmall}" FontWeight="SemiBold" 
+                                                                       Foreground="{DynamicResource CircuitTextBrush}" HorizontalAlignment="Center"/>
+                                                            <Rectangle Height="1.2" Fill="{DynamicResource CircuitTextMutedBrush}" HorizontalAlignment="Stretch" Margin="0,2"/>
+                                                            <TextBlock Text="{Binding ControlClosedLoopTfDenText}" 
+                                                                       FontSize="{DynamicResource CircuitFontSizeSmall}" FontWeight="SemiBold" 
+                                                                       Foreground="{DynamicResource CircuitTextBrush}" HorizontalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+
+                                                <!-- Poles Section -->
+                                                <StackPanel Spacing="3" Margin="0,2,0,0">
+                                                    <TextBlock Text="POLES (Roots of 1 + PC = 0):" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold" Foreground="{DynamicResource CircuitAccentBrush}"/>
+                                                    <Border Background="{DynamicResource CircuitSurfaceLowestBrush}" BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1"
+                                                            CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="8,6">
+                                                        <TextBlock Text="{Binding ControlPolesAcademicText}" FontSize="{DynamicResource CircuitFontSizeSmall}" FontFamily="{DynamicResource CircuitCodeFont}" Foreground="{DynamicResource CircuitTextBrush}" LineHeight="18"/>
+                                                    </Border>
+                                                </StackPanel>
+
+                                                <!-- Zeros Section -->
+                                                <StackPanel Spacing="3" Margin="0,2,0,0">
+                                                    <TextBlock Text="ZEROS:" FontSize="{DynamicResource CircuitFontSizeMicro}" FontWeight="Bold" Foreground="{DynamicResource CircuitSecondaryBrush}"/>
+                                                    <Border Background="{DynamicResource CircuitSurfaceLowestBrush}" BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1"
+                                                            CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="8,6">
+                                                        <TextBlock Text="{Binding ControlZerosAcademicText}" FontSize="{DynamicResource CircuitFontSizeSmall}" FontFamily="{DynamicResource CircuitCodeFont}" Foreground="{DynamicResource CircuitTextBrush}" LineHeight="18"/>
+                                                    </Border>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Border>
+                        </Grid>
+
+                        <!-- Footer -->
+                        <Grid Grid.Row="3" ColumnDefinitions="Auto,*,Auto" Margin="0,10,0,0">
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                                <Border Background="{DynamicResource CircuitSurfaceLowBrush}" BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="8,4">
+                                    <TextBlock Text="{Binding ControlWaterbedText}" FontSize="{DynamicResource CircuitFontSizeBodySm}" FontFamily="{DynamicResource CircuitCodeFont}" Foreground="{DynamicResource CircuitAccentBrush}" VerticalAlignment="Center"/>
+                                </Border>
+                            </StackPanel>
+
+                            <Border Grid.Column="2" Background="{DynamicResource CircuitSurfaceLowBrush}" BorderBrush="{DynamicResource CircuitBorderSubtleBrush}" BorderThickness="1" CornerRadius="{DynamicResource CircuitRadiusSm}" Padding="8,4">
+                                <TextBlock Text="Feedback Equivalence • Nyquist Argument Encirclement • S(s)+T(s)=1" FontSize="{DynamicResource CircuitFontSizeBodySm}" Foreground="{DynamicResource CircuitTextMutedBrush}" VerticalAlignment="Center"/>
                             </Border>
                         </Grid>
                     </Grid>

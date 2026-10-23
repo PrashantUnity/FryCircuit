@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Threading;
+using FryCircuit.Core.Control;
 using FryCircuit.Core.Devices.Base;
 using FryCircuit.Core.IO;
 using FryCircuit.Core.Models;
@@ -520,5 +521,254 @@ k (1e3), M/MEG (1e6), u/µ (1e-6), n (1e-9), p (1e-12), m (1e-3). Optional units
             nodes = nodeReadings,
             devices = deviceReadings
         }, new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    [Description("Analyzes a feedback control system using frequency-domain (Bode, Nyquist, Gang of Four) and time-domain (Step Response) methods.\n" +
+                 "Accepts polynomial coefficients (e.g. '100' or 's^2 + 6s + 100') for Plant and optional Controller.\n" +
+                 "Returns JSON with poles, zeros, stability, gain/phase margins, crossover frequencies, Nyquist Cauchy encirclements, peak sensitivity Ms, and transient specs (overshoot, settling time).")]
+    public string AnalyzeControlSystem(
+        [Description("Plant transfer function numerator polynomial, e.g. '100' or '2, 3'.")] string plantNumerator,
+        [Description("Plant transfer function denominator polynomial, e.g. '1, 6, 100' or 's^2 + 6s + 100'.")] string plantDenominator,
+        [Description("Optional controller numerator polynomial (defaults to '1').")] string? controllerNumerator = null,
+        [Description("Optional controller denominator polynomial (defaults to '1').")] string? controllerDenominator = null,
+        [Description("Feedback sign convention: -1 for negative feedback (standard), +1 for positive feedback.")] double feedbackSign = -1.0)
+    {
+        try
+        {
+            var P = TransferFunction.Parse(plantNumerator, plantDenominator);
+            var C = (!string.IsNullOrWhiteSpace(controllerNumerator) && !string.IsNullOrWhiteSpace(controllerDenominator))
+                ? TransferFunction.Parse(controllerNumerator, controllerDenominator)
+                : TransferFunction.One;
+
+            var L = TransferFunction.Series(C, P);
+            int signInt = feedbackSign >= 0 ? 1 : -1;
+            var T = TransferFunction.Feedback(L, TransferFunction.One, signInt);
+
+            var bode = BodeAnalyzer.Analyze(L);
+            var nyquist = NyquistAnalyzer.Analyze(L);
+            var gof = GangOfFourAnalyzer.Analyze(P, C);
+            var step = StepResponseAnalyzer.Analyze(T);
+
+            var vm = GetVm();
+            vm?.ShowAiActivity("Control Analysis", $"Analyzed loop L(s) = C(s)P(s)", $"GM={bode.GainMarginDb:F1}dB, PM={bode.PhaseMarginDeg:F1}°, Stable={nyquist.IsClosedLoopStable}", "Activity");
+
+            var resultObj = new
+            {
+                Plant = P.ToString(),
+                Controller = C.ToString(),
+                OpenLoop = L.ToString(),
+                ClosedLoop = T.ToString(),
+                OpenLoopPoles = L.Poles.Select(p => $"{p.Real:F4}{(p.Imaginary >= 0 ? "+" : "")}{p.Imaginary:F4}j").ToArray(),
+                OpenLoopZeros = L.Zeros.Select(z => $"{z.Real:F4}{(z.Imaginary >= 0 ? "+" : "")}{z.Imaginary:F4}j").ToArray(),
+                ClosedLoopPoles = T.Poles.Select(p => $"{p.Real:F4}{(p.Imaginary >= 0 ? "+" : "")}{p.Imaginary:F4}j").ToArray(),
+                ClosedLoopZeros = T.Zeros.Select(z => $"{z.Real:F4}{(z.Imaginary >= 0 ? "+" : "")}{z.Imaginary:F4}j").ToArray(),
+                Stability = new
+                {
+                    IsClosedLoopStable = nyquist.IsClosedLoopStable,
+                    OpenLoopRhpPolesP = nyquist.OpenLoopRhpPoles,
+                    CauchyClockwiseEncirclementsN = nyquist.ClockwiseEncirclements,
+                    ClosedLoopRhpPolesZ = nyquist.ClosedLoopRhpPoles,
+                    DistanceToCriticalPoint = Math.Round(nyquist.DistanceToCriticalPoint, 4)
+                },
+                Bode = new
+                {
+                    GainMarginDb = bode.GainMarginDb.HasValue ? Math.Round(bode.GainMarginDb.Value, 2) : (double?)null,
+                    PhaseMarginDeg = bode.PhaseMarginDeg.HasValue ? Math.Round(bode.PhaseMarginDeg.Value, 2) : (double?)null,
+                    GainCrossoverFreqRadS = bode.GainCrossoverFrequency.HasValue ? Math.Round(bode.GainCrossoverFrequency.Value, 3) : (double?)null,
+                    PhaseCrossoverFreqRadS = bode.PhaseCrossoverFrequency.HasValue ? Math.Round(bode.PhaseCrossoverFrequency.Value, 3) : (double?)null,
+                    DelayMarginSec = bode.DelayMarginSeconds.HasValue ? Math.Round(bode.DelayMarginSeconds.Value, 4) : (double?)null
+                },
+                GangOfFour = new
+                {
+                    PeakSensitivityMs = Math.Round(gof.PeakSensitivityMs, 3),
+                    PeakCompSensitivityMt = Math.Round(gof.PeakCompSensitivityMt, 3),
+                    DisturbanceBandwidthWbRadS = Math.Round(gof.DisturbanceBandwidthWb, 3),
+                    BodeSensitivityIntegral = Math.Round(gof.BodeSensitivityIntegralValue, 4),
+                    TheoreticalWaterbedTarget = Math.Round(gof.TheoreticalWaterbedTarget, 4)
+                },
+                StepResponse = new
+                {
+                    RiseTimeSec = Math.Round(step.RiseTime, 4),
+                    PeakTimeSec = Math.Round(step.PeakTime, 4),
+                    PeakValue = Math.Round(step.PeakValue, 4),
+                    OvershootPercent = Math.Round(step.OvershootPercent, 2),
+                    SettlingTimeSec = Math.Round(step.SettlingTime, 4),
+                    SteadyStateValue = Math.Round(step.SteadyStateValue, 4),
+                    SteadyStateError = Math.Round(step.SteadyStateError, 4)
+                }
+            };
+
+            return JsonSerializer.Serialize(resultObj, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (Exception ex)
+        {
+            return JsonSerializer.Serialize(new { error = ex.Message });
+        }
+    }
+
+    [Description("Simulates the unit step response of an LTI transfer function H(s) = N(s)/D(s).\n" +
+                 "Returns key transient metrics (RiseTime, PeakTime, OvershootPercent, SettlingTime, SteadyStateError) and downsampled response trajectory points.")]
+    public string ComputeStepResponse(
+        [Description("Transfer function numerator, e.g. '100' or '1, 2'.")] string numerator,
+        [Description("Transfer function denominator, e.g. '1, 6, 100'.")] string denominator,
+        [Description("Optional duration in seconds (defaults to auto-calculated 6x dominant time constant).")] double? durationSeconds = null,
+        [Description("Number of output trajectory sample points (defaults to 100).")] int sampleCount = 100)
+    {
+        try
+        {
+            var tf = TransferFunction.Parse(numerator, denominator);
+            var result = StepResponseAnalyzer.Analyze(tf, durationSeconds, 600);
+
+            // Downsample trajectory for concise JSON payload
+            int total = result.Points.Count;
+            int stride = Math.Max(1, total / Math.Clamp(sampleCount, 10, 500));
+            var samples = result.Points.Where((_, idx) => idx % stride == 0 || idx == total - 1)
+                .Select(p => new { t = Math.Round(p.Time, 4), y = Math.Round(p.Value, 4) })
+                .ToArray();
+
+            var vm = GetVm();
+            vm?.ShowAiActivity("Step Response", $"Simulated H(s) = {tf}", $"%OS={result.OvershootPercent:F1}%, Ts={result.SettlingTime:F2}s", "Play");
+
+            var payload = new
+            {
+                TransferFunction = tf.ToString(),
+                IsStable = tf.IsStable,
+                Poles = tf.Poles.Select(p => $"{p.Real:F4}{(p.Imaginary >= 0 ? "+" : "")}{p.Imaginary:F4}j").ToArray(),
+                Metrics = new
+                {
+                    RiseTimeSec = Math.Round(result.RiseTime, 4),
+                    PeakTimeSec = Math.Round(result.PeakTime, 4),
+                    PeakValue = Math.Round(result.PeakValue, 4),
+                    OvershootPercent = Math.Round(result.OvershootPercent, 2),
+                    SettlingTimeSec = Math.Round(result.SettlingTime, 4),
+                    SteadyStateValue = Math.Round(result.SteadyStateValue, 4),
+                    SteadyStateError = Math.Round(result.SteadyStateError, 4)
+                },
+                Trajectory = samples
+            };
+
+            return JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (Exception ex)
+        {
+            return JsonSerializer.Serialize(new { error = ex.Message });
+        }
+    }
+
+    [Description("Solves canonical feedback control engineering problems: second-order transient specifications synthesis (%OS, Ts -> zeta, wn, K, a), speed plant parameter sensitivity SaT & steady-state disturbance errors, and block diagram feedback reduction.\n" +
+                 "problemType can be 'transient_specs', 'speed_plant', or 'feedback_equivalence'.")]
+    public string SolveControlProblem(
+        [Description("Problem type: 'transient_specs' (2nd-order specs), 'speed_plant' (sensitivity & disturbance), or 'feedback_equivalence' (block diagram reduction)")] string problemType,
+        [Description("Parameter 1: For 'transient_specs': desired Overshoot % (e.g. 16.3); For 'speed_plant': plant pole 'a' (e.g. 2.0)")] double param1 = 16.3,
+        [Description("Parameter 2: For 'transient_specs': desired Settling Time Ts (e.g. 8.0); For 'speed_plant': feedback gain 'K' (e.g. 5.0)")] double param2 = 8.0,
+        [Description("Parameter 3: Additional parameter if needed (e.g. load disturbance magnitude)")] double param3 = 1.0)
+    {
+        try
+        {
+            var vm = GetVm();
+            switch (problemType.ToLowerInvariant())
+            {
+                case "transient_specs":
+                case "specs_design":
+                case "problem4_specs":
+                case "problem4":
+                {
+                    double os = param1;
+                    double ts = param2;
+                    var sol = ControlSpecsSolver.SolveProblem4Specs(os, ts);
+                    vm?.ShowAiActivity("Transient Specs Synthesized", $"%OS={os}%, Ts={ts}s -> K={sol.RequiredGainK:F2}, a={sol.ParameterA:F2}", $"zeta={sol.DampingRatioZeta:F3}, wn={sol.NaturalFrequencyWn:F3}", "Check");
+                    var payload = new
+                    {
+                        Problem = "Second-Order Transient Specification Synthesis (%OS, Ts)",
+                        Inputs = new { DesiredOvershootPercent = os, DesiredSettlingTimeSeconds = ts },
+                        Formulas = new
+                        {
+                            DampingRatio = "zeta = ln(100/%OS) / sqrt(pi^2 + ln(100/%OS)^2)",
+                            NaturalFrequency = "wn = 4 / (zeta * Ts)",
+                            RequiredGainK = "K = wn^2",
+                            ParameterA = "a = 2 * zeta * wn",
+                            DampedFrequency = "wd = wn * sqrt(1 - zeta^2)"
+                        },
+                        Outputs = new
+                        {
+                            DampingRatioZeta = Math.Round(sol.DampingRatioZeta, 4),
+                            NaturalFrequencyWn = Math.Round(sol.NaturalFrequencyWn, 4),
+                            RequiredGainK = Math.Round(sol.RequiredGainK, 4),
+                            ParameterA = Math.Round(sol.ParameterA, 4),
+                            DampedFrequencyWd = Math.Round(sol.DampedFrequencyWd, 4),
+                            PeakTimeTp = Math.Round(sol.PeakTimeTp, 4),
+                            DominantPoles = new[]
+                            {
+                                $"{sol.Pole1.Real:F4}+{sol.Pole1.Imaginary:F4}j",
+                                $"{sol.Pole2.Real:F4}{sol.Pole2.Imaginary:F4}j"
+                            },
+                            ClosedLoopTf = $"T(s) = {sol.RequiredGainK:F2} / (s^2 + {sol.ParameterA:F2}s + {sol.RequiredGainK:F2})"
+                        }
+                    };
+                    return JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
+                }
+
+                case "speed_plant":
+                case "sensitivity":
+                case "problem5_speed_plant":
+                case "problem5":
+                {
+                    double a = param1;
+                    double K = param2;
+                    var sol = ControlSpecsSolver.SolveProblem5SpeedPlant(a, K);
+                    vm?.ShowAiActivity("Speed Plant Analyzed", $"P(s)=1/(s+{a}), K={K}", $"Sensitivity={sol.LowFrequencySensitivity:F4}, e_ss={sol.SteadyStateErrorStep:F4}", "Check");
+                    var payload = new
+                    {
+                        Problem = "Speed Plant Parameter Sensitivity and Steady-State Errors",
+                        Inputs = new { PlantPoleA = a, ProportionalGainK = K },
+                        Formulas = new
+                        {
+                            ClosedLoopTf = "T(s) = K / (s + a + K)",
+                            ClosedLoopPole = "s = -(a + K)",
+                            SensitivitySaT = "S_a^T = (a / T) * (dT/da) = -a / (s + a + K)",
+                            LowFrequencySensitivity = "|S_a^T(0)| = a / (a + K)",
+                            SteadyStateErrorStep = "e_ss(step) = 1 - T(0) = a / (a + K)",
+                            SteadyStateErrorDisturbance = "y_ss(dist) = 1 / (a + K)"
+                        },
+                        Outputs = new
+                        {
+                            ClosedLoopPole = -sol.ClosedLoopPoleReal,
+                            LowFrequencySensitivityPercent = Math.Round(sol.LowFrequencySensitivity * 100.0, 2),
+                            SteadyStateErrorUnitStep = Math.Round(sol.SteadyStateErrorStep, 4),
+                            SteadyStateErrorDisturbance = Math.Round(sol.SteadyStateErrorDisturbance, 4),
+                            SensitivityReductionDb = Math.Round(20.0 * Math.Log10(sol.LowFrequencySensitivity), 2)
+                        }
+                    };
+                    return JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
+                }
+
+                case "feedback_equivalence":
+                case "block_diagram_reduction":
+                case "equivalence":
+                {
+                    var g1 = new TransferFunction(new Polynomial(1.0), new Polynomial(1.0, 1.0));
+                    var g2 = new TransferFunction(new Polynomial(1.0), new Polynomial(1.0, 2.0));
+                    var closed = TransferFunction.Feedback(g1, g2, -1);
+                    vm?.ShowAiActivity("Loop Equivalence Computed", $"T(s) = {closed}", "Poles at -1.5 ± j0.866", "Check");
+                    var payload = new
+                    {
+                        Problem = "Block Diagram Reduction and Feedback Equivalence",
+                        ForwardPathG1 = g1.ToString(),
+                        FeedbackPathG2 = g2.ToString(),
+                        ClosedLoopEquivalence = closed.ToString(),
+                        ClosedLoopPoles = closed.Poles.Select(p => $"{p.Real:F4}{(p.Imaginary >= 0 ? "+" : "")}{p.Imaginary:F4}j").ToArray(),
+                        IsStable = closed.IsStable
+                    };
+                    return JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true });
+                }
+
+                default:
+                    return JsonSerializer.Serialize(new { error = $"Unknown problem type '{problemType}'. Supported: 'transient_specs', 'speed_plant', 'feedback_equivalence'." });
+            }
+        }
+        catch (Exception ex)
+        {
+            return JsonSerializer.Serialize(new { error = ex.Message });
+        }
     }
 }

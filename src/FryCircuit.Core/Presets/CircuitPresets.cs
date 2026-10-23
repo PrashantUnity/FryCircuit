@@ -1,6 +1,7 @@
 using FryCircuit.Core.Devices;
 using FryCircuit.Core.Devices.Aerospace;
 using FryCircuit.Core.Devices.Battery;
+using FryCircuit.Core.Devices.Control;
 using FryCircuit.Core.Devices.Display;
 using FryCircuit.Core.Devices.Logic;
 using FryCircuit.Core.Models;
@@ -35,7 +36,12 @@ public static class CircuitPresets
         "LED Cascade & Current Limiter Ladder",
         "Pyramid Resistor Current Divider Network",
         "Digital 555 & Dual 7-Segment Counter",
-        "Drone Quadcopter Propulsion & Avionics"
+        "Drone Quadcopter Propulsion & Avionics",
+        "Control: Åström Gang of Four Benchmark",
+        "Control: Feedback Loop Block Diagram Equivalence",
+        "Control: 2nd-Order Step Specs Synthesis (%OS, Ts)",
+        "Control: Speed Plant Sensitivity & Rejection",
+        "Control: Closed-Loop PID Motor Speed Control"
     };
 
     public static Circuit Create(string name)
@@ -64,6 +70,11 @@ public static class CircuitPresets
             "Pyramid Resistor Current Divider Network" => CreatePyramidResistorDivider(),
             "Digital 555 & Dual 7-Segment Counter" => Create555Dual7SegmentCounter(),
             "Drone Quadcopter Propulsion & Avionics" => CreateDronePropulsionAndAvionics(),
+            "Control: Åström Gang of Four Benchmark" => CreateAstromGangOfFourBenchmark(),
+            "Control: Feedback Loop Block Diagram Equivalence" or "Control: Image 2 Feedback vs Equivalent TF" => CreateFeedbackBlockDiagramEquivalence(),
+            "Control: 2nd-Order Step Specs Synthesis (%OS, Ts)" or "Control: Problem 4 - Second-Order Step Specs" => CreateSecondOrderSpecsSynthesis(),
+            "Control: Speed Plant Sensitivity & Rejection" or "Control: Problem 5 - Plant Speed & Disturbance" => CreateSpeedPlantSensitivityAndRejection(),
+            "Control: Closed-Loop PID Motor Speed Control" => CreatePidMotorSpeedControl(),
             _ => CreateHalfWaveRectifier()
         };
     }
@@ -1574,6 +1585,352 @@ public static class CircuitPresets
 
         circuit.EnsureWiresSynthesized();
 
+        return circuit;
+    }
+
+    public static Circuit CreateAstromGangOfFourBenchmark()
+    {
+        var circuit = new Circuit("Control: Åström Gang of Four Benchmark");
+        circuit.Frame = new CircuitFrame(0, 0, 26, 16);
+
+        circuit.GetOrCreateNode(0, isGround: true);
+        circuit.GetOrCreateNode(1); // Setpoint r(t)
+        circuit.GetOrCreateNode(2); // Error e(t)
+        circuit.GetOrCreateNode(3); // Control action u(t)
+        circuit.GetOrCreateNode(4); // Plant input with disturbance u + d
+        circuit.GetOrCreateNode(5); // Plant output y(t)
+        circuit.GetOrCreateNode(6); // Disturbance d(t)
+
+        // 1. Reference Step Source (1.0 V at t=0.01s)
+        var rSrc = new StepSourceDevice(1, x: 2, y: 7)
+        {
+            StepTime = 0.01,
+            InitialValue = 0.0,
+            FinalValue = 1.0
+        };
+        rSrc.Pins[0].NodeId = 1;
+        rSrc.Pins[1].NodeId = 0;
+        circuit.AddDevice(rSrc);
+
+        // 2. Error Comparator: e = r - y (Signs "+-")
+        var errSum = new SummingJunctionDevice(2, x: 6, y: 7) { Signs = "+-" };
+        errSum.Pins[0].NodeId = 1; // r
+        errSum.Pins[1].NodeId = 5; // y (feedback)
+        errSum.Pins[3].NodeId = 2; // e
+        errSum.Pins[4].NodeId = 0; // GND
+        circuit.AddDevice(errSum);
+
+        // 3. PI Controller: C(s) = 2.0 + 1.0/s
+        var controller = new PidControllerDevice(3, x: 11, y: 7)
+        {
+            Kp = 2.0,
+            Ki = 1.0,
+            Kd = 0.0,
+            OutMin = -15.0,
+            OutMax = 15.0,
+            AntiWindup = true
+        };
+        controller.Pins[0].NodeId = 2; // e
+        controller.Pins[1].NodeId = 3; // u
+        controller.Pins[2].NodeId = 0; // GND
+        circuit.AddDevice(controller);
+
+        // 4. Load Disturbance Step: d(t) = 0.5 V step at t=0.5s
+        var distSrc = new StepSourceDevice(4, x: 15, y: 2)
+        {
+            StepTime = 0.5,
+            InitialValue = 0.0,
+            FinalValue = 0.5
+        };
+        distSrc.Pins[0].NodeId = 6;
+        distSrc.Pins[1].NodeId = 0;
+        circuit.AddDevice(distSrc);
+
+        // 5. Disturbance Summing Junction: u + d (Signs "++")
+        var distSum = new SummingJunctionDevice(5, x: 16, y: 7) { Signs = "++" };
+        distSum.Pins[0].NodeId = 3; // u
+        distSum.Pins[2].NodeId = 6; // d
+        distSum.Pins[3].NodeId = 4; // u + d
+        distSum.Pins[4].NodeId = 0; // GND
+        circuit.AddDevice(distSum);
+
+        // 6. Astrom 3rd-Order Plant: P(s) = 1 / (s + 1)^3 = 1 / (s^3 + 3s^2 + 3s + 1)
+        var plant = new TransferFunctionDevice(6, x: 21, y: 7)
+        {
+            NumeratorString = "1",
+            DenominatorString = "1, 3, 3, 1"
+        };
+        plant.Pins[0].NodeId = 4; // In
+        plant.Pins[1].NodeId = 5; // Out y
+        plant.Pins[2].NodeId = 0; // GND
+        circuit.AddDevice(plant);
+
+        // Ground Reference
+        var gnd = new GroundDevice(7, x: 6, y: 13);
+        gnd.Pins[0].NodeId = 0;
+        circuit.AddDevice(gnd);
+
+        circuit.EnsureWiresSynthesized();
+        return circuit;
+    }
+
+    public static Circuit CreateFeedbackBlockDiagramEquivalence()
+    {
+        var circuit = new Circuit("Control: Feedback Loop Block Diagram Equivalence");
+        circuit.Frame = new CircuitFrame(0, 0, 24, 18);
+
+        circuit.GetOrCreateNode(0, isGround: true);
+        circuit.GetOrCreateNode(1); // Step in
+        circuit.GetOrCreateNode(2); // Branch A: Sum output
+        circuit.GetOrCreateNode(3); // Branch A: Output (Forward TF out)
+        circuit.GetOrCreateNode(4); // Branch A: Feedback TF out
+        circuit.GetOrCreateNode(5); // Branch B: Parallel Equivalent TF out
+
+        // 1. Shared Unit Step Signal Generator
+        var step = new StepSourceDevice(1, x: 2, y: 8)
+        {
+            StepTime = 0.05,
+            InitialValue = 0.0,
+            FinalValue = 1.0
+        };
+        step.Pins[0].NodeId = 1;
+        step.Pins[1].NodeId = 0;
+        circuit.AddDevice(step);
+
+        // --- Branch A: Feedback Loop [G1 / (1 + G1*G2)] ---
+        // Summing Junction (Signs "+-")
+        var sum = new SummingJunctionDevice(2, x: 8, y: 5) { Signs = "+-" };
+        sum.Pins[0].NodeId = 1; // Step in
+        sum.Pins[1].NodeId = 4; // Feedback in
+        sum.Pins[3].NodeId = 2; // Sum out
+        sum.Pins[4].NodeId = 0; // GND
+        circuit.AddDevice(sum);
+
+        // Forward TF: G1(s) = 1 / (1 + s)
+        var g1 = new TransferFunctionDevice(3, x: 13, y: 5)
+        {
+            NumeratorString = "1",
+            DenominatorString = "1, 1"
+        };
+        g1.Pins[0].NodeId = 2; // In
+        g1.Pins[1].NodeId = 3; // Out (Branch A)
+        g1.Pins[2].NodeId = 0; // GND
+        circuit.AddDevice(g1);
+
+        // Feedback TF: G2(s) = 1 / (2 + s)
+        var g2 = new TransferFunctionDevice(4, x: 13, y: 9)
+        {
+            NumeratorString = "1",
+            DenominatorString = "1, 2"
+        };
+        g2.Pins[0].NodeId = 3; // In from output
+        g2.Pins[1].NodeId = 4; // Out back to sum
+        g2.Pins[2].NodeId = 0; // GND
+        circuit.AddDevice(g2);
+
+        // --- Branch B: Single Parallel Equivalent TF ---
+        // T(s) = (s + 2) / (s^2 + 3s + 3)
+        var tfEq = new TransferFunctionDevice(5, x: 13, y: 14)
+        {
+            NumeratorString = "1, 2",
+            DenominatorString = "1, 3, 3"
+        };
+        tfEq.Pins[0].NodeId = 1; // Step in
+        tfEq.Pins[1].NodeId = 5; // Out (Branch B)
+        tfEq.Pins[2].NodeId = 0; // GND
+        circuit.AddDevice(tfEq);
+
+        // Ground Reference
+        var gnd = new GroundDevice(6, x: 4, y: 11);
+        gnd.Pins[0].NodeId = 0;
+        circuit.AddDevice(gnd);
+
+        circuit.EnsureWiresSynthesized();
+        return circuit;
+    }
+
+    public static Circuit CreateImage2FeedbackVsEquivalentTf() => CreateFeedbackBlockDiagramEquivalence();
+
+    public static Circuit CreateSecondOrderSpecsSynthesis()
+    {
+        var circuit = new Circuit("Control: 2nd-Order Step Specs Synthesis (%OS, Ts)");
+        circuit.Frame = new CircuitFrame(0, 0, 20, 14);
+
+        circuit.GetOrCreateNode(0, isGround: true);
+        circuit.GetOrCreateNode(1); // Step in
+        circuit.GetOrCreateNode(2); // Response y(t)
+
+        var step = new StepSourceDevice(1, x: 3, y: 6)
+        {
+            StepTime = 0.05,
+            InitialValue = 0.0,
+            FinalValue = 1.0
+        };
+        step.Pins[0].NodeId = 1;
+        step.Pins[1].NodeId = 0;
+        circuit.AddDevice(step);
+
+        // Closed-Loop TF: Y(s)/R(s) = 100 / (s^2 + 6s + 100)
+        // With K = 100: wn = 10, zeta = 0.3, %OS = 37.23%, Ts = 1.33s
+        var tf = new TransferFunctionDevice(2, x: 10, y: 6)
+        {
+            NumeratorString = "100",
+            DenominatorString = "1, 6, 100"
+        };
+        tf.Pins[0].NodeId = 1;
+        tf.Pins[1].NodeId = 2;
+        tf.Pins[2].NodeId = 0;
+        circuit.AddDevice(tf);
+
+        var gnd = new GroundDevice(3, x: 6, y: 10);
+        gnd.Pins[0].NodeId = 0;
+        circuit.AddDevice(gnd);
+
+        circuit.EnsureWiresSynthesized();
+        return circuit;
+    }
+
+    public static Circuit CreateProblem4SecondOrderSpecs() => CreateSecondOrderSpecsSynthesis();
+
+    public static Circuit CreateSpeedPlantSensitivityAndRejection()
+    {
+        var circuit = new Circuit("Control: Speed Plant Sensitivity & Rejection");
+        circuit.Frame = new CircuitFrame(0, 0, 26, 16);
+
+        circuit.GetOrCreateNode(0, isGround: true);
+        circuit.GetOrCreateNode(1); // Speed setpoint
+        circuit.GetOrCreateNode(2); // Error e
+        circuit.GetOrCreateNode(3); // Controller output
+        circuit.GetOrCreateNode(4); // Plant input (u + Td)
+        circuit.GetOrCreateNode(5); // Speed output Y(t)
+        circuit.GetOrCreateNode(6); // Disturbance Td(t)
+
+        // 1. Reference Speed Step
+        var rSrc = new StepSourceDevice(1, x: 2, y: 7)
+        {
+            StepTime = 0.02,
+            InitialValue = 0.0,
+            FinalValue = 1.0
+        };
+        rSrc.Pins[0].NodeId = 1;
+        rSrc.Pins[1].NodeId = 0;
+        circuit.AddDevice(rSrc);
+
+        // 2. Error Comparator (+-)
+        var errSum = new SummingJunctionDevice(2, x: 6, y: 7) { Signs = "+-" };
+        errSum.Pins[0].NodeId = 1;
+        errSum.Pins[1].NodeId = 5;
+        errSum.Pins[3].NodeId = 2;
+        errSum.Pins[4].NodeId = 0;
+        circuit.AddDevice(errSum);
+
+        // 3. Proportional Controller Gc(s) = K = 10.0
+        var gain = new GainBlockDevice(3, x: 10, y: 7) { Gain = 10.0 };
+        gain.Pins[0].NodeId = 2;
+        gain.Pins[1].NodeId = 3;
+        gain.Pins[2].NodeId = 0;
+        circuit.AddDevice(gain);
+
+        // 4. Disturbance Torque: Td(t) = 1.0 step at t=0.5s
+        var distSrc = new StepSourceDevice(4, x: 14, y: 2)
+        {
+            StepTime = 0.5,
+            InitialValue = 0.0,
+            FinalValue = 1.0
+        };
+        distSrc.Pins[0].NodeId = 6;
+        distSrc.Pins[1].NodeId = 0;
+        circuit.AddDevice(distSrc);
+
+        // 5. Disturbance Summing Junction (++)
+        var distSum = new SummingJunctionDevice(5, x: 15, y: 7) { Signs = "++" };
+        distSum.Pins[0].NodeId = 3;
+        distSum.Pins[2].NodeId = 6;
+        distSum.Pins[3].NodeId = 4;
+        distSum.Pins[4].NodeId = 0;
+        circuit.AddDevice(distSum);
+
+        // 6. Plant G(s) = 1 / (s * (s + 2)) = 1 / (s^2 + 2s)
+        var plant = new TransferFunctionDevice(6, x: 20, y: 7)
+        {
+            NumeratorString = "1",
+            DenominatorString = "1, 2, 0"
+        };
+        plant.Pins[0].NodeId = 4;
+        plant.Pins[1].NodeId = 5;
+        plant.Pins[2].NodeId = 0;
+        circuit.AddDevice(plant);
+
+        // Ground Reference
+        var gnd = new GroundDevice(7, x: 6, y: 13);
+        gnd.Pins[0].NodeId = 0;
+        circuit.AddDevice(gnd);
+
+        circuit.EnsureWiresSynthesized();
+        return circuit;
+    }
+
+    public static Circuit CreateProblem5PlantSpeedAndDisturbance() => CreateSpeedPlantSensitivityAndRejection();
+
+    public static Circuit CreatePidMotorSpeedControl()
+    {
+        var circuit = new Circuit("Control: Closed-Loop PID Motor Speed Control");
+        circuit.Frame = new CircuitFrame(0, 0, 24, 15);
+
+        circuit.GetOrCreateNode(0, isGround: true);
+        circuit.GetOrCreateNode(1); // Setpoint RPM (e.g. 5V = 5000 RPM)
+        circuit.GetOrCreateNode(2); // Error
+        circuit.GetOrCreateNode(3); // Throttle PWM / Volts
+        circuit.GetOrCreateNode(4); // Motor RPM Feedback
+
+        var setpoint = new StepSourceDevice(1, x: 2, y: 7)
+        {
+            StepTime = 0.02,
+            InitialValue = 0.0,
+            FinalValue = 5.0
+        };
+        setpoint.Pins[0].NodeId = 1;
+        setpoint.Pins[1].NodeId = 0;
+        circuit.AddDevice(setpoint);
+
+        var err = new SummingJunctionDevice(2, x: 6, y: 7) { Signs = "+-" };
+        err.Pins[0].NodeId = 1;
+        err.Pins[1].NodeId = 4;
+        err.Pins[3].NodeId = 2;
+        err.Pins[4].NodeId = 0;
+        circuit.AddDevice(err);
+
+        var pid = new PidControllerDevice(3, x: 11, y: 7)
+        {
+            Kp = 3.0,
+            Ki = 1.5,
+            Kd = 0.2,
+            FilterN = 25.0,
+            OutMin = 0.0,
+            OutMax = 12.0,
+            AntiWindup = true
+        };
+        pid.Pins[0].NodeId = 2;
+        pid.Pins[1].NodeId = 3;
+        pid.Pins[2].NodeId = 0;
+        circuit.AddDevice(pid);
+
+        // Motor Model: G(s) = 1.0 / (0.05s + 1) (First-order mechanical lag with tau = 50ms)
+        var motorModel = new TransferFunctionDevice(4, x: 17, y: 7)
+        {
+            NumeratorString = "1",
+            DenominatorString = "0.05, 1"
+        };
+        motorModel.Pins[0].NodeId = 3;
+        motorModel.Pins[1].NodeId = 4;
+        motorModel.Pins[2].NodeId = 0;
+        circuit.AddDevice(motorModel);
+
+        var gnd = new GroundDevice(5, x: 6, y: 12);
+        gnd.Pins[0].NodeId = 0;
+        circuit.AddDevice(gnd);
+
+        circuit.EnsureWiresSynthesized();
         return circuit;
     }
 }
