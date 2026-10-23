@@ -16,13 +16,14 @@ public class NetLabelRenderer : IDeviceRenderer
         var net = device as NetLabelDevice;
         string label = net?.NetName ?? "NET";
 
+        var textColor = renderContext.IsDark ? Color.FromRgb(0, 240, 255) : Color.FromRgb(2, 132, 199);
         var ft = new FormattedText(
             label,
             System.Globalization.CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
             new Typeface("Inter", FontStyle.Normal, FontWeight.ExtraBold),
             Math.Max(9, 10.5 * renderContext.Zoom),
-            new SolidColorBrush(Color.FromRgb(0, 240, 255))
+            new SolidColorBrush(textColor)
         );
 
         double padX = 6.0 * renderContext.Zoom;
@@ -42,14 +43,16 @@ public class NetLabelRenderer : IDeviceRenderer
             ctx.EndFigure(isClosed: true);
         }
 
-        var fillBrush = new SolidColorBrush(Color.FromArgb(220, 14, 24, 38));
-        var borderPen = new Pen(new SolidColorBrush(Color.FromRgb(0, 240, 255)), 1.5 * renderContext.Zoom);
+        var fillBrush = renderContext.IsDark
+            ? new SolidColorBrush(Color.FromArgb(220, 14, 24, 38))
+            : new SolidColorBrush(Color.FromArgb(240, 240, 249, 255));
+        var borderPen = new Pen(new SolidColorBrush(textColor), 1.5 * renderContext.Zoom);
 
         context.DrawGeometry(fillBrush, borderPen, flagGeom);
         context.DrawText(ft, new Point(center.X + 9.0 * renderContext.Zoom + padX, center.Y - ft.Height / 2.0));
 
         // Attachment pin solder dot
-        var dotBrush = new SolidColorBrush(Color.FromRgb(0, 240, 255));
+        var dotBrush = new SolidColorBrush(textColor);
         context.DrawEllipse(dotBrush, null, center, 3.0 * renderContext.Zoom, 3.0 * renderContext.Zoom);
     }
 }

@@ -14,11 +14,11 @@ public class SquidRenderer : IDeviceRenderer
     public void Render(DrawingContext context, Device device, Point center, double size, bool isSelected, DeviceRenderContext renderContext)
     {
         var squid = device as SquidDevice;
-        var leadColor = Color.FromRgb(0, 240, 255); // Superconducting cyan
+        var leadColor = renderContext.IsDark ? Color.FromRgb(0, 240, 255) : Color.FromRgb(2, 132, 199);
         var pen = new Pen(new SolidColorBrush(leadColor), 2.2 * renderContext.Zoom);
-        var junctionBrush = new SolidColorBrush(Color.FromRgb(16, 26, 42));
-        var junctionPen = new Pen(new SolidColorBrush(Color.FromRgb(255, 200, 0)), 1.5 * renderContext.Zoom);
-        var crossPen = new Pen(new SolidColorBrush(Color.FromRgb(255, 220, 50)), 1.8 * renderContext.Zoom);
+        var junctionBrush = renderContext.GetComponentFillBrush() ?? new SolidColorBrush(Color.FromRgb(16, 26, 42));
+        var junctionPen = renderContext.GetStrokePen(1.5, Color.FromRgb(255, 200, 0), Color.FromRgb(217, 119, 6));
+        var crossPen = renderContext.GetStrokePen(1.8, Color.FromRgb(255, 220, 50), Color.FromRgb(217, 119, 6));
 
         double halfH = size;
         double loopW = size * 0.45;
@@ -48,12 +48,13 @@ public class SquidRenderer : IDeviceRenderer
         DrawJosephsonBox(context, new Point(center.X + loopW, center.Y), jBoxSize, junctionBrush, junctionPen, crossPen);
 
         // Central Magnetic Flux Symbol (Circle with dot / cross)
-        var fluxBrush = new SolidColorBrush(Color.FromArgb(180, 0, 240, 255));
+        var fluxColor = renderContext.IsDark ? Color.FromArgb(180, 0, 240, 255) : Color.FromArgb(180, 2, 132, 199);
+        var fluxBrush = new SolidColorBrush(fluxColor);
         context.DrawEllipse(null, new Pen(fluxBrush, 1.2 * renderContext.Zoom), center, size * 0.12, size * 0.12);
         context.DrawEllipse(fluxBrush, null, center, 2.0 * renderContext.Zoom, 2.0 * renderContext.Zoom);
 
         // Terminal solder dots
-        var dotBrush = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+        var dotBrush = renderContext.GetSolderPadBrush();
         context.DrawEllipse(dotBrush, null, new Point(center.X, center.Y - halfH), 2.5 * renderContext.Zoom, 2.5 * renderContext.Zoom);
         context.DrawEllipse(dotBrush, null, new Point(center.X, center.Y + halfH), 2.5 * renderContext.Zoom, 2.5 * renderContext.Zoom);
     }

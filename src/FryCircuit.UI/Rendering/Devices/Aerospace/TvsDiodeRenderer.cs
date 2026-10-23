@@ -27,8 +27,8 @@ public class TvsDiodeRenderer : IDeviceRenderer
         double triW = u * 0.42;
         double triH = u * 0.42;
 
-        var strokeBrush = renderContext.GetStrokeBrush(Color.FromRgb(226, 232, 240));
-        var strokePen = new Pen(strokeBrush, 2.2 * z);
+        var strokeBrush = renderContext.GetStrokeBrush();
+        var strokePen = renderContext.GetStrokePen(2.2);
 
         // Terminal wires to symbol
         context.DrawLine(strokePen, pAnode, new Point(cx - triW, cy));
@@ -57,7 +57,7 @@ public class TvsDiodeRenderer : IDeviceRenderer
             gctx.LineTo(new Point(cx - triW, cy + triH));
             gctx.EndFigure(isClosed: true);
         }
-        var bodyBrush = new SolidColorBrush(Color.FromArgb(200, 30, 41, 59));
+        var bodyBrush = renderContext.GetComponentFillBrush() ?? new SolidColorBrush(Color.FromArgb(200, 30, 41, 59));
         context.DrawGeometry(bodyBrush, strokePen, triGeom);
 
         // TVS Cathode Bar with dual bent Zener hooks (Top bent right, Bottom bent left)
@@ -74,7 +74,9 @@ public class TvsDiodeRenderer : IDeviceRenderer
             ? (tvs.IsClamping ? $"CLAMPING ({tvs.VoltageDrop:F1}V)" : $"{tvs.BreakdownVoltage:F1}V TVS")
             : "TVS Diode";
 
-        var textColor = (tvs != null && tvs.IsClamping) ? Color.FromRgb(244, 63, 94) : Color.FromRgb(148, 163, 184);
+        var textColor = (tvs != null && tvs.IsClamping)
+            ? Color.FromRgb(244, 63, 94)
+            : (renderContext.IsDark ? Color.FromRgb(148, 163, 184) : Color.FromRgb(71, 85, 105));
         var ft = new FormattedText(
             text,
             System.Globalization.CultureInfo.InvariantCulture,
@@ -86,7 +88,7 @@ public class TvsDiodeRenderer : IDeviceRenderer
         context.DrawText(ft, new Point(cx - ft.Width / 2.0, cy - triH - 13 * z));
 
         // Solder pads
-        var padBrush = new SolidColorBrush(Color.FromRgb(240, 246, 255));
+        var padBrush = renderContext.GetSolderPadBrush();
         context.DrawEllipse(padBrush, null, pAnode, 3.0 * z, 3.0 * z);
         context.DrawEllipse(padBrush, null, pCathode, 3.0 * z, 3.0 * z);
     }

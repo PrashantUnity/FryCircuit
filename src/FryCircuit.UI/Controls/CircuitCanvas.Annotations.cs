@@ -123,13 +123,16 @@ public partial class CircuitCanvas
         double bx = screenPt.X - badgeW / 2.0;
         double by = screenPt.Y - badgeH - 12 * Zoom;
 
-        var bgBrush = new SolidColorBrush(Color.FromArgb(235, 15, 23, 42));
+        var tokens = FryCircuit.UI.Theming.CircuitThemeService.Instance.Tokens;
+        var bgBrush = tokens.IsDark
+            ? new SolidColorBrush(Color.FromArgb(235, 15, 23, 42))
+            : new SolidColorBrush(Color.FromArgb(245, 255, 255, 255));
         var borderPen = new Pen(new SolidColorBrush(color), 1.5);
         var badgeRect = new Rect(bx, by, badgeW, badgeH);
 
         // Radiant probe concentric target at screenPt
         context.DrawEllipse(new SolidColorBrush(Color.FromArgb(50, color.R, color.G, color.B)), null, screenPt, 8.0 * Zoom, 8.0 * Zoom);
-        context.DrawEllipse(new SolidColorBrush(Color.FromArgb(235, 15, 23, 42)), new Pen(new SolidColorBrush(color), 1.8 * Zoom), screenPt, 5.0 * Zoom, 5.0 * Zoom);
+        context.DrawEllipse(bgBrush, new Pen(new SolidColorBrush(color), 1.8 * Zoom), screenPt, 5.0 * Zoom, 5.0 * Zoom);
         context.DrawEllipse(new SolidColorBrush(color), null, screenPt, 2.5 * Zoom, 2.5 * Zoom);
 
         // Pointer line to terminal
@@ -151,6 +154,7 @@ public partial class CircuitCanvas
 
     private void DrawSnapBadge(DrawingContext context, Point screenPt, string text, Color color)
     {
+        var tokens = FryCircuit.UI.Theming.CircuitThemeService.Instance.Tokens;
         var ft = new FormattedText(
             text,
             System.Globalization.CultureInfo.InvariantCulture,
@@ -165,7 +169,9 @@ public partial class CircuitCanvas
         double bx = screenPt.X - badgeW / 2.0;
         double by = screenPt.Y - badgeH - 12 * Zoom;
 
-        var bgBrush = new SolidColorBrush(Color.FromArgb(235, 15, 23, 42));
+        var bgBrush = tokens.IsDark
+            ? new SolidColorBrush(Color.FromArgb(235, 15, 23, 42))
+            : new SolidColorBrush(Color.FromArgb(245, 255, 255, 255));
         var borderPen = new Pen(new SolidColorBrush(color), 1.2 * Zoom);
         var badgeRect = new Rect(bx, by, badgeW, badgeH);
 
@@ -242,8 +248,12 @@ public partial class CircuitCanvas
             new SolidColorBrush(probeColor)
         );
 
+        var tokens = FryCircuit.UI.Theming.CircuitThemeService.Instance.Tokens;
         var labelRect = new Rect(center.X + 16, center.Y - 10, ft.Width + 8, ft.Height + 4);
-        context.FillRectangle(new SolidColorBrush(Color.FromArgb(220, 10, 15, 24)), labelRect, 3);
+        var labelBg = tokens.IsDark
+            ? new SolidColorBrush(Color.FromArgb(220, 10, 15, 24))
+            : new SolidColorBrush(Color.FromArgb(245, 255, 255, 255));
+        context.FillRectangle(labelBg, labelRect, 3);
         context.DrawRectangle(new Pen(new SolidColorBrush(probeColor), 1), labelRect, 3);
         context.DrawText(ft, new Point(center.X + 20, center.Y - 8));
     }
@@ -401,9 +411,12 @@ public partial class CircuitCanvas
 
     private void DrawBranchCurrentBadge(DrawingContext context, Point screenPt, Point dir, string text, bool isZero)
     {
-        var textBrush = isZero
-            ? new SolidColorBrush(Color.FromRgb(148, 163, 184))
-            : new SolidColorBrush(Color.FromRgb(52, 211, 153)); // Refined Mint/Emerald #34D399
+        var tokens = FryCircuit.UI.Theming.CircuitThemeService.Instance.Tokens;
+        Color textColor = isZero
+            ? (tokens.IsDark ? Color.FromRgb(148, 163, 184) : Color.FromRgb(100, 116, 139))
+            : (tokens.IsDark ? Color.FromRgb(52, 211, 153) : Color.FromRgb(5, 150, 105));
+
+        var textBrush = new SolidColorBrush(textColor);
 
         var ft = new FormattedText(
             text,
@@ -424,10 +437,12 @@ public partial class CircuitCanvas
         var badgeRect = new Rect(screenPt.X - totalW / 2.0, screenPt.Y - totalH / 2.0, totalW, totalH);
         float r = (float)(3.5 * Zoom);
 
-        var bgBrush = new SolidColorBrush(Color.FromArgb(235, 15, 23, 42));
+        var bgBrush = tokens.IsDark
+            ? new SolidColorBrush(Color.FromArgb(235, 15, 23, 42))
+            : new SolidColorBrush(Color.FromArgb(245, 255, 255, 255));
         var borderPen = isZero
-            ? new Pen(new SolidColorBrush(Color.FromArgb(70, 51, 65, 85)), 1.0 * Zoom)
-            : new Pen(new SolidColorBrush(Color.FromArgb(80, 52, 211, 153)), 1.0 * Zoom);
+            ? (tokens.IsDark ? new Pen(new SolidColorBrush(Color.FromArgb(70, 51, 65, 85)), 1.0 * Zoom) : new Pen(new SolidColorBrush(Color.FromArgb(180, 203, 213, 225)), 1.0 * Zoom))
+            : (tokens.IsDark ? new Pen(new SolidColorBrush(Color.FromArgb(80, 52, 211, 153)), 1.0 * Zoom) : new Pen(new SolidColorBrush(Color.FromArgb(180, 5, 150, 105)), 1.0 * Zoom));
 
         context.DrawRectangle(bgBrush, borderPen, badgeRect, r, r);
 
@@ -435,7 +450,7 @@ public partial class CircuitCanvas
         {
             double arrowCenterX = badgeRect.X + padX + arrowLen / 2.0;
             double arrowCenterY = screenPt.Y;
-            DrawDirectionArrow(context, new Point(arrowCenterX, arrowCenterY), dir, arrowLen, Color.FromRgb(52, 211, 153));
+            DrawDirectionArrow(context, new Point(arrowCenterX, arrowCenterY), dir, arrowLen, textColor);
         }
 
         double textX = badgeRect.X + padX + arrowLen + spacing;
@@ -648,14 +663,15 @@ public partial class CircuitCanvas
 
     private Rect? DrawNodeVoltageBadge(DrawingContext context, Point screenPt, double voltage, bool isGround)
     {
-        var (glowColor, coreColor) = GetVoltageColors(voltage, isGround);
+        var tokens = FryCircuit.UI.Theming.CircuitThemeService.Instance.Tokens;
+        var (glowColor, coreColor) = GetVoltageColors(voltage, isGround, tokens.IsDark);
         string text = FormatVoltageLabel(voltage);
 
         var ft = new FormattedText(
             text,
             System.Globalization.CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
-            new Typeface("Consolas,SF Mono,Menlo,monospace", FontStyle.Normal, FontWeight.SemiBold),
+            new Typeface("Consolas,SF Mono,Menlo,monospace", FontStyle.Normal, FontWeight.Bold),
             9.0 * Zoom,
             new SolidColorBrush(coreColor)
         );
@@ -668,8 +684,12 @@ public partial class CircuitCanvas
         var rect = new Rect(screenPt.X - w / 2.0, screenPt.Y - h / 2.0, w, h);
         float r = (float)(3.5 * Zoom);
 
-        var bgBrush = new SolidColorBrush(Color.FromArgb(235, 15, 23, 42));
-        var borderPen = new Pen(new SolidColorBrush(Color.FromArgb(60, 51, 65, 85)), 1.0 * Zoom);
+        var bgBrush = tokens.IsDark
+            ? new SolidColorBrush(Color.FromArgb(235, 15, 23, 42))
+            : new SolidColorBrush(Color.FromArgb(245, 255, 255, 255));
+        var borderPen = tokens.IsDark
+            ? new Pen(new SolidColorBrush(Color.FromArgb(60, 51, 65, 85)), 1.0 * Zoom)
+            : new Pen(new SolidColorBrush(Color.FromArgb(160, coreColor.R, coreColor.G, coreColor.B)), 1.0 * Zoom);
         context.DrawRectangle(bgBrush, borderPen, rect, r, r);
 
         context.DrawText(ft, new Point(rect.X + padX, rect.Y + padY));

@@ -701,18 +701,32 @@ public class OscilloscopeControl : Control
         double h = Bounds.Height;
         if (w <= 10 || h <= 10) return;
 
-        // Background: Deep dark CRT phosphor bezel with subtle gradient
-        var bgBrush = new LinearGradientBrush
-        {
-            StartPoint = new RelativePoint(0.5, 0, RelativeUnit.Relative),
-            EndPoint = new RelativePoint(0.5, 1, RelativeUnit.Relative),
-            GradientStops =
+        var tokens = CircuitThemeService.Instance.Tokens;
+
+        // Background: Laboratory instrument surface in light mode, deep dark CRT phosphor in dark mode
+        var bgBrush = tokens.IsDark
+            ? (IBrush)new LinearGradientBrush
             {
-                new GradientStop(Color.FromRgb(10, 18, 25), 0.0),
-                new GradientStop(Color.FromRgb(7, 12, 17), 0.5),
-                new GradientStop(Color.FromRgb(4, 8, 12), 1.0)
+                StartPoint = new RelativePoint(0.5, 0, RelativeUnit.Relative),
+                EndPoint = new RelativePoint(0.5, 1, RelativeUnit.Relative),
+                GradientStops =
+                {
+                    new GradientStop(Color.FromRgb(10, 18, 25), 0.0),
+                    new GradientStop(Color.FromRgb(7, 12, 17), 0.5),
+                    new GradientStop(Color.FromRgb(4, 8, 12), 1.0)
+                }
             }
-        };
+            : (IBrush)new LinearGradientBrush
+            {
+                StartPoint = new RelativePoint(0.5, 0, RelativeUnit.Relative),
+                EndPoint = new RelativePoint(0.5, 1, RelativeUnit.Relative),
+                GradientStops =
+                {
+                    new GradientStop(Color.FromRgb(248, 250, 252), 0.0),
+                    new GradientStop(Color.FromRgb(241, 245, 249), 0.5),
+                    new GradientStop(Color.FromRgb(226, 232, 240), 1.0)
+                }
+            };
         context.FillRectangle(bgBrush, new Rect(0, 0, w, h));
 
         // Compute toolbar action buttons
@@ -1055,7 +1069,9 @@ public class OscilloscopeControl : Control
 
         var tokens = CircuitThemeService.Instance.Tokens;
         var gridPen = new Pen(tokens.ScopeGridBrush, 0.8);
-        var dividerPen = new Pen(new SolidColorBrush(Color.FromArgb(90, 40, 60, 85)), 1.2);
+        var dividerPen = tokens.IsDark
+            ? new Pen(new SolidColorBrush(Color.FromArgb(90, 40, 60, 85)), 1.2)
+            : new Pen(new SolidColorBrush(Color.FromArgb(160, 203, 213, 225)), 1.2);
 
         _groundTabRects.Clear();
 
@@ -1069,7 +1085,10 @@ public class OscilloscopeControl : Control
             // Pane background separation
             if (k % 2 == 1)
             {
-                context.FillRectangle(new SolidColorBrush(Color.FromArgb(25, 255, 255, 255)), new Rect(0, paneTop, w, paneH));
+                var altBg = tokens.IsDark
+                    ? Color.FromArgb(25, 255, 255, 255)
+                    : Color.FromArgb(15, 15, 23, 42);
+                context.FillRectangle(new SolidColorBrush(altBg), new Rect(0, paneTop, w, paneH));
             }
 
             // Divider between panes
@@ -1291,10 +1310,15 @@ public class OscilloscopeControl : Control
 
     private void RenderHeaderBannerAndBadges(DrawingContext context, double w, double headerH)
     {
+        var tokens = CircuitThemeService.Instance.Tokens;
+        bool isDark = tokens.IsDark;
+
         // Top HUD Header Banner
         var headerRect = new Rect(0, 0, w, headerH);
-        context.FillRectangle(new SolidColorBrush(Color.FromArgb(235, 10, 16, 24)), headerRect);
-        context.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(80, 28, 44, 62)), 1), new Point(0, headerH), new Point(w, headerH));
+        var headerBg = isDark ? Color.FromArgb(235, 10, 16, 24) : Color.FromArgb(245, 255, 255, 255);
+        var headerBorder = isDark ? Color.FromArgb(80, 28, 44, 62) : Color.FromArgb(180, 226, 232, 240);
+        context.FillRectangle(new SolidColorBrush(headerBg), headerRect);
+        context.DrawLine(new Pen(new SolidColorBrush(headerBorder), 1), new Point(0, headerH), new Point(w, headerH));
 
         // Channel readout badges inside Top HUD Header
         _traceBadgeRects.Clear();
@@ -1311,7 +1335,9 @@ public class OscilloscopeControl : Control
                 ? $"{trace.Name}: {curFormatted} (Pk: {peakFormatted})"
                 : $"{trace.Name}: [MUTED]";
 
-            var badgeColor = trace.IsVisible ? trace.Color : Color.FromArgb(120, trace.Color.R, trace.Color.G, trace.Color.B);
+            var badgeColor = trace.IsVisible
+                ? trace.Color
+                : (isDark ? Color.FromArgb(120, trace.Color.R, trace.Color.G, trace.Color.B) : Color.FromArgb(140, 148, 163, 184));
             var labelText = new FormattedText(
                 readout,
                 CultureInfo.InvariantCulture,
@@ -1324,10 +1350,12 @@ public class OscilloscopeControl : Control
             var badgeRect = new Rect(textX - 3, 3, labelText.Width + 6, 20);
             _traceBadgeRects.Add(badgeRect);
 
-            var bgBrush = trace.IsVisible
-                ? new SolidColorBrush(Color.FromArgb(200, 16, 24, 34))
-                : new SolidColorBrush(Color.FromArgb(140, 10, 14, 20));
-            var borderBrush = new SolidColorBrush(Color.FromArgb(50, 51, 65, 85));
+            var bgBrush = isDark
+                ? (trace.IsVisible ? new SolidColorBrush(Color.FromArgb(200, 16, 24, 34)) : new SolidColorBrush(Color.FromArgb(140, 10, 14, 20)))
+                : (trace.IsVisible ? new SolidColorBrush(Color.FromArgb(245, 248, 250, 252)) : new SolidColorBrush(Color.FromArgb(200, 241, 245, 249)));
+            var borderBrush = isDark
+                ? new SolidColorBrush(Color.FromArgb(50, 51, 65, 85))
+                : new SolidColorBrush(Color.FromArgb(180, 203, 213, 225));
 
             context.FillRectangle(bgBrush, badgeRect, 4);
             context.DrawRectangle(new Pen(borderBrush, 1), badgeRect, 4);
@@ -1341,13 +1369,14 @@ public class OscilloscopeControl : Control
         if (textX + 20 < w - statusW)
         {
             string timeStr = TimebaseZoom != 1.0 ? $"TIME: {TimebaseMs * 10.0 / TimebaseZoom:F1}ms ({TimebaseZoom:F1}x)" : $"TIME: {TimebaseMs * 10.0:F1}ms";
+            var statusTextColor = isDark ? Color.FromArgb(160, 148, 163, 184) : Color.FromRgb(100, 116, 139);
             var ftStatus = new FormattedText(
                 $"{timeStr}  •  TRIG: {TriggerSettings.Mode.ToString().ToUpperInvariant()}",
                 CultureInfo.InvariantCulture,
                 FlowDirection.LeftToRight,
                 new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold),
                 9.0,
-                new SolidColorBrush(Color.FromArgb(160, 148, 163, 184))
+                new SolidColorBrush(statusTextColor)
             );
             context.DrawText(ftStatus, new Point(w - ftStatus.Width - 12, 6));
         }
@@ -1355,6 +1384,9 @@ public class OscilloscopeControl : Control
 
     private void RenderLeftVoltageScale(DrawingContext context, double marginL, double headerH, double h, double centerY)
     {
+        var tokens = CircuitThemeService.Instance.Tokens;
+        bool isDark = tokens.IsDark;
+
         var trace = Channels.FirstOrDefault(t => t.ChannelIndex == ActiveChannelIndex)
                     ?? Channels.FirstOrDefault(t => t.IsVisible && t.Samples.Count >= 2)
                     ?? Channels.FirstOrDefault(t => t.Samples.Count >= 2);
@@ -1366,9 +1398,15 @@ public class OscilloscopeControl : Control
         double offsetPx = trace.VerticalOffsetDivs * divY;
         double effectiveCenterY = centerY - offsetPx;
 
-        var marginBg = new SolidColorBrush(Color.FromArgb(140, 8, 12, 18));
+        var marginBg = isDark
+            ? new SolidColorBrush(Color.FromArgb(140, 8, 12, 18))
+            : new SolidColorBrush(Color.FromArgb(210, 248, 250, 252));
+        var marginBorder = isDark
+            ? new SolidColorBrush(Color.FromArgb(50, 40, 60, 85))
+            : new SolidColorBrush(Color.FromArgb(160, 203, 213, 225));
+
         context.FillRectangle(marginBg, new Rect(0, headerH, marginL, h - headerH));
-        context.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(50, 40, 60, 85)), 1), new Point(marginL, headerH), new Point(marginL, h));
+        context.DrawLine(new Pen(marginBorder, 1), new Point(marginL, headerH), new Point(marginL, h));
 
         // Draw ticks aligned to each vertical graticule division line (-4 to +4 from ground)
         for (int div = -4; div <= 4; div++)
@@ -1377,17 +1415,23 @@ public class OscilloscopeControl : Control
             if (yPos >= headerH + 2 && yPos <= h - 4)
             {
                 double vLevel = div * vPerDiv;
-                var tickPen = new Pen(new SolidColorBrush(Color.FromArgb(140, trace.Color.R, trace.Color.G, trace.Color.B)), 1.2);
+                var tickColor = isDark
+                    ? Color.FromArgb(140, trace.Color.R, trace.Color.G, trace.Color.B)
+                    : Color.FromArgb(180, trace.Color.R, trace.Color.G, trace.Color.B);
+                var tickPen = new Pen(new SolidColorBrush(tickColor), 1.2);
                 context.DrawLine(tickPen, new Point(marginL - 4, yPos), new Point(marginL, yPos));
 
                 string vStr = FormatTraceValue(vLevel, trace.Unit);
+                var textBrush = isDark
+                    ? new SolidColorBrush(Color.FromArgb(220, trace.Color.R, trace.Color.G, trace.Color.B))
+                    : new SolidColorBrush(trace.Color);
                 var ft = new FormattedText(
                     vStr,
                     CultureInfo.InvariantCulture,
                     FlowDirection.LeftToRight,
                     new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold),
                     8.5,
-                    new SolidColorBrush(Color.FromArgb(220, trace.Color.R, trace.Color.G, trace.Color.B))
+                    textBrush
                 );
                 double textY = Math.Clamp(yPos - ft.Height / 2.0, headerH + 1, h - ft.Height - 2);
                 context.DrawText(ft, new Point(Math.Max(2, marginL - 6 - ft.Width), textY));
@@ -1397,6 +1441,9 @@ public class OscilloscopeControl : Control
 
     private void RenderStatsRibbon(DrawingContext context, double w, double h)
     {
+        var tokens = CircuitThemeService.Instance.Tokens;
+        bool isDark = tokens.IsDark;
+
         var trace = Channels.FirstOrDefault(t => t.Samples.Count >= 2 && t.IsVisible) ?? Channels.FirstOrDefault(t => t.Samples.Count >= 2);
         if (trace == null) return;
 
@@ -1462,6 +1509,13 @@ public class OscilloscopeControl : Control
         double totalW = 20.0;
         var formattedSegments = new List<(FormattedText LabelFt, FormattedText ValFt, double SegW)>();
 
+        var labelBrush = isDark
+            ? new SolidColorBrush(Color.FromRgb(0, 240, 255))
+            : new SolidColorBrush(Color.FromRgb(2, 132, 199));
+        IBrush valBrush = isDark
+            ? Brushes.White
+            : new SolidColorBrush(Color.FromRgb(15, 23, 42));
+
         foreach (var (lbl, val) in metrics)
         {
             var lFt = new FormattedText(
@@ -1470,7 +1524,7 @@ public class OscilloscopeControl : Control
                 FlowDirection.LeftToRight,
                 new Typeface("Inter", FontStyle.Normal, FontWeight.Bold),
                 8.0,
-                new SolidColorBrush(Color.FromRgb(0, 240, 255))
+                labelBrush
             );
             var vFt = new FormattedText(
                 val,
@@ -1478,7 +1532,7 @@ public class OscilloscopeControl : Control
                 FlowDirection.LeftToRight,
                 new Typeface("Consolas,SF Mono,Menlo,monospace", FontStyle.Normal, FontWeight.Bold),
                 9.5,
-                Brushes.White
+                valBrush
             );
             double segW = lFt.Width + 4 + vFt.Width + 12;
             formattedSegments.Add((lFt, vFt, segW));
@@ -1486,8 +1540,15 @@ public class OscilloscopeControl : Control
         }
 
         var ribbonRect = new Rect(curX, boxY, totalW, boxH);
-        context.FillRectangle(new SolidColorBrush(Color.FromArgb(230, 9, 14, 22)), ribbonRect, 4);
-        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(90, trace.Color.R, trace.Color.G, trace.Color.B)), 1), ribbonRect, 4);
+        var ribbonBg = isDark
+            ? new SolidColorBrush(Color.FromArgb(230, 9, 14, 22))
+            : new SolidColorBrush(Color.FromArgb(245, 255, 255, 255));
+        var ribbonBorder = isDark
+            ? new SolidColorBrush(Color.FromArgb(90, trace.Color.R, trace.Color.G, trace.Color.B))
+            : new SolidColorBrush(Color.FromArgb(160, 203, 213, 225));
+
+        context.FillRectangle(ribbonBg, ribbonRect, 4);
+        context.DrawRectangle(new Pen(ribbonBorder, 1), ribbonRect, 4);
 
         double dotR = 3.5;
         var dotCenter = new Point(curX + 8 + dotR, boxY + boxH / 2.0);
@@ -1503,7 +1564,9 @@ public class OscilloscopeControl : Control
             segX += segW;
             if (i < formattedSegments.Count - 1)
             {
-                var sepPen = new Pen(new SolidColorBrush(Color.FromArgb(35, 255, 255, 255)), 1);
+                var sepPen = isDark
+                    ? new Pen(new SolidColorBrush(Color.FromArgb(35, 255, 255, 255)), 1)
+                    : new Pen(new SolidColorBrush(Color.FromArgb(160, 226, 232, 240)), 1);
                 context.DrawLine(sepPen, new Point(segX - 6, boxY + 4), new Point(segX - 6, boxY + boxH - 4));
             }
         }
@@ -1511,6 +1574,9 @@ public class OscilloscopeControl : Control
 
     private void RenderMeasurementCursorLines(DrawingContext context, double w, double h, double headerH)
     {
+        var tokens = CircuitThemeService.Instance.Tokens;
+        bool isDark = tokens.IsDark;
+
         double x1 = Cursor1X * w;
         double x2 = Cursor2X * w;
 
@@ -1543,44 +1609,63 @@ public class OscilloscopeControl : Control
         string cursorInfo = $"X1: {t1:F2}ms | X2: {t2:F2}ms | ΔX: {dt:F2}ms ({fStr}) | {ch1Label}: {dv1Str}";
 
         double dumbbellY = h - 42.0;
-        var barPen = new Pen(new SolidColorBrush(Color.FromArgb(200, 255, 255, 255)), 1.5);
+        var barPen = isDark
+            ? new Pen(new SolidColorBrush(Color.FromArgb(200, 255, 255, 255)), 1.5)
+            : new Pen(new SolidColorBrush(Color.FromArgb(200, 71, 85, 105)), 1.5);
         double leftX = Math.Min(x1, x2);
         double rightX = Math.Max(x1, x2);
         context.DrawLine(barPen, new Point(leftX, dumbbellY), new Point(rightX, dumbbellY));
 
-        context.DrawEllipse(new SolidColorBrush(Colors.White), null, new Point(leftX, dumbbellY), 4.0, 4.0);
-        context.DrawEllipse(new SolidColorBrush(Colors.White), null, new Point(rightX, dumbbellY), 4.0, 4.0);
+        IBrush circleBrush = isDark ? Brushes.White : new SolidColorBrush(Color.FromRgb(71, 85, 105));
+        context.DrawEllipse(circleBrush, null, new Point(leftX, dumbbellY), 4.0, 4.0);
+        context.DrawEllipse(circleBrush, null, new Point(rightX, dumbbellY), 4.0, 4.0);
 
         string dtLabel = dt >= 1.0 ? $"{dt:F1} ms Δ" : $"{dt * 1000.0:F0} µs Δ";
+        IBrush dtTextBrush = isDark ? Brushes.White : new SolidColorBrush(Color.FromRgb(15, 23, 42));
         var ftDt = new FormattedText(
             dtLabel,
             CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
             new Typeface("Inter", FontStyle.Normal, FontWeight.Bold),
             9.5,
-            Brushes.White
+            dtTextBrush
         );
         double pillW = ftDt.Width + 14;
         double pillH = 16.0;
         double pillX = (leftX + rightX) / 2.0 - pillW / 2.0;
         double pillY = dumbbellY - pillH / 2.0;
         var pillRect = new Rect(pillX, pillY, pillW, pillH);
-        context.FillRectangle(new SolidColorBrush(Color.FromArgb(235, 12, 18, 26)), pillRect, 8);
-        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(70, 51, 65, 85)), 1), pillRect, 8);
+        var pillBg = isDark
+            ? new SolidColorBrush(Color.FromArgb(235, 12, 18, 26))
+            : new SolidColorBrush(Color.FromArgb(245, 255, 255, 255));
+        var pillBorder = isDark
+            ? new SolidColorBrush(Color.FromArgb(70, 51, 65, 85))
+            : new SolidColorBrush(Color.FromArgb(160, 203, 213, 225));
+        context.FillRectangle(pillBg, pillRect, 8);
+        context.DrawRectangle(new Pen(pillBorder, 1), pillRect, 8);
         context.DrawText(ftDt, new Point(pillX + 7, pillY + 1.5));
 
+        var infoBrush = isDark
+            ? new SolidColorBrush(Color.FromRgb(226, 232, 240))
+            : new SolidColorBrush(Color.FromRgb(15, 23, 42));
         var ft = new FormattedText(
             cursorInfo,
             CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
             new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold),
             10.0,
-            new SolidColorBrush(Color.FromRgb(226, 232, 240))
+            infoBrush
         );
 
         var box = new Rect(w / 2.0 - ft.Width / 2.0 - 8, h - 22, ft.Width + 16, 18);
-        context.FillRectangle(new SolidColorBrush(Color.FromArgb(235, 12, 18, 26)), box, 4);
-        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(60, 51, 65, 85)), 1), box, 4);
+        var boxBg = isDark
+            ? new SolidColorBrush(Color.FromArgb(235, 12, 18, 26))
+            : new SolidColorBrush(Color.FromArgb(245, 255, 255, 255));
+        var boxBorder = isDark
+            ? new SolidColorBrush(Color.FromArgb(60, 51, 65, 85))
+            : new SolidColorBrush(Color.FromArgb(160, 203, 213, 225));
+        context.FillRectangle(boxBg, box, 4);
+        context.DrawRectangle(new Pen(boxBorder, 1), box, 4);
         context.DrawText(ft, new Point(w / 2.0 - ft.Width / 2.0, h - 20));
     }
 
@@ -1724,18 +1809,37 @@ public class OscilloscopeControl : Control
 
     private void DrawToolButton(DrawingContext context, Rect rect, string label, bool isActive)
     {
+        var tokens = CircuitThemeService.Instance.Tokens;
+        bool isDark = tokens.IsDark;
+
+        Color textColor;
+        Color bgColor;
+        Color borderColor;
+
+        if (isDark)
+        {
+            textColor = isActive ? Color.FromRgb(56, 189, 248) : Color.FromRgb(148, 163, 184);
+            bgColor = isActive ? Color.FromArgb(220, 30, 41, 59) : Color.FromArgb(200, 15, 23, 42);
+            borderColor = Color.FromArgb(70, 51, 65, 85);
+        }
+        else
+        {
+            textColor = isActive ? Color.FromRgb(2, 132, 199) : Color.FromRgb(71, 85, 105);
+            bgColor = isActive ? Color.FromArgb(240, 224, 242, 254) : Color.FromArgb(240, 255, 255, 255);
+            borderColor = isActive ? Color.FromArgb(180, 56, 189, 248) : Color.FromArgb(180, 203, 213, 225);
+        }
+
         var ft = new FormattedText(
             label,
             CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
             new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold),
             9.5,
-            new SolidColorBrush(isActive ? Color.FromRgb(56, 189, 248) : Color.FromRgb(148, 163, 184))
+            new SolidColorBrush(textColor)
         );
 
-        var bg = isActive ? Color.FromArgb(220, 30, 41, 59) : Color.FromArgb(200, 15, 23, 42);
-        context.FillRectangle(new SolidColorBrush(bg), rect, 4);
-        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(70, 51, 65, 85)), 1), rect, 4);
+        context.FillRectangle(new SolidColorBrush(bgColor), rect, 4);
+        context.DrawRectangle(new Pen(new SolidColorBrush(borderColor), 1), rect, 4);
         context.DrawText(ft, new Point(rect.X + (rect.Width - ft.Width) / 2.0, rect.Y + (rect.Height - ft.Height) / 2.0));
     }
 

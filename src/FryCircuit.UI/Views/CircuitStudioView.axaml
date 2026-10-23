@@ -1031,12 +1031,12 @@
                 <Border Grid.RowSpan="2" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,24"
                         ZIndex="200"
                         IsVisible="{Binding IsAiActivityVisible}"
-                        Background="#F011151E"
+                        Background="{DynamicResource CircuitSurfaceBrush}"
                         BorderBrush="{DynamicResource CircuitSecondaryBrush}"
                         BorderThickness="1.5"
                         CornerRadius="12"
                         Padding="14,10,14,10"
-                        BoxShadow="0 10 36 0 #80000000">
+                        BoxShadow="0 10 36 0 #40000000">
                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" VerticalAlignment="Center">
                         <!-- Left: Glowing AI Badge with Icon -->
                         <Border Grid.Column="0" Width="36" Height="36" CornerRadius="18"

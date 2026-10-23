@@ -64,6 +64,7 @@ public class RotaryKnobControl : Control
     {
         ClipToBounds = false;
         Cursor = new Cursor(StandardCursorType.Hand);
+        FryCircuit.UI.Theming.CircuitThemeService.Instance.TokensChanged += _ => InvalidateVisual();
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
@@ -151,6 +152,9 @@ public class RotaryKnobControl : Control
         double size = Math.Min(w, h);
         if (size <= 10) return;
 
+        var tokens = FryCircuit.UI.Theming.CircuitThemeService.Instance.Tokens;
+        bool isDark = tokens.IsDark;
+
         var center = new Point(w / 2.0, (h / 2.0) - 6);
         double radius = (size / 2.0) - 16;
 
@@ -176,18 +180,29 @@ public class RotaryKnobControl : Control
         double rad = currentAngle * Math.PI / 180.0;
 
         // 1. Outer Bezel Glow & Metallic Housing Rim
-        context.DrawEllipse(new SolidColorBrush(Color.FromArgb(20, 0, 240, 255)), null, center, radius + 11, radius + 11);
+        var glowBrush = isDark
+            ? new SolidColorBrush(Color.FromArgb(20, 0, 240, 255))
+            : new SolidColorBrush(Color.FromArgb(25, 2, 132, 199));
+        context.DrawEllipse(glowBrush, null, center, radius + 11, radius + 11);
+
         var bezelBrush = new LinearGradientBrush
         {
             StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
             EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative),
-            GradientStops =
-            {
-                new GradientStop(Color.FromRgb(28, 38, 54), 0.0),
-                new GradientStop(Color.FromRgb(14, 18, 26), 1.0)
-            }
+            GradientStops = isDark
+                ? new GradientStops
+                {
+                    new GradientStop(Color.FromRgb(28, 38, 54), 0.0),
+                    new GradientStop(Color.FromRgb(14, 18, 26), 1.0)
+                }
+                : new GradientStops
+                {
+                    new GradientStop(Color.FromRgb(241, 245, 249), 0.0),
+                    new GradientStop(Color.FromRgb(226, 232, 240), 1.0)
+                }
         };
-        var bezelBorder = new Pen(new SolidColorBrush(Color.FromRgb(40, 54, 75)), 1.2);
+        var bezelBorderColor = isDark ? Color.FromRgb(40, 54, 75) : Color.FromRgb(203, 213, 225);
+        var bezelBorder = new Pen(new SolidColorBrush(bezelBorderColor), 1.2);
         context.DrawEllipse(bezelBrush, bezelBorder, center, radius + 9, radius + 9);
 
         // 2. Knurled calibration ticks around perimeter (Major & Minor)
@@ -197,9 +212,19 @@ public class RotaryKnobControl : Control
             bool isMajor = (i % 3 == 0);
             double r1 = radius + 3;
             double r2 = isMajor ? (radius + 8) : (radius + 5.5);
-            var tickColor = isMajor 
-                ? (notchAngle <= rad ? Color.FromRgb(56, 189, 248) : Color.FromArgb(160, 100, 116, 139))
-                : Color.FromArgb(80, 71, 85, 105);
+            Color tickColor;
+            if (isDark)
+            {
+                tickColor = isMajor
+                    ? (notchAngle <= rad ? Color.FromRgb(56, 189, 248) : Color.FromArgb(160, 100, 116, 139))
+                    : Color.FromArgb(80, 71, 85, 105);
+            }
+            else
+            {
+                tickColor = isMajor
+                    ? (notchAngle <= rad ? Color.FromRgb(2, 132, 199) : Color.FromArgb(180, 148, 163, 184))
+                    : Color.FromArgb(120, 203, 213, 225);
+            }
             var notchPen = new Pen(new SolidColorBrush(tickColor), isMajor ? 1.4 : 1.0);
             context.DrawLine(notchPen, 
                 new Point(center.X + r1 * Math.Cos(notchAngle), center.Y + r1 * Math.Sin(notchAngle)),
@@ -207,7 +232,8 @@ public class RotaryKnobControl : Control
         }
 
         // 3. Outer track background arc (Deep slot groove)
-        var trackPen = new Pen(new SolidColorBrush(Color.FromRgb(15, 23, 42)), 6)
+        var trackColor = isDark ? Color.FromRgb(15, 23, 42) : Color.FromRgb(226, 232, 240);
+        var trackPen = new Pen(new SolidColorBrush(trackColor), 6)
         {
             LineCap = PenLineCap.Round
         };
@@ -222,14 +248,17 @@ public class RotaryKnobControl : Control
         }
         context.DrawGeometry(null, trackPen, trackGeom);
 
-        // 4. Glowing active progress arc (Dual-pass refined cyan glow)
+        // 4. Glowing active progress arc (Dual-pass refined cyan/blue glow)
         if (sweepAngle > 2.0)
         {
-            var glowArcPen = new Pen(new SolidColorBrush(Color.FromArgb(40, 56, 189, 248)), 8)
+            var glowArcColor = isDark ? Color.FromArgb(40, 56, 189, 248) : Color.FromArgb(40, 2, 132, 199);
+            var activeArcColor = isDark ? Color.FromRgb(56, 189, 248) : Color.FromRgb(2, 132, 199);
+
+            var glowArcPen = new Pen(new SolidColorBrush(glowArcColor), 8)
             {
                 LineCap = PenLineCap.Round
             };
-            var activeArcPen = new Pen(new SolidColorBrush(Color.FromRgb(56, 189, 248)), 4.0)
+            var activeArcPen = new Pen(new SolidColorBrush(activeArcColor), 4.0)
             {
                 LineCap = PenLineCap.Round
             };
@@ -250,28 +279,39 @@ public class RotaryKnobControl : Control
         {
             StartPoint = new RelativePoint(0.1, 0.1, RelativeUnit.Relative),
             EndPoint = new RelativePoint(0.9, 0.9, RelativeUnit.Relative),
-            GradientStops =
-            {
-                new GradientStop(Color.FromRgb(30, 41, 59), 0.0),
-                new GradientStop(Color.FromRgb(15, 23, 42), 0.5),
-                new GradientStop(Color.FromRgb(11, 17, 32), 1.0)
-            }
+            GradientStops = isDark
+                ? new GradientStops
+                {
+                    new GradientStop(Color.FromRgb(30, 41, 59), 0.0),
+                    new GradientStop(Color.FromRgb(15, 23, 42), 0.5),
+                    new GradientStop(Color.FromRgb(11, 17, 32), 1.0)
+                }
+                : new GradientStops
+                {
+                    new GradientStop(Color.FromRgb(248, 250, 252), 0.0),
+                    new GradientStop(Color.FromRgb(241, 245, 249), 0.5),
+                    new GradientStop(Color.FromRgb(226, 232, 240), 1.0)
+                }
         };
-        var knobBorder = new Pen(new SolidColorBrush(Color.FromRgb(51, 65, 85)), 1.5);
+        var knobBorderColor = isDark ? Color.FromRgb(51, 65, 85) : Color.FromRgb(203, 213, 225);
+        var knobBorder = new Pen(new SolidColorBrush(knobBorderColor), 1.5);
         context.DrawEllipse(knobBrush, knobBorder, center, radius - 6, radius - 6);
 
         // Precision concentric chamfer ring
-        var chamferPen = new Pen(new SolidColorBrush(Color.FromArgb(30, 56, 189, 248)), 1);
+        var chamferColor = isDark ? Color.FromArgb(30, 56, 189, 248) : Color.FromArgb(60, 2, 132, 199);
+        var chamferPen = new Pen(new SolidColorBrush(chamferColor), 1);
         context.DrawEllipse(null, chamferPen, center, radius - 11, radius - 11);
 
         // 6. Illuminated Radial Indicator Pointer Notch
         double needleInnerR = radius - 15;
         double needleOuterR = radius - 7;
-        var needlePenGlow = new Pen(new SolidColorBrush(Color.FromArgb(80, 56, 189, 248)), 4)
+        var needleGlowColor = isDark ? Color.FromArgb(80, 56, 189, 248) : Color.FromArgb(50, 2, 132, 199);
+        var needleCoreColor = isDark ? Color.FromRgb(125, 211, 252) : Color.FromRgb(2, 132, 199);
+        var needlePenGlow = new Pen(new SolidColorBrush(needleGlowColor), 4)
         {
             LineCap = PenLineCap.Round
         };
-        var needlePenCore = new Pen(new SolidColorBrush(Color.FromRgb(125, 211, 252)), 2.2)
+        var needlePenCore = new Pen(new SolidColorBrush(needleCoreColor), 2.2)
         {
             LineCap = PenLineCap.Round
         };
@@ -281,37 +321,46 @@ public class RotaryKnobControl : Control
         context.DrawLine(needlePenCore, ptInner, ptOuter);
 
         // Glowing indicator pip at the needle tip
-        context.DrawEllipse(new SolidColorBrush(Color.FromArgb(140, 56, 189, 248)), null, ptOuter, 3.8, 3.8);
+        var pipGlowColor = isDark ? Color.FromArgb(140, 56, 189, 248) : Color.FromArgb(140, 2, 132, 199);
+        context.DrawEllipse(new SolidColorBrush(pipGlowColor), null, ptOuter, 3.8, 3.8);
         context.DrawEllipse(new SolidColorBrush(Color.FromRgb(255, 255, 255)), null, ptOuter, 1.8, 1.8);
 
         // 7. Formatted value string in center (High-tech digital HUD pill)
         string formattedValue = FormatValue(Value, Unit);
+        IBrush valueTextColor = isDark ? Brushes.White : new SolidColorBrush(Color.FromRgb(15, 23, 42));
         var valueText = new FormattedText(
             formattedValue,
             System.Globalization.CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
             new Typeface("Consolas,SF Mono,Menlo,monospace", FontStyle.Normal, FontWeight.Bold),
             11.5,
-            Brushes.White
+            valueTextColor
         );
 
         double pillW = Math.Max(valueText.Width + 10, 48);
         double pillH = valueText.Height + 5;
         var pillRect = new Rect(center.X - pillW / 2.0, center.Y - pillH / 2.0, pillW, pillH);
-        context.FillRectangle(new SolidColorBrush(Color.FromArgb(220, 11, 15, 22)), pillRect, 4);
-        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(80, 0, 240, 255)), 1), pillRect, 4);
+        var pillBg = isDark
+            ? new SolidColorBrush(Color.FromArgb(220, 11, 15, 22))
+            : new SolidColorBrush(Color.FromArgb(245, 255, 255, 255));
+        var pillBorder = isDark
+            ? new SolidColorBrush(Color.FromArgb(80, 0, 240, 255))
+            : new SolidColorBrush(Color.FromArgb(180, 203, 213, 225));
+        context.FillRectangle(pillBg, pillRect, 4);
+        context.DrawRectangle(new Pen(pillBorder, 1), pillRect, 4);
         context.DrawText(valueText, new Point(center.X - valueText.Width / 2.0, center.Y - valueText.Height / 2.0));
 
         // 8. Label below
         if (!string.IsNullOrWhiteSpace(Label))
         {
+            var labelTextColor = isDark ? Color.FromRgb(135, 155, 180) : Color.FromRgb(71, 85, 105);
             var labelText = new FormattedText(
                 Label.ToUpperInvariant(),
                 System.Globalization.CultureInfo.InvariantCulture,
                 FlowDirection.LeftToRight,
                 new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold),
                 9.0,
-                new SolidColorBrush(Color.FromRgb(135, 155, 180))
+                new SolidColorBrush(labelTextColor)
             );
             context.DrawText(labelText, new Point(center.X - labelText.Width / 2.0, center.Y + radius + 4));
         }

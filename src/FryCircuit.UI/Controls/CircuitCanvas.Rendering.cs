@@ -59,8 +59,10 @@ public partial class CircuitCanvas
     {
         if (Circuit == null) return;
 
+        var tokens = FryCircuit.UI.Theming.CircuitThemeService.Instance.Tokens;
         var renderCtx = new DeviceRenderContext
         {
+            Tokens = tokens,
             Zoom = Zoom,
             GridSize = GridSize,
             IsPlacingGhost = false
@@ -90,6 +92,7 @@ public partial class CircuitCanvas
                 // Render core device shape
                 var devCtx = new DeviceRenderContext
                 {
+                    Tokens = tokens,
                     Zoom = Zoom,
                     GridSize = GridSize,
                     IsPlacingGhost = false,
@@ -104,7 +107,7 @@ public partial class CircuitCanvas
             string label = GetDeviceLabel(dev);
             if (!string.IsNullOrEmpty(label))
             {
-                Color labelTextColor = Color.FromRgb(220, 235, 255);
+                Color labelTextColor = tokens.IsDark ? Color.FromRgb(220, 235, 255) : Color.FromRgb(15, 23, 42);
                 if (dev is LedDevice ledDev)
                 {
                     try { labelTextColor = Color.Parse(ledDev.ColorHex); } catch { }
@@ -147,7 +150,13 @@ public partial class CircuitCanvas
                 }
 
                 var badgeRect = new Rect(labelX - 4 * Zoom, labelY - 2 * Zoom, ft.Width + 8 * Zoom, ft.Height + 4 * Zoom);
-                context.DrawRectangle(new SolidColorBrush(Color.FromArgb(220, 12, 16, 24)), new Pen(new SolidColorBrush(Color.FromArgb(50, 100, 150, 200)), 0.8), badgeRect, 4, 4);
+                var badgeBg = tokens.IsDark
+                    ? new SolidColorBrush(Color.FromArgb(220, 12, 16, 24))
+                    : new SolidColorBrush(Color.FromArgb(245, 255, 255, 255));
+                var badgeBorder = tokens.IsDark
+                    ? new Pen(new SolidColorBrush(Color.FromArgb(50, 100, 150, 200)), 0.8)
+                    : new Pen(new SolidColorBrush(Color.FromArgb(180, 203, 213, 225)), 1.0);
+                context.DrawRectangle(badgeBg, badgeBorder, badgeRect, 4, 4);
                 context.DrawText(ft, new Point(labelX, labelY));
             }
         }
@@ -232,8 +241,10 @@ public partial class CircuitCanvas
             context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromRgb(244, 63, 94)), 1.5 * Zoom) { DashStyle = DashStyle.Dash }, cRect, (float)(4 * Zoom));
         }
 
+        var tokens = FryCircuit.UI.Theming.CircuitThemeService.Instance.Tokens;
         var renderCtx = new DeviceRenderContext
         {
+            Tokens = tokens,
             Zoom = Zoom,
             GridSize = GridSize,
             IsPlacingGhost = true,
@@ -252,7 +263,7 @@ public partial class CircuitCanvas
         // Snapped grid target ring & crosshair ticks
         var ringColor = _isPlacementCollision
             ? Color.FromRgb(244, 63, 94) // Crimson warning red
-            : Color.FromArgb(120, 56, 189, 248); // Cyan
+            : (tokens.IsDark ? Color.FromArgb(120, 56, 189, 248) : Color.FromArgb(180, 0, 136, 204));
 
         var ghostRingPen = new Pen(new SolidColorBrush(ringColor), 1.3)
         {
@@ -286,9 +297,9 @@ public partial class CircuitCanvas
         else
         {
             hudText = $"X: {_placementCursorPos.Wx:F0}  Y: {_placementCursorPos.Wy:F0}  [R: {(int)_placementRotation}°]  •  Space: Rotate";
-            hudBg = Color.FromArgb(235, 15, 23, 42);
-            hudBorder = Color.FromArgb(100, 56, 189, 248);
-            hudTextCol = Color.FromRgb(56, 189, 248);
+            hudBg = tokens.IsDark ? Color.FromArgb(235, 15, 23, 42) : Color.FromArgb(245, 255, 255, 255);
+            hudBorder = tokens.IsDark ? Color.FromArgb(100, 56, 189, 248) : Color.FromArgb(180, 0, 136, 204);
+            hudTextCol = tokens.IsDark ? Color.FromRgb(56, 189, 248) : Color.FromRgb(0, 136, 204);
         }
 
         var ftHud = new FormattedText(
@@ -393,13 +404,17 @@ public partial class CircuitCanvas
         string title = $"{pinInfo.Device.Type.ToUpperInvariant()} #{pinInfo.Device.Id} • Pin {pinInfo.PinIndex}";
         string info = $"Node #{nodeId} | V = {vStr}";
 
+        var tokens = FryCircuit.UI.Theming.CircuitThemeService.Instance.Tokens;
+        Color titleColor = tokens.IsDark ? Color.FromRgb(56, 189, 248) : Color.FromRgb(0, 136, 204);
+        Color infoColor = tokens.IsDark ? Color.FromRgb(241, 245, 249) : Color.FromRgb(15, 23, 42);
+
         var ftTitle = new FormattedText(
             title,
             System.Globalization.CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
             new Typeface("Inter", FontStyle.Normal, FontWeight.Bold),
             10.0,
-            new SolidColorBrush(Color.FromRgb(56, 189, 248))
+            new SolidColorBrush(titleColor)
         );
         var ftInfo = new FormattedText(
             info,
@@ -407,7 +422,7 @@ public partial class CircuitCanvas
             FlowDirection.LeftToRight,
             new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold),
             9.5,
-            new SolidColorBrush(Color.FromRgb(241, 245, 249))
+            new SolidColorBrush(infoColor)
         );
 
         double boxW = Math.Max(ftTitle.Width, ftInfo.Width) + 16;
@@ -416,8 +431,15 @@ public partial class CircuitCanvas
         double boxY = screenPt.Y - boxH / 2.0;
 
         var tipRect = new Rect(boxX, boxY, boxW, boxH);
-        context.FillRectangle(new SolidColorBrush(Color.FromArgb(235, 15, 23, 42)), tipRect, 4);
-        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(100, 56, 189, 248)), 1), tipRect, 4);
+        var tipBg = tokens.IsDark
+            ? new SolidColorBrush(Color.FromArgb(235, 15, 23, 42))
+            : new SolidColorBrush(Color.FromArgb(245, 255, 255, 255));
+        var tipBorder = tokens.IsDark
+            ? new Pen(new SolidColorBrush(Color.FromArgb(100, 56, 189, 248)), 1)
+            : new Pen(new SolidColorBrush(Color.FromArgb(160, 0, 136, 204)), 1);
+
+        context.FillRectangle(tipBg, tipRect, 4);
+        context.DrawRectangle(tipBorder, tipRect, 4);
         context.DrawText(ftTitle, new Point(boxX + 8, boxY + 3));
         context.DrawText(ftInfo, new Point(boxX + 8, boxY + 5 + ftTitle.Height));
     }
@@ -426,8 +448,14 @@ public partial class CircuitCanvas
     {
         if (Circuit == null) return;
 
+        var tokens = FryCircuit.UI.Theming.CircuitThemeService.Instance.Tokens;
         double gx = Math.Round(_lastCursorWorldPos.Wx * 10.0) / 10.0;
         double gy = Math.Round(_lastCursorWorldPos.Wy * 10.0) / 10.0;
+
+        Color cadColor = tokens.IsDark ? Color.FromRgb(56, 189, 248) : Color.FromRgb(0, 136, 204);
+        Color coordColor = tokens.IsDark ? Color.FromRgb(241, 245, 249) : Color.FromRgb(15, 23, 42);
+        Color gridColor = tokens.IsDark ? Color.FromRgb(148, 163, 184) : Color.FromRgb(71, 85, 105);
+        Color statsColor = tokens.IsDark ? Color.FromRgb(100, 116, 139) : Color.FromRgb(100, 116, 139);
 
         var ftIcon = new FormattedText(
             "⚡ CAD",
@@ -435,7 +463,7 @@ public partial class CircuitCanvas
             FlowDirection.LeftToRight,
             new Typeface("Inter", FontStyle.Normal, FontWeight.Bold),
             9.5,
-            new SolidColorBrush(Color.FromRgb(56, 189, 248))
+            new SolidColorBrush(cadColor)
         );
 
         string coords = $"X {gx:F1}  Y {gy:F1}";
@@ -445,7 +473,7 @@ public partial class CircuitCanvas
             FlowDirection.LeftToRight,
             new Typeface("Consolas,SF Mono,Menlo,monospace", FontStyle.Normal, FontWeight.SemiBold),
             10.0,
-            new SolidColorBrush(Color.FromRgb(241, 245, 249))
+            new SolidColorBrush(coordColor)
         );
 
         string gridZoom = $"50 mil • {(int)(Zoom * 100)}%";
@@ -455,7 +483,7 @@ public partial class CircuitCanvas
             FlowDirection.LeftToRight,
             new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold),
             9.5,
-            new SolidColorBrush(Color.FromRgb(148, 163, 184))
+            new SolidColorBrush(gridColor)
         );
 
         string stats = $"DEV {Circuit.Devices.Count} • NODE {Circuit.Nodes.Count} • WIRE {Circuit.Wires.Count}";
@@ -465,7 +493,7 @@ public partial class CircuitCanvas
             FlowDirection.LeftToRight,
             new Typeface("Inter", FontStyle.Normal, FontWeight.Medium),
             9.5,
-            new SolidColorBrush(Color.FromRgb(100, 116, 139))
+            new SolidColorBrush(statsColor)
         );
 
         double padX = 10.0;
@@ -475,14 +503,22 @@ public partial class CircuitCanvas
 
         var hudRect = new Rect(12, 12, totalW, totalH);
         // Backdrop
-        context.FillRectangle(new SolidColorBrush(Color.FromArgb(235, 15, 23, 42)), hudRect, 6);
-        context.DrawRectangle(new Pen(new SolidColorBrush(Color.FromArgb(80, 51, 65, 85)), 1), hudRect, 6);
+        var hudBg = tokens.IsDark
+            ? new SolidColorBrush(Color.FromArgb(235, 15, 23, 42))
+            : new SolidColorBrush(Color.FromArgb(242, 255, 255, 255));
+        var hudBorder = tokens.IsDark
+            ? new Pen(new SolidColorBrush(Color.FromArgb(80, 51, 65, 85)), 1)
+            : new Pen(new SolidColorBrush(Color.FromArgb(180, 203, 213, 225)), 1);
+
+        context.FillRectangle(hudBg, hudRect, 6);
+        context.DrawRectangle(hudBorder, hudRect, 6);
 
         double curX = hudRect.X + padX;
         context.DrawText(ftIcon, new Point(curX, hudRect.Y + (totalH - ftIcon.Height) / 2.0));
         curX += ftIcon.Width + sepW / 2.0;
 
-        var sepPen = new Pen(new SolidColorBrush(Color.FromArgb(40, 148, 163, 184)), 1);
+        var sepColor = tokens.IsDark ? Color.FromArgb(40, 148, 163, 184) : Color.FromArgb(90, 203, 213, 225);
+        var sepPen = new Pen(new SolidColorBrush(sepColor), 1);
         context.DrawLine(sepPen, new Point(curX, hudRect.Y + 5), new Point(curX, hudRect.Y + totalH - 5));
         curX += sepW / 2.0;
 

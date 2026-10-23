@@ -37,28 +37,40 @@ public class FanRenderer : IDeviceRenderer
         // Outer Industrial Duct Frame (Rounded Square with corner mounting eyelets)
         double frameSize = radius * 1.9;
         var frameRect = new Rect(cx - frameSize / 2.0, cy - frameSize / 2.0, frameSize, frameSize);
-        var frameBrush = new SolidColorBrush(Color.FromArgb(235, 15, 23, 38));
-        var frameStrokePen = new Pen(renderContext.GetStrokeBrush(Color.FromRgb(56, 189, 248)), 1.8 * z);
+        var frameBrush = renderContext.IsDark
+            ? new SolidColorBrush(Color.FromArgb(235, 15, 23, 38))
+            : new SolidColorBrush(Color.FromArgb(245, 255, 255, 255));
+        var frameStrokePen = renderContext.GetStrokePen(1.8, Color.FromRgb(56, 189, 248), Color.FromRgb(2, 132, 199));
         context.DrawRectangle(frameBrush, frameStrokePen, frameRect, 6.0 * z, 6.0 * z);
 
         // 4 Corner Screw Eyelets
         double eyeletOff = frameSize * 0.38;
-        var eyeletPen = new Pen(new SolidColorBrush(Color.FromRgb(100, 116, 139)), 1.2 * z);
+        var eyeletPen = new Pen(new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(100, 116, 139) : Color.FromRgb(148, 163, 184)), 1.2 * z);
         context.DrawEllipse(null, eyeletPen, new Point(cx - eyeletOff, cy - eyeletOff), 2.2 * z, 2.2 * z);
         context.DrawEllipse(null, eyeletPen, new Point(cx + eyeletOff, cy - eyeletOff), 2.2 * z, 2.2 * z);
         context.DrawEllipse(null, eyeletPen, new Point(cx - eyeletOff, cy + eyeletOff), 2.2 * z, 2.2 * z);
         context.DrawEllipse(null, eyeletPen, new Point(cx + eyeletOff, cy + eyeletOff), 2.2 * z, 2.2 * z);
 
         // Circular Intake Duct Shroud
-        var shroudBrush = new RadialGradientBrush
-        {
-            GradientStops = new GradientStops
+        var shroudBrush = renderContext.IsDark
+            ? new RadialGradientBrush
             {
-                new GradientStop(Color.FromArgb(240, 24, 34, 52), 0.0),
-                new GradientStop(Color.FromArgb(255, 10, 15, 26), 1.0)
+                GradientStops = new GradientStops
+                {
+                    new GradientStop(Color.FromArgb(240, 24, 34, 52), 0.0),
+                    new GradientStop(Color.FromArgb(255, 10, 15, 26), 1.0)
+                }
             }
-        };
-        context.DrawEllipse(shroudBrush, new Pen(new SolidColorBrush(Color.FromArgb(160, 148, 163, 184)), 1.5 * z), center, radius, radius);
+            : new RadialGradientBrush
+            {
+                GradientStops = new GradientStops
+                {
+                    new GradientStop(Color.FromArgb(240, 248, 250, 252), 0.0),
+                    new GradientStop(Color.FromArgb(255, 226, 232, 240), 1.0)
+                }
+            };
+        var shroudPen = new Pen(new SolidColorBrush(renderContext.IsDark ? Color.FromArgb(160, 148, 163, 184) : Color.FromArgb(180, 203, 213, 225)), 1.5 * z);
+        context.DrawEllipse(shroudBrush, shroudPen, center, radius, radius);
 
         // Dynamic Spinning Impeller Blades (7 Aerodynamic Curved Blades)
         double angle = fan?.RotorAngleRadians ?? 0.0;
@@ -67,9 +79,9 @@ public class FanRenderer : IDeviceRenderer
         double hubRadius = radius * 0.28;
 
         var bladeBrush = (fan != null && fan.CurrentRpm > 100)
-            ? new SolidColorBrush(Color.FromArgb(200, 56, 189, 248))
-            : new SolidColorBrush(Color.FromArgb(160, 148, 163, 184));
-        var bladePen = new Pen(new SolidColorBrush(Color.FromRgb(226, 232, 240)), 1.0 * z);
+            ? (renderContext.IsDark ? new SolidColorBrush(Color.FromArgb(200, 56, 189, 248)) : new SolidColorBrush(Color.FromArgb(200, 2, 132, 199)))
+            : (renderContext.IsDark ? new SolidColorBrush(Color.FromArgb(160, 148, 163, 184)) : new SolidColorBrush(Color.FromArgb(160, 100, 116, 139)));
+        var bladePen = new Pen(new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(226, 232, 240) : Color.FromRgb(51, 65, 85)), 1.0 * z);
 
         for (int i = 0; i < bladeCount; i++)
         {
@@ -100,15 +112,16 @@ public class FanRenderer : IDeviceRenderer
         }
 
         // Central Motor Hub with bearing ring
-        var hubBrush = new SolidColorBrush(Color.FromRgb(30, 41, 59));
-        var hubPen = new Pen(new SolidColorBrush(Color.FromRgb(56, 189, 248)), 1.8 * z);
+        var hubBrush = renderContext.IsDark ? new SolidColorBrush(Color.FromRgb(30, 41, 59)) : new SolidColorBrush(Color.FromRgb(241, 245, 249));
+        var hubPen = new Pen(new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(56, 189, 248) : Color.FromRgb(2, 132, 199)), 1.8 * z);
         context.DrawEllipse(hubBrush, hubPen, center, hubRadius, hubRadius);
-        context.DrawEllipse(new SolidColorBrush(Color.FromRgb(148, 163, 184)), null, center, hubRadius * 0.4, hubRadius * 0.4);
+        context.DrawEllipse(new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(148, 163, 184) : Color.FromRgb(100, 116, 139)), null, center, hubRadius * 0.4, hubRadius * 0.4);
 
         // Airflow velocity vector arcs when actively running
         if (fan != null && fan.CurrentRpm > 200)
         {
-            var swirlPen = new Pen(new SolidColorBrush(Color.FromArgb(90, 56, 189, 248)), 1.5 * z)
+            var swirlColor = renderContext.IsDark ? Color.FromArgb(90, 56, 189, 248) : Color.FromArgb(100, 2, 132, 199);
+            var swirlPen = new Pen(new SolidColorBrush(swirlColor), 1.5 * z)
             {
                 DashStyle = DashStyle.Dash
             };
@@ -116,9 +129,9 @@ public class FanRenderer : IDeviceRenderer
         }
 
         // Terminal solder pads
-        var padBrush = new SolidColorBrush(Color.FromRgb(240, 246, 255));
+        var padBrush = renderContext.GetSolderPadBrush();
         context.DrawEllipse(padBrush, null, pLeft, 3.0 * z, 3.0 * z);
         context.DrawEllipse(padBrush, null, pRight, 3.0 * z, 3.0 * z);
-        context.DrawEllipse(new SolidColorBrush(Color.FromRgb(250, 204, 21)), null, pTach, 2.6 * z, 2.6 * z);
+        context.DrawEllipse(new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(250, 204, 21) : Color.FromRgb(202, 138, 4)), null, pTach, 2.6 * z, 2.6 * z);
     }
 }

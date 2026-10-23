@@ -17,19 +17,13 @@ public class JosephsonJunctionRenderer : IDeviceRenderer
 
         var jjDev = device as JosephsonJunctionDevice;
 
-        var strokeBrush = renderContext.IsPlacingGhost
-            ? new SolidColorBrush(Color.FromArgb(140, 0, 240, 255))
-            : new SolidColorBrush(Color.FromRgb(240, 246, 255));
+        var strokeBrush = renderContext.GetStrokeBrush();
+        var strokePen = renderContext.GetStrokePen(2.5);
 
-        var strokePen = new Pen(strokeBrush, 2.5 * z)
-        {
-            LineCap = PenLineCap.Round,
-            LineJoin = PenLineJoin.Round
-        };
-
-        var boxBrush = new SolidColorBrush(Color.FromArgb(200, 16, 22, 32));
-        var boxPen = new Pen(new SolidColorBrush(Color.FromRgb(0, 220, 255)), 1.8 * z);
-        var crossPen = new Pen(new SolidColorBrush(Color.FromRgb(255, 215, 0)), 2.2 * z)
+        var boxBrush = renderContext.GetComponentFillBrush() ?? new SolidColorBrush(Color.FromArgb(200, 16, 22, 32));
+        var boxPen = renderContext.GetStrokePen(1.8, Color.FromRgb(0, 220, 255), Color.FromRgb(2, 132, 199));
+        var crossColor = renderContext.IsDark ? Color.FromRgb(255, 215, 0) : Color.FromRgb(217, 119, 6);
+        var crossPen = new Pen(new SolidColorBrush(crossColor), 2.2 * z)
         {
             LineCap = PenLineCap.Round
         };
@@ -51,7 +45,8 @@ public class JosephsonJunctionRenderer : IDeviceRenderer
         context.DrawLine(crossPen, new Point(boxRect.Left + inset, boxRect.Bottom - inset), new Point(boxRect.Right - inset, boxRect.Top + inset));
 
         // Terminal solder pads
-        context.DrawEllipse(strokeBrush, null, new Point(center.X - u, center.Y), 3.2 * z, 3.2 * z);
-        context.DrawEllipse(strokeBrush, null, new Point(center.X + u, center.Y), 3.2 * z, 3.2 * z);
+        var padBrush = renderContext.GetSolderPadBrush();
+        context.DrawEllipse(padBrush, null, new Point(center.X - u, center.Y), 3.2 * z, 3.2 * z);
+        context.DrawEllipse(padBrush, null, new Point(center.X + u, center.Y), 3.2 * z, 3.2 * z);
     }
 }

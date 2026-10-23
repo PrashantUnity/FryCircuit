@@ -41,7 +41,7 @@ public class DiodeRenderer : IDeviceRenderer
                 ? new SolidColorBrush(Color.FromArgb(230, ledColor.R, ledColor.G, ledColor.B))
                 : isLed
                     ? new SolidColorBrush(Color.FromArgb(55, ledColor.R, ledColor.G, ledColor.B))
-                    : new SolidColorBrush(Color.FromArgb(220, 15, 23, 42));
+                    : renderContext.GetComponentFillBrush();
 
         // Leads from pins to triangle
         context.DrawLine(strokePen, new Point(center.X, center.Y - u), new Point(center.X, center.Y - u * 0.35));

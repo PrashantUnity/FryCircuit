@@ -14,10 +14,12 @@ public class BcdTo7SegmentRenderer : IDeviceRenderer
 
         var bcdDev = device as BcdTo7SegmentDevice;
 
-        var bodyBrush = new SolidColorBrush(Color.FromRgb(22, 28, 38));
-        var borderPen = new Pen(new SolidColorBrush(isSelected ? Color.FromArgb(220, 0, 240, 255) : Color.FromRgb(55, 70, 95)), 2.0 * z);
-        var pinPen = new Pen(new SolidColorBrush(Color.FromRgb(180, 195, 215)), 2.2 * z);
-        var padBrush = new SolidColorBrush(Color.FromRgb(220, 235, 255));
+        var bodyBrush = renderContext.GetComponentFillBrush() ?? new SolidColorBrush(Color.FromRgb(22, 28, 38));
+        var borderPen = renderContext.GetStrokePen(2.0,
+            isSelected ? Color.FromArgb(220, 0, 240, 255) : Color.FromRgb(55, 70, 95),
+            isSelected ? Color.FromArgb(220, 0, 136, 204) : Color.FromRgb(203, 213, 225));
+        var pinPen = renderContext.GetLeadPen(2.2);
+        var padBrush = renderContext.GetSolderPadBrush();
 
         // IC body dimensions (width: 2.2 * u, height: 3.0 * u)
         double bodyW = u * 2.2;
@@ -34,7 +36,9 @@ public class BcdTo7SegmentRenderer : IDeviceRenderer
             g.BeginFigure(new Point(center.X - u * 0.16, bodyRect.Top), true);
             g.ArcTo(new Point(center.X + u * 0.16, bodyRect.Top), new Size(u * 0.16, u * 0.12), 0, false, SweepDirection.Clockwise);
         }
-        context.DrawGeometry(new SolidColorBrush(Color.FromRgb(15, 18, 25)), new Pen(new SolidColorBrush(Color.FromRgb(55, 70, 95)), 1.5 * z), notchGeom);
+        var notchBrush = renderContext.IsDark ? new SolidColorBrush(Color.FromRgb(15, 18, 25)) : new SolidColorBrush(Color.FromRgb(226, 232, 240));
+        var notchPen = new Pen(new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(55, 70, 95) : Color.FromRgb(203, 213, 225)), 1.5 * z);
+        context.DrawGeometry(notchBrush, notchPen, notchGeom);
 
         // Chip Part Number Text
         var chipLabel = new FormattedText(
@@ -43,7 +47,7 @@ public class BcdTo7SegmentRenderer : IDeviceRenderer
             FlowDirection.LeftToRight,
             new Typeface("Inter", FontStyle.Normal, FontWeight.Bold),
             Math.Max(9, 10.5 * z),
-            new SolidColorBrush(Color.FromRgb(160, 180, 210))
+            new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(160, 180, 210) : Color.FromRgb(15, 23, 42))
         );
         context.DrawText(chipLabel, new Point(center.X - chipLabel.Width / 2.0, center.Y - chipLabel.Height / 2.0 - 4 * z));
 
@@ -56,7 +60,7 @@ public class BcdTo7SegmentRenderer : IDeviceRenderer
                 FlowDirection.LeftToRight,
                 new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold),
                 Math.Max(7, 8 * z),
-                new SolidColorBrush(Color.FromRgb(100, 130, 165))
+                new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(100, 130, 165) : Color.FromRgb(71, 85, 105))
             );
             context.DrawText(subLabel, new Point(center.X - subLabel.Width / 2.0, center.Y + chipLabel.Height / 2.0 - 2 * z));
         }
@@ -64,6 +68,7 @@ public class BcdTo7SegmentRenderer : IDeviceRenderer
         // Left Inputs: A, B, C, D
         string[] inLabels = { "A", "B", "C", "D" };
         double[] inOffsetsY = { -0.6, -0.2, 0.2, 0.6 };
+        var pinTextColor = renderContext.IsDark ? Color.FromRgb(140, 165, 195) : Color.FromRgb(71, 85, 105);
         for (int i = 0; i < 4; i++)
         {
             var pPin = new Point(center.X - 1.5 * u, center.Y + inOffsetsY[i] * u);
@@ -80,7 +85,7 @@ public class BcdTo7SegmentRenderer : IDeviceRenderer
                     FlowDirection.LeftToRight,
                     new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold),
                     Math.Max(8, 8.5 * z),
-                    new SolidColorBrush(Color.FromRgb(140, 165, 195))
+                    new SolidColorBrush(pinTextColor)
                 );
                 context.DrawText(txt, new Point(bodyRect.Left + 4 * z, pEdge.Y - txt.Height / 2.0));
             }
@@ -105,7 +110,7 @@ public class BcdTo7SegmentRenderer : IDeviceRenderer
                     FlowDirection.LeftToRight,
                     new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold),
                     Math.Max(8, 8.5 * z),
-                    new SolidColorBrush(Color.FromRgb(140, 165, 195))
+                    new SolidColorBrush(pinTextColor)
                 );
                 context.DrawText(txt, new Point(bodyRect.Right - txt.Width - 4 * z, pEdge.Y - txt.Height / 2.0));
             }

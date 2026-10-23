@@ -12,15 +12,8 @@ public class PotentiometerRenderer : IDeviceRenderer
         double u = unitSize;
         double z = renderContext.Zoom;
 
-        var strokeBrush = renderContext.IsPlacingGhost
-            ? new SolidColorBrush(Color.FromArgb(140, 0, 240, 255))
-            : new SolidColorBrush(Color.FromRgb(240, 246, 255));
-
-        var strokePen = new Pen(strokeBrush, 2.8 * z)
-        {
-            LineCap = PenLineCap.Round,
-            LineJoin = PenLineJoin.Round
-        };
+        var strokeBrush = renderContext.GetStrokeBrush();
+        var strokePen = renderContext.GetStrokePen(2.8);
 
         // Resistor body
         double rX = center.X - u * 0.2;
@@ -40,7 +33,8 @@ public class PotentiometerRenderer : IDeviceRenderer
         context.DrawGeometry(null, strokePen, geom);
 
         // Wiper arrow (Pin 1 at (1, 0))
-        var wiperPen = new Pen(new SolidColorBrush(Color.FromRgb(0, 230, 118)), 2.6 * z)
+        var wiperColor = renderContext.IsDark ? Color.FromRgb(0, 230, 118) : Color.FromRgb(5, 150, 105);
+        var wiperPen = new Pen(new SolidColorBrush(wiperColor), 2.6 * z)
         {
             LineCap = PenLineCap.Round,
             LineJoin = PenLineJoin.Round
@@ -60,8 +54,9 @@ public class PotentiometerRenderer : IDeviceRenderer
         context.DrawLine(wiperPen, new Point(rX + u * 0.18, wiperY + u * 0.12), new Point(rX + u * 0.05, wiperY));
 
         // Terminal solder pads
-        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y - u), 3.2 * z, 3.2 * z);
-        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y + u), 3.2 * z, 3.2 * z);
-        context.DrawEllipse(strokeBrush, null, new Point(center.X + u, center.Y), 3.2 * z, 3.2 * z);
+        var padBrush = renderContext.GetSolderPadBrush();
+        context.DrawEllipse(padBrush, null, new Point(center.X, center.Y - u), 3.2 * z, 3.2 * z);
+        context.DrawEllipse(padBrush, null, new Point(center.X, center.Y + u), 3.2 * z, 3.2 * z);
+        context.DrawEllipse(padBrush, null, new Point(center.X + u, center.Y), 3.2 * z, 3.2 * z);
     }
 }

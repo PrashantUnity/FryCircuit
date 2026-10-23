@@ -147,6 +147,15 @@
             <SolidColorBrush x:Key="CircuitKnobTrackBrush" Color="#162032" />
             <SolidColorBrush x:Key="CircuitKnobBezelBrush" Color="#243248" />
 
+            <!-- Device & Badge Tokens (Dark) -->
+            <SolidColorBrush x:Key="CircuitDeviceBodyFillBrush" Color="#0F172A" />
+            <SolidColorBrush x:Key="CircuitDeviceBodySecondaryBrush" Color="#1E293B" />
+            <SolidColorBrush x:Key="CircuitDeviceStrokeBrush" Color="#E2E8F0" />
+            <SolidColorBrush x:Key="CircuitDeviceLeadBrush" Color="#CBD5E1" />
+            <SolidColorBrush x:Key="CircuitBadgeBgBrush" Color="#EB0F172A" />
+            <SolidColorBrush x:Key="CircuitBadgeBorderBrush" Color="#60334155" />
+            <SolidColorBrush x:Key="CircuitBadgeTextBrush" Color="#E2E8F0" />
+
             <!-- 7. M3 / FryWorld Host Compatibility Mappings (Dark) -->
             <SolidColorBrush x:Key="M3SurfaceBrush" Color="{StaticResource CircuitBgColor}" />
             <SolidColorBrush x:Key="M3BackgroundBrush" Color="{StaticResource CircuitBgColor}" />
@@ -267,31 +276,31 @@
             <SolidColorBrush x:Key="CircuitBomHoverBgBrush" Color="#D1FAE5" />
 
             <!-- 6. Schematic Canvas & Waveform Scopes (Light) -->
-            <Color x:Key="CircuitCanvasBgColor">#F9FBFC</Color>
+            <Color x:Key="CircuitCanvasBgColor">#F0F4F8</Color>
             <Color x:Key="CircuitCanvasDotMinorColor">#CBD5E1</Color>
-            <Color x:Key="CircuitCanvasDotMajorColor">#330088CC</Color>
+            <Color x:Key="CircuitCanvasDotMajorColor">#33475569</Color>
 
             <SolidColorBrush x:Key="CircuitCanvasBgBrush" Color="{StaticResource CircuitCanvasBgColor}" />
             <SolidColorBrush x:Key="CircuitCanvasDotMinorBrush" Color="{StaticResource CircuitCanvasDotMinorColor}" />
             <SolidColorBrush x:Key="CircuitCanvasDotMajorBrush" Color="{StaticResource CircuitCanvasDotMajorColor}" />
 
-            <Color x:Key="CircuitScopeBgColor">#0D1520</Color>
-            <Color x:Key="CircuitScopeGridColor">#1C2A3A</Color>
-            <Color x:Key="CircuitScopeCenterColor">#2A3F56</Color>
-            <Color x:Key="CircuitScopeTickColor">#385472</Color>
+            <Color x:Key="CircuitScopeBgColor">#F1F5F9</Color>
+            <Color x:Key="CircuitScopeGridColor">#E2E8F0</Color>
+            <Color x:Key="CircuitScopeCenterColor">#CBD5E1</Color>
+            <Color x:Key="CircuitScopeTickColor">#94A3B8</Color>
 
             <SolidColorBrush x:Key="CircuitScopeBgBrush" Color="{StaticResource CircuitScopeBgColor}" />
             <SolidColorBrush x:Key="CircuitScopeGridBrush" Color="{StaticResource CircuitScopeGridColor}" />
             <SolidColorBrush x:Key="CircuitScopeCenterBrush" Color="{StaticResource CircuitScopeCenterColor}" />
             <SolidColorBrush x:Key="CircuitScopeTickBrush" Color="{StaticResource CircuitScopeTickColor}" />
 
-            <SolidColorBrush x:Key="CircuitScopeCh1Brush" Color="#F59E0B" />
-            <SolidColorBrush x:Key="CircuitScopeCh2Brush" Color="#00B4D8" />
-            <SolidColorBrush x:Key="CircuitScopeCh3Brush" Color="#10B981" />
-            <SolidColorBrush x:Key="CircuitScopeCh4Brush" Color="#EF4444" />
+            <SolidColorBrush x:Key="CircuitScopeCh1Brush" Color="#D97706" />
+            <SolidColorBrush x:Key="CircuitScopeCh2Brush" Color="#0284C7" />
+            <SolidColorBrush x:Key="CircuitScopeCh3Brush" Color="#E11D48" />
+            <SolidColorBrush x:Key="CircuitScopeCh4Brush" Color="#059669" />
 
             <SolidColorBrush x:Key="CircuitProbeCh1Brush" Color="#D97706" />
-            <SolidColorBrush x:Key="CircuitProbeCh2Brush" Color="#0088CC" />
+            <SolidColorBrush x:Key="CircuitProbeCh2Brush" Color="#0284C7" />
 
             <SolidColorBrush x:Key="CircuitWireNormalBrush" Color="#475569" />
             <SolidColorBrush x:Key="CircuitWireActiveBrush" Color="#059669" />
@@ -301,6 +310,15 @@
 
             <SolidColorBrush x:Key="CircuitKnobTrackBrush" Color="#E2E8F0" />
             <SolidColorBrush x:Key="CircuitKnobBezelBrush" Color="#CBD5E1" />
+
+            <!-- Device & Badge Tokens (Light) -->
+            <SolidColorBrush x:Key="CircuitDeviceBodyFillBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="CircuitDeviceBodySecondaryBrush" Color="#F1F5F9" />
+            <SolidColorBrush x:Key="CircuitDeviceStrokeBrush" Color="#1E293B" />
+            <SolidColorBrush x:Key="CircuitDeviceLeadBrush" Color="#334155" />
+            <SolidColorBrush x:Key="CircuitBadgeBgBrush" Color="#F4FFFFFF" />
+            <SolidColorBrush x:Key="CircuitBadgeBorderBrush" Color="#C0CBD5E1" />
+            <SolidColorBrush x:Key="CircuitBadgeTextBrush" Color="#0F172A" />
 
             <!-- 7. M3 / FryWorld Host Compatibility Mappings (Light) -->
             <SolidColorBrush x:Key="M3SurfaceBrush" Color="{StaticResource CircuitBgColor}" />

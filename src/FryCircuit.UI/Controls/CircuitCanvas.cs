@@ -562,44 +562,85 @@ public partial class CircuitCanvas : Control
         }
     }
 
-    public static (Color Glow, Color Core) GetVoltageColors(double v, bool isGround)
+    public static (Color Glow, Color Core) GetVoltageColors(double v, bool isGround, bool isDark = true)
     {
+        if (isDark)
+        {
+            if (isGround || Math.Abs(v) < 1e-3)
+            {
+                // Ground / 0V: Cool Slate Silver (#94A3B8)
+                return (Color.FromArgb(40, 148, 163, 184), Color.FromRgb(148, 163, 184));
+            }
+
+            if (v < -0.05)
+            {
+                // Negative potential: Soft Lavender-Violet (#A78BFA)
+                return (Color.FromArgb(45, 167, 139, 250), Color.FromRgb(167, 139, 250));
+            }
+
+            // Positive potential tiers:
+            if (v <= 1.2)
+            {
+                // Tier 1 (0.001V - 1.2V): Mint Emerald (#34D399)
+                return (Color.FromArgb(45, 52, 211, 153), Color.FromRgb(52, 211, 153));
+            }
+            if (v <= 3.3)
+            {
+                // Tier 2 (1.2V - 3.3V): Sky Blue / Cyan (#38BDF8)
+                return (Color.FromArgb(45, 56, 189, 248), Color.FromRgb(56, 189, 248));
+            }
+            if (v <= 5.5)
+            {
+                // Tier 3 (3.3V - 5.5V): Warm Amber (#FBBF24)
+                return (Color.FromArgb(45, 251, 191, 36), Color.FromRgb(251, 191, 36));
+            }
+            if (v <= 12.0)
+            {
+                // Tier 4 (5.5V - 12.0V): Coral Orange (#FB923C)
+                return (Color.FromArgb(45, 251, 146, 60), Color.FromRgb(251, 146, 60));
+            }
+
+            // Tier 5 (> 12V): Soft Rose (#F43F5E)
+            return (Color.FromArgb(50, 244, 63, 94), Color.FromRgb(244, 63, 94));
+        }
+
+        // Light Theme: Calibrated rich saturated tones (No washed-out pastel neon)
         if (isGround || Math.Abs(v) < 1e-3)
         {
-            // Ground / 0V: Cool Slate Silver (#94A3B8)
-            return (Color.FromArgb(40, 148, 163, 184), Color.FromRgb(148, 163, 184));
+            // Ground / 0V: Deep Slate Charcoal (#475569)
+            return (Color.FromArgb(30, 71, 85, 105), Color.FromRgb(71, 85, 105));
         }
 
         if (v < -0.05)
         {
-            // Negative potential: Soft Lavender-Violet (#A78BFA)
-            return (Color.FromArgb(45, 167, 139, 250), Color.FromRgb(167, 139, 250));
+            // Negative potential: Amethyst Violet (#7C3AED)
+            return (Color.FromArgb(35, 124, 58, 237), Color.FromRgb(124, 58, 237));
         }
 
         // Positive potential tiers:
         if (v <= 1.2)
         {
-            // Tier 1 (0.001V - 1.2V): Mint Emerald (#34D399)
-            return (Color.FromArgb(45, 52, 211, 153), Color.FromRgb(52, 211, 153));
+            // Tier 1 (0.001V - 1.2V): Forest Emerald (#059669)
+            return (Color.FromArgb(35, 5, 150, 105), Color.FromRgb(5, 150, 105));
         }
         if (v <= 3.3)
         {
-            // Tier 2 (1.2V - 3.3V): Sky Blue / Cyan (#38BDF8)
-            return (Color.FromArgb(45, 56, 189, 248), Color.FromRgb(56, 189, 248));
+            // Tier 2 (1.2V - 3.3V): Deep Azure Sapphire (#0284C7)
+            return (Color.FromArgb(35, 2, 132, 199), Color.FromRgb(2, 132, 199));
         }
         if (v <= 5.5)
         {
-            // Tier 3 (3.3V - 5.5V): Warm Amber (#FBBF24)
-            return (Color.FromArgb(45, 251, 191, 36), Color.FromRgb(251, 191, 36));
+            // Tier 3 (3.3V - 5.5V): Rich Warm Amber Gold (#D97706)
+            return (Color.FromArgb(35, 217, 119, 6), Color.FromRgb(217, 119, 6));
         }
         if (v <= 12.0)
         {
-            // Tier 4 (5.5V - 12.0V): Coral Orange (#FB923C)
-            return (Color.FromArgb(45, 251, 146, 60), Color.FromRgb(251, 146, 60));
+            // Tier 4 (5.5V - 12.0V): Burnt Rust Orange (#EA580C)
+            return (Color.FromArgb(35, 234, 88, 12), Color.FromRgb(234, 88, 12));
         }
 
-        // Tier 5 (> 12V): Soft Rose (#F43F5E)
-        return (Color.FromArgb(50, 244, 63, 94), Color.FromRgb(244, 63, 94));
+        // Tier 5 (> 12V): Crimson Ruby (#DC2626)
+        return (Color.FromArgb(35, 220, 38, 38), Color.FromRgb(220, 38, 38));
     }
 
     public static string FormatVoltageLabel(double v)

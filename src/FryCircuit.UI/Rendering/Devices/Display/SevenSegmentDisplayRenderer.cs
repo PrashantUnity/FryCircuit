@@ -24,33 +24,37 @@ public class SevenSegmentDisplayRenderer : IDeviceRenderer
         var modRect = new Rect(center.X - modW / 2.0, center.Y - modH / 2.0, modW, modH);
 
         // 1. Draw outer module enclosure (bezel)
-        var bezelBrush = new SolidColorBrush(Color.FromRgb(12, 16, 22));
-        var bezelPen = new Pen(new SolidColorBrush(isSelected ? Color.FromArgb(220, 0, 240, 255) : Color.FromRgb(45, 60, 80)), 2.0 * z);
+        var bezelBrush = renderContext.IsDark ? new SolidColorBrush(Color.FromRgb(12, 16, 22)) : new SolidColorBrush(Color.FromRgb(248, 250, 252));
+        var bezelPen = renderContext.GetStrokePen(2.0,
+            isSelected ? Color.FromArgb(220, 0, 240, 255) : Color.FromRgb(45, 60, 80),
+            isSelected ? Color.FromArgb(220, 0, 136, 204) : Color.FromRgb(203, 213, 225));
         context.DrawRectangle(bezelBrush, bezelPen, modRect, 6 * z, 6 * z);
 
         // Subtle inner display face inset
         var faceRect = new Rect(modRect.Left + 4 * z, modRect.Top + 4 * z, modRect.Width - 8 * z, modRect.Height - 8 * z);
-        context.DrawRectangle(new SolidColorBrush(Color.FromRgb(8, 12, 16)), new Pen(new SolidColorBrush(Color.FromArgb(50, 25, 35, 48)), 1 * z), faceRect, 4 * z, 4 * z);
+        var faceBrush = renderContext.IsDark ? new SolidColorBrush(Color.FromRgb(8, 12, 16)) : new SolidColorBrush(Color.FromRgb(241, 245, 249));
+        var faceBorderPen = new Pen(new SolidColorBrush(renderContext.IsDark ? Color.FromArgb(50, 25, 35, 48) : Color.FromArgb(60, 203, 213, 225)), 1 * z);
+        context.DrawRectangle(faceBrush, faceBorderPen, faceRect, 4 * z, 4 * z);
 
         // 2. LED Color palette (Emerald Green by default)
-        Color litColor = Color.FromRgb(38, 255, 78);      // Radiant emerald lime
-        Color haloGlow = Color.FromArgb(120, 0, 255, 100);
-        Color outerHalo = Color.FromArgb(40, 0, 255, 100);
-        Color unlitColor = Color.FromRgb(15, 32, 22);     // Visible dark silhouette
+        Color litColor = renderContext.IsDark ? Color.FromRgb(38, 255, 78) : Color.FromRgb(5, 150, 105);      // Radiant emerald lime
+        Color haloGlow = renderContext.IsDark ? Color.FromArgb(120, 0, 255, 100) : Color.FromArgb(80, 5, 150, 105);
+        Color outerHalo = renderContext.IsDark ? Color.FromArgb(40, 0, 255, 100) : Color.FromArgb(30, 5, 150, 105);
+        Color unlitColor = renderContext.IsDark ? Color.FromRgb(15, 32, 22) : Color.FromArgb(35, 100, 116, 139); // Visible silhouette
 
         if (segDev?.LedColor == "red")
         {
-            litColor = Color.FromRgb(255, 48, 48);
-            haloGlow = Color.FromArgb(120, 255, 48, 48);
-            outerHalo = Color.FromArgb(40, 255, 48, 48);
-            unlitColor = Color.FromRgb(32, 15, 18);
+            litColor = renderContext.IsDark ? Color.FromRgb(255, 48, 48) : Color.FromRgb(220, 38, 38);
+            haloGlow = renderContext.IsDark ? Color.FromArgb(120, 255, 48, 48) : Color.FromArgb(80, 220, 38, 38);
+            outerHalo = renderContext.IsDark ? Color.FromArgb(40, 255, 48, 48) : Color.FromArgb(30, 220, 38, 38);
+            unlitColor = renderContext.IsDark ? Color.FromRgb(32, 15, 18) : Color.FromArgb(35, 100, 116, 139);
         }
         else if (segDev?.LedColor == "amber")
         {
-            litColor = Color.FromRgb(255, 180, 20);
-            haloGlow = Color.FromArgb(120, 255, 180, 20);
-            outerHalo = Color.FromArgb(40, 255, 180, 20);
-            unlitColor = Color.FromRgb(32, 26, 12);
+            litColor = renderContext.IsDark ? Color.FromRgb(255, 180, 20) : Color.FromRgb(217, 119, 6);
+            haloGlow = renderContext.IsDark ? Color.FromArgb(120, 255, 180, 20) : Color.FromArgb(80, 217, 119, 6);
+            outerHalo = renderContext.IsDark ? Color.FromArgb(40, 255, 180, 20) : Color.FromArgb(30, 217, 119, 6);
+            unlitColor = renderContext.IsDark ? Color.FromRgb(32, 26, 12) : Color.FromArgb(35, 100, 116, 139);
         }
 
         // 3. Render 7 Segments (a, b, c, d, e, f, g) + DP
@@ -111,11 +115,12 @@ public class SevenSegmentDisplayRenderer : IDeviceRenderer
         }
 
         // 4. Draw Leads and Labels on Left Pins (a..g) and Bottom Pin (COM)
-        var pinPen = new Pen(new SolidColorBrush(Color.FromRgb(160, 180, 205)), 2.2 * z);
-        var padBrush = new SolidColorBrush(Color.FromRgb(210, 225, 245));
+        var pinPen = renderContext.GetLeadPen(2.2);
+        var padBrush = renderContext.GetSolderPadBrush();
 
         string[] segPinNames = { "a", "b", "c", "d", "e", "f", "g" };
         double[] segPinY = { -1.2, -0.8, -0.4, 0.0, 0.4, 0.8, 1.2 };
+        var pinTextColor = renderContext.IsDark ? Color.FromRgb(140, 165, 195) : Color.FromRgb(71, 85, 105);
 
         for (int p = 0; p < 7; p++)
         {
@@ -133,7 +138,7 @@ public class SevenSegmentDisplayRenderer : IDeviceRenderer
                     FlowDirection.LeftToRight,
                     new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold),
                     Math.Max(8, 8.5 * z),
-                    new SolidColorBrush(Color.FromRgb(140, 165, 195))
+                    new SolidColorBrush(pinTextColor)
                 );
                 context.DrawText(txt, new Point(modRect.Left + 3 * z, pEdge.Y - txt.Height / 2.0));
             }
@@ -153,7 +158,7 @@ public class SevenSegmentDisplayRenderer : IDeviceRenderer
                 FlowDirection.LeftToRight,
                 new Typeface("Inter", FontStyle.Normal, FontWeight.Bold),
                 Math.Max(7, 8 * z),
-                new SolidColorBrush(Color.FromRgb(140, 165, 195))
+                new SolidColorBrush(pinTextColor)
             );
             context.DrawText(txtCom, new Point(center.X - txtCom.Width / 2.0, modRect.Bottom - txtCom.Height - 2 * z));
         }

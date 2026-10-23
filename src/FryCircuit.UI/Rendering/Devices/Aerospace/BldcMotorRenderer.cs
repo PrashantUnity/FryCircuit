@@ -37,20 +37,29 @@ public class BldcMotorRenderer : IDeviceRenderer
         context.DrawLine(leadPenW, pW, new Point(cx - radius * 0.707, cy + radius * 0.707));
 
         // Outer Stator Bell Housing
-        var statorBrush = new RadialGradientBrush
-        {
-            GradientStops = new GradientStops
+        var statorBrush = renderContext.IsDark
+            ? new RadialGradientBrush
             {
-                new GradientStop(Color.FromArgb(240, 20, 28, 42), 0.0),
-                new GradientStop(Color.FromArgb(255, 11, 15, 25), 1.0)
+                GradientStops = new GradientStops
+                {
+                    new GradientStop(Color.FromArgb(240, 20, 28, 42), 0.0),
+                    new GradientStop(Color.FromArgb(255, 11, 15, 25), 1.0)
+                }
             }
-        };
-        var statorPen = new Pen(renderContext.GetStrokeBrush(Color.FromRgb(148, 163, 184)), 2.2 * z);
+            : new RadialGradientBrush
+            {
+                GradientStops = new GradientStops
+                {
+                    new GradientStop(Color.FromArgb(240, 248, 250, 252), 0.0),
+                    new GradientStop(Color.FromArgb(255, 226, 232, 240), 1.0)
+                }
+            };
+        var statorPen = renderContext.GetStrokePen(2.2, Color.FromRgb(148, 163, 184), Color.FromRgb(71, 85, 105));
         context.DrawEllipse(statorBrush, statorPen, center, radius, radius);
 
         // Stator Copper Coils (12 Stator Teeth)
         int teeth = 12;
-        var copperBrush = new SolidColorBrush(Color.FromRgb(217, 119, 6)); // Copper amber
+        var copperBrush = new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(217, 119, 6) : Color.FromRgb(180, 83, 9)); // Copper amber
         for (int i = 0; i < teeth; i++)
         {
             double a = i * 2.0 * Math.PI / teeth;
@@ -66,9 +75,9 @@ public class BldcMotorRenderer : IDeviceRenderer
         double propHub = radius * 0.32;
 
         var propBrush = (bldc != null && bldc.CurrentRpm > 50)
-            ? new SolidColorBrush(Color.FromArgb(220, 20, 184, 166)) // Active Teal
-            : new SolidColorBrush(Color.FromArgb(170, 71, 85, 105));
-        var propPen = new Pen(new SolidColorBrush(Color.FromRgb(226, 232, 240)), 1.2 * z);
+            ? (renderContext.IsDark ? new SolidColorBrush(Color.FromArgb(220, 20, 184, 166)) : new SolidColorBrush(Color.FromArgb(220, 13, 148, 136))) // Active Teal
+            : (renderContext.IsDark ? new SolidColorBrush(Color.FromArgb(170, 71, 85, 105)) : new SolidColorBrush(Color.FromArgb(180, 148, 163, 184)));
+        var propPen = new Pen(new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(226, 232, 240) : Color.FromRgb(51, 65, 85)), 1.2 * z);
 
         for (int i = 0; i < propBlades; i++)
         {
@@ -89,19 +98,29 @@ public class BldcMotorRenderer : IDeviceRenderer
         }
 
         // Center Aluminum Rotor Cap / Propeller Nut
-        var capBrush = new RadialGradientBrush
-        {
-            GradientStops = new GradientStops
+        var capBrush = renderContext.IsDark
+            ? new RadialGradientBrush
             {
-                new GradientStop(Color.FromRgb(226, 232, 240), 0.0),
-                new GradientStop(Color.FromRgb(71, 85, 105), 1.0)
+                GradientStops = new GradientStops
+                {
+                    new GradientStop(Color.FromRgb(226, 232, 240), 0.0),
+                    new GradientStop(Color.FromRgb(71, 85, 105), 1.0)
+                }
             }
-        };
-        context.DrawEllipse(capBrush, new Pen(new SolidColorBrush(Color.FromRgb(15, 23, 42)), 1.5 * z), center, propHub, propHub);
+            : new RadialGradientBrush
+            {
+                GradientStops = new GradientStops
+                {
+                    new GradientStop(Color.FromRgb(255, 255, 255), 0.0),
+                    new GradientStop(Color.FromRgb(203, 213, 225), 1.0)
+                }
+            };
+        var capBorderPen = new Pen(new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(15, 23, 42) : Color.FromRgb(100, 116, 139)), 1.5 * z);
+        context.DrawEllipse(capBrush, capBorderPen, center, propHub, propHub);
 
         // Phase Terminal Solder Pads
-        context.DrawEllipse(new SolidColorBrush(Color.FromRgb(244, 63, 94)), null, pU, 3.0 * z, 3.0 * z);
-        context.DrawEllipse(new SolidColorBrush(Color.FromRgb(250, 204, 21)), null, pV, 3.0 * z, 3.0 * z);
-        context.DrawEllipse(new SolidColorBrush(Color.FromRgb(56, 189, 248)), null, pW, 3.0 * z, 3.0 * z);
+        context.DrawEllipse(new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(244, 63, 94) : Color.FromRgb(225, 29, 72)), null, pU, 3.0 * z, 3.0 * z);
+        context.DrawEllipse(new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(250, 204, 21) : Color.FromRgb(202, 138, 4)), null, pV, 3.0 * z, 3.0 * z);
+        context.DrawEllipse(new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(56, 189, 248) : Color.FromRgb(2, 132, 199)), null, pW, 3.0 * z, 3.0 * z);
     }
 }

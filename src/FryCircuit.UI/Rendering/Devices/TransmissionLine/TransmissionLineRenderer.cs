@@ -17,19 +17,14 @@ public class TransmissionLineRenderer : IDeviceRenderer
 
         var tDev = device as TransmissionLineDevice;
 
-        var strokeBrush = renderContext.IsPlacingGhost
-            ? new SolidColorBrush(Color.FromArgb(140, 0, 240, 255))
-            : new SolidColorBrush(Color.FromRgb(240, 246, 255));
+        var strokeBrush = renderContext.GetStrokeBrush();
+        var strokePen = renderContext.GetStrokePen(2.5);
 
-        var strokePen = new Pen(strokeBrush, 2.5 * z)
-        {
-            LineCap = PenLineCap.Round,
-            LineJoin = PenLineJoin.Round
-        };
-
-        var bodyBrush = new SolidColorBrush(Color.FromArgb(200, 15, 20, 30));
-        var borderPen = new Pen(new SolidColorBrush(Color.FromRgb(0, 230, 118)), 1.8 * z);
-        var wavePen = new Pen(new SolidColorBrush(Color.FromArgb(160, 0, 240, 255)), 1.5 * z);
+        var bodyBrush = renderContext.GetComponentFillBrush() ?? new SolidColorBrush(Color.FromArgb(200, 15, 20, 30));
+        var borderPen = renderContext.GetStrokePen(1.8, Color.FromRgb(0, 230, 118), Color.FromRgb(5, 150, 105));
+        var wavePen = renderContext.IsDark
+            ? new Pen(new SolidColorBrush(Color.FromArgb(160, 0, 240, 255)), 1.5 * z)
+            : new Pen(new SolidColorBrush(Color.FromArgb(180, 2, 132, 199)), 1.5 * z);
 
         double w = u * 3.2;
         double h = u * 1.8;
@@ -54,41 +49,45 @@ public class TransmissionLineRenderer : IDeviceRenderer
         context.DrawLine(strokePen, new Point(boxRect.Right, pBotY), new Point(pOutX, pBotY));
 
         // Terminal pads
-        context.DrawEllipse(strokeBrush, null, new Point(pInX, pTopY), 3.2 * z, 3.2 * z);
-        context.DrawEllipse(strokeBrush, null, new Point(pInX, pBotY), 3.2 * z, 3.2 * z);
-        context.DrawEllipse(strokeBrush, null, new Point(pOutX, pTopY), 3.2 * z, 3.2 * z);
-        context.DrawEllipse(strokeBrush, null, new Point(pOutX, pBotY), 3.2 * z, 3.2 * z);
+        var padBrush = renderContext.GetSolderPadBrush();
+        context.DrawEllipse(padBrush, null, new Point(pInX, pTopY), 3.2 * z, 3.2 * z);
+        context.DrawEllipse(padBrush, null, new Point(pInX, pBotY), 3.2 * z, 3.2 * z);
+        context.DrawEllipse(padBrush, null, new Point(pOutX, pTopY), 3.2 * z, 3.2 * z);
+        context.DrawEllipse(padBrush, null, new Point(pOutX, pBotY), 3.2 * z, 3.2 * z);
 
         // Internal coaxial / microstrip wave graphic (spiral / wave lines)
         context.DrawLine(wavePen, new Point(boxRect.Left + 6 * z, pTopY), new Point(boxRect.Right - 6 * z, pTopY));
         context.DrawLine(wavePen, new Point(boxRect.Left + 6 * z, pBotY), new Point(boxRect.Right - 6 * z, pBotY));
 
         // Diagonal ground shield cross-hatching
+        var hatchColor = renderContext.IsDark ? Color.FromArgb(50, 0, 230, 118) : Color.FromArgb(60, 5, 150, 105);
         for (double x = boxRect.Left + 10 * z; x < boxRect.Right - 5 * z; x += 12 * z)
         {
-            context.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(50, 0, 230, 118)), 1.2 * z),
+            context.DrawLine(new Pen(new SolidColorBrush(hatchColor), 1.2 * z),
                 new Point(x, pTopY + 4 * z), new Point(x + 6 * z, pBotY - 4 * z));
         }
 
         // Transmission line schematic label: Title and RF Parameters
+        var titleColor = renderContext.IsDark ? Color.FromRgb(0, 240, 255) : Color.FromRgb(2, 132, 199);
         var ftTitle = new FormattedText(
             "T-LINE",
             System.Globalization.CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
             new Typeface("Inter", FontStyle.Normal, FontWeight.Bold),
             Math.Max(8, 9.5 * z),
-            new SolidColorBrush(Color.FromRgb(0, 240, 255))
+            new SolidColorBrush(titleColor)
         );
         context.DrawText(ftTitle, new Point(center.X - ftTitle.Width / 2.0, center.Y - ftTitle.Height - 1 * z));
 
         string paramText = $"{FryCircuit.Core.Devices.Base.DeviceDescriptorBase.FormatEngineering(tDev?.CharacteristicImpedance ?? 50.0, "Ω")} · {FryCircuit.Core.Devices.Base.DeviceDescriptorBase.FormatEngineering(tDev?.DelaySeconds ?? 250e-12, "s")}";
+        var paramColor = renderContext.IsDark ? Color.FromRgb(220, 235, 255) : Color.FromRgb(30, 41, 59);
         var ftParams = new FormattedText(
             paramText,
             System.Globalization.CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
             new Typeface("Inter", FontStyle.Normal, FontWeight.SemiBold),
             Math.Max(7, 8.0 * z),
-            new SolidColorBrush(Color.FromRgb(220, 235, 255))
+            new SolidColorBrush(paramColor)
         );
         context.DrawText(ftParams, new Point(center.X - ftParams.Width / 2.0, center.Y + 1 * z));
     }

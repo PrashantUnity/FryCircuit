@@ -11,17 +11,10 @@ public class LampRenderer : IDeviceRenderer
         double u = unitSize;
         double z = renderContext.Zoom;
 
-        var strokeBrush = renderContext.IsPlacingGhost
-            ? new SolidColorBrush(Color.FromArgb(140, 0, 240, 255))
-            : new SolidColorBrush(Color.FromRgb(240, 246, 255));
+        var strokeBrush = renderContext.GetStrokeBrush();
+        var strokePen = renderContext.GetStrokePen(2.8);
 
-        var strokePen = new Pen(strokeBrush, 2.8 * z)
-        {
-            LineCap = PenLineCap.Round,
-            LineJoin = PenLineJoin.Round
-        };
-
-        var fillBrush = new SolidColorBrush(Color.FromRgb(20, 28, 40));
+        var fillBrush = renderContext.GetComponentFillBrush();
 
         // Leads from pins to circle
         double radius = u * 0.55;
@@ -86,7 +79,7 @@ public class LampRenderer : IDeviceRenderer
         {
             // Intact 'X' cross filament
             var filamentBrush = power > 0.01
-                ? new SolidColorBrush(Color.FromRgb(255, 230, 100))
+                ? new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(255, 230, 100) : Color.FromRgb(217, 119, 6))
                 : strokeBrush;
             var filamentPen = new Pen(filamentBrush, 2.2 * z) { LineCap = PenLineCap.Round };
 
@@ -95,7 +88,8 @@ public class LampRenderer : IDeviceRenderer
         }
 
         // Terminal solder pads
-        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y - u), 3.2 * z, 3.2 * z);
-        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y + u), 3.2 * z, 3.2 * z);
+        var padBrush = renderContext.GetSolderPadBrush();
+        context.DrawEllipse(padBrush, null, new Point(center.X, center.Y - u), 3.2 * z, 3.2 * z);
+        context.DrawEllipse(padBrush, null, new Point(center.X, center.Y + u), 3.2 * z, 3.2 * z);
     }
 }

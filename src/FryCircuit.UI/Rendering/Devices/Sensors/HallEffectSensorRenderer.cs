@@ -14,9 +14,9 @@ public class HallEffectSensorRenderer : IDeviceRenderer
     public void Render(DrawingContext context, Device device, Point center, double size, bool isSelected, DeviceRenderContext renderContext)
     {
         var hall = device as HallEffectSensorDevice;
-        var bodyBrush = new SolidColorBrush(Color.FromRgb(16, 22, 32));
-        var bodyPen = new Pen(new SolidColorBrush(Color.FromRgb(0, 230, 160)), 1.8 * renderContext.Zoom);
-        var pinPen = new Pen(new SolidColorBrush(Color.FromRgb(160, 190, 220)), 1.8 * renderContext.Zoom);
+        var bodyBrush = renderContext.GetComponentFillBrush() ?? new SolidColorBrush(Color.FromRgb(16, 22, 32));
+        var bodyPen = renderContext.GetStrokePen(1.8, Color.FromRgb(0, 230, 160), Color.FromRgb(5, 150, 105));
+        var pinPen = renderContext.GetLeadPen(1.8);
 
         double bw = size * 1.3;
         double bh = size * 2.5;
@@ -39,7 +39,7 @@ public class HallEffectSensorRenderer : IDeviceRenderer
         context.DrawLine(pinPen, new Point(boxRect.Right, bottomPinY), new Point(center.X + size, bottomPinY));
 
         // Semiconductor Hall Plate Rhombus in center
-        var platePen = new Pen(new SolidColorBrush(Color.FromArgb(180, 0, 240, 255)), 1.4 * renderContext.Zoom);
+        var platePen = renderContext.GetStrokePen(1.4, Color.FromArgb(180, 0, 240, 255), Color.FromArgb(180, 2, 132, 199));
         var plateGeom = new StreamGeometry();
         double rw = bw * 0.38;
         double rh = size * 0.55;
@@ -54,18 +54,19 @@ public class HallEffectSensorRenderer : IDeviceRenderer
         context.DrawGeometry(null, platePen, plateGeom);
 
         // "HALL" text label in center
+        var textBrush = new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(0, 230, 160) : Color.FromRgb(5, 150, 105));
         var ft = new FormattedText(
             "HALL",
             System.Globalization.CultureInfo.InvariantCulture,
             FlowDirection.LeftToRight,
             new Typeface("Inter", FontStyle.Normal, FontWeight.Bold),
             Math.Max(8, 9.5 * renderContext.Zoom),
-            new SolidColorBrush(Color.FromRgb(0, 230, 160))
+            textBrush
         );
         context.DrawText(ft, new Point(center.X - ft.Width / 2.0, center.Y - ft.Height / 2.0));
 
         // Solder pins
-        var dotBrush = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+        var dotBrush = renderContext.GetSolderPadBrush();
         context.DrawEllipse(dotBrush, null, new Point(center.X - size, topPinY), 2.2 * renderContext.Zoom, 2.2 * renderContext.Zoom);
         context.DrawEllipse(dotBrush, null, new Point(center.X - size, bottomPinY), 2.2 * renderContext.Zoom, 2.2 * renderContext.Zoom);
         context.DrawEllipse(dotBrush, null, new Point(center.X + size, topPinY), 2.2 * renderContext.Zoom, 2.2 * renderContext.Zoom);

@@ -48,6 +48,15 @@ public static class Program
             return;
         }
 
+        if (args.Length > 0 && args[0].Equals("light", StringComparison.OrdinalIgnoreCase))
+        {
+            string pName = args.Length > 1 ? args[1] : "LED Cascade & Current Limiter Ladder";
+            string targetDir = args.Length > 2 ? args[2] : outDir;
+            CaptureWindow(pName, targetDir, isFft: false, showCursors: true, filenameOverride: "light_theme_preview.png", isDark: false);
+            Console.WriteLine($"Light theme snapshot for '{pName}' captured successfully!");
+            return;
+        }
+
         if (args.Length > 0 && args[0].Equals("led", StringComparison.OrdinalIgnoreCase))
         {
             CaptureLedInspector(outDir);
@@ -173,7 +182,7 @@ public static class Program
         Console.WriteLine("All snapshots captured successfully!");
     }
 
-    private static void CaptureWindow(string presetName, string outDir, bool isFft = false, bool showCursors = false, bool openSpiceDrawer = false, bool openBomDrawer = false, bool openLlmDrawer = false, string? filenameOverride = null)
+    private static void CaptureWindow(string presetName, string outDir, bool isFft = false, bool showCursors = false, bool openSpiceDrawer = false, bool openBomDrawer = false, bool openLlmDrawer = false, string? filenameOverride = null, bool isDark = true)
     {
         var studio = new CircuitStudioView();
         var vm = new MainWindowViewModel();
@@ -186,6 +195,7 @@ public static class Program
             Content = studio
         };
         FryCircuit.UI.Theming.CircuitThemeService.Instance.TrackResourceRoot(window);
+        FryCircuit.UI.Theming.CircuitThemeService.Instance.SetTheme(isDark ? FryWorld.Sdk.Services.AppTheme.Dark : FryWorld.Sdk.Services.AppTheme.Light);
 
         if (true)
         {

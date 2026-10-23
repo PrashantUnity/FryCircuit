@@ -12,17 +12,10 @@ public class LogicGateRenderer : IDeviceRenderer
         double u = unitSize;
         double z = renderContext.Zoom;
 
-        var strokeBrush = renderContext.IsPlacingGhost
-            ? new SolidColorBrush(Color.FromArgb(140, 0, 240, 255))
-            : new SolidColorBrush(Color.FromRgb(240, 246, 255));
+        var strokeBrush = renderContext.GetStrokeBrush();
+        var strokePen = renderContext.GetStrokePen(2.8);
 
-        var strokePen = new Pen(strokeBrush, 2.8 * z)
-        {
-            LineCap = PenLineCap.Round,
-            LineJoin = PenLineJoin.Round
-        };
-
-        var fillBrush = new SolidColorBrush(Color.FromRgb(20, 28, 40));
+        var fillBrush = renderContext.GetComponentFillBrush();
 
         string gate = (device as LogicGateDevice)?.GateType ?? device.Type.ToLowerInvariant();
         bool isNot = gate == "not";

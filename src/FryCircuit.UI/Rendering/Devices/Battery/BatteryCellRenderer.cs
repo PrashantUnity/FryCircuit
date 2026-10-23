@@ -19,8 +19,7 @@ public class BatteryCellRenderer : IDeviceRenderer
         double cx = center.X;
         double cy = center.Y;
 
-        var leadColor = isSelected ? Color.FromRgb(0, 240, 255) : Color.FromRgb(180, 200, 225);
-        var leadPen = new Pen(new SolidColorBrush(leadColor), 2.2 * renderContext.Zoom);
+        var leadPen = renderContext.GetLeadPen(2.2);
 
         // Terminal leads: Left Pin 0 (+), Right Pin 1 (-)
         Point pLeft = new(cx - u, cy);
@@ -33,12 +32,12 @@ public class BatteryCellRenderer : IDeviceRenderer
         context.DrawLine(leadPen, pRight, pShortPlate);
 
         // Positive Plate: Long thin plate (Anode / Cathode in standard notation)
-        var posColor = Color.FromRgb(0, 230, 118); // Emerald Green
+        var posColor = renderContext.IsDark ? Color.FromRgb(0, 230, 118) : Color.FromRgb(5, 150, 105); // Emerald Green
         var posPen = new Pen(new SolidColorBrush(posColor), 2.5 * renderContext.Zoom);
         context.DrawLine(posPen, new Point(pLongPlate.X, cy - u * 0.75), new Point(pLongPlate.X, cy + u * 0.75));
 
         // Negative Plate: Short thick plate
-        var negColor = Color.FromRgb(255, 171, 0); // Amber
+        var negColor = renderContext.IsDark ? Color.FromRgb(255, 171, 0) : Color.FromRgb(217, 119, 6); // Amber
         var negPen = new Pen(new SolidColorBrush(negColor), 4.5 * renderContext.Zoom);
         context.DrawLine(negPen, new Point(pShortPlate.X, cy - u * 0.45), new Point(pShortPlate.X, cy + u * 0.45));
 
@@ -68,7 +67,11 @@ public class BatteryCellRenderer : IDeviceRenderer
         {
             double soc = Math.Clamp(battery.StateOfCharge, 0.0, 1.0);
             string socText = $"{soc * 100:F0}% ({battery.OpenCircuitVoltage:F2}V)";
-            var socColor = soc > 0.4 ? Color.FromRgb(0, 230, 118) : (soc > 0.15 ? Color.FromRgb(255, 171, 0) : Color.FromRgb(255, 61, 0));
+            var socColor = soc > 0.4
+                ? (renderContext.IsDark ? Color.FromRgb(0, 230, 118) : Color.FromRgb(5, 150, 105))
+                : (soc > 0.15
+                    ? (renderContext.IsDark ? Color.FromRgb(255, 171, 0) : Color.FromRgb(217, 119, 6))
+                    : (renderContext.IsDark ? Color.FromRgb(255, 61, 0) : Color.FromRgb(220, 38, 38)));
 
             var ftSoc = new FormattedText(
                 socText,
@@ -82,7 +85,7 @@ public class BatteryCellRenderer : IDeviceRenderer
         }
 
         // Terminal solder pads
-        var padBrush = new SolidColorBrush(Color.FromRgb(240, 246, 255));
+        var padBrush = renderContext.GetSolderPadBrush();
         context.DrawEllipse(padBrush, null, pLeft, 3.2 * renderContext.Zoom, 3.2 * renderContext.Zoom);
         context.DrawEllipse(padBrush, null, pRight, 3.2 * renderContext.Zoom, 3.2 * renderContext.Zoom);
     }

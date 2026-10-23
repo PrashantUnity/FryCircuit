@@ -24,8 +24,10 @@ public class EscRenderer : IDeviceRenderer
         double h = u * 2.2;
         var pcbRect = new Rect(cx - w / 2.0, cy - h / 2.0, w, h);
 
-        var strokePen = renderContext.GetStrokePen(1.8, Color.FromRgb(217, 119, 6)); // Gold PCB border
-        var pcbBrush = new SolidColorBrush(Color.FromArgb(245, 15, 23, 42)); // Dark Slate
+        var strokePen = renderContext.GetStrokePen(1.8, Color.FromRgb(217, 119, 6), Color.FromRgb(180, 83, 9)); // Gold PCB border
+        var pcbBrush = renderContext.IsDark
+            ? new SolidColorBrush(Color.FromArgb(245, 15, 23, 42)) // Dark Slate
+            : new SolidColorBrush(Color.FromArgb(245, 255, 255, 255)); // Crisp White PCB
 
         // PCB Body
         context.DrawRectangle(pcbBrush, strokePen, pcbRect, 4.0 * z, 4.0 * z);
@@ -33,20 +35,25 @@ public class EscRenderer : IDeviceRenderer
         // 4 Gold Corner Mounting Holes
         double holeOffX = w * 0.42;
         double holeOffY = h * 0.38;
-        var goldPen = new Pen(new SolidColorBrush(Color.FromRgb(245, 158, 11)), 1.2 * z);
+        var goldColor = renderContext.IsDark ? Color.FromRgb(245, 158, 11) : Color.FromRgb(217, 119, 6);
+        var goldPen = new Pen(new SolidColorBrush(goldColor), 1.2 * z);
         context.DrawEllipse(null, goldPen, new Point(cx - holeOffX, cy - holeOffY), 2.0 * z, 2.0 * z);
         context.DrawEllipse(null, goldPen, new Point(cx + holeOffX, cy - holeOffY), 2.0 * z, 2.0 * z);
         context.DrawEllipse(null, goldPen, new Point(cx - holeOffX, cy + holeOffY), 2.0 * z, 2.0 * z);
         context.DrawEllipse(null, goldPen, new Point(cx + holeOffX, cy + holeOffY), 2.0 * z, 2.0 * z);
 
         // Bulk Low-ESR Capacitor Footprint on PCB
-        var capBrush = new SolidColorBrush(Color.FromArgb(200, 30, 41, 59));
-        var capPen = new Pen(new SolidColorBrush(Color.FromRgb(100, 116, 139)), 1.2 * z);
+        var capBrush = renderContext.IsDark
+            ? new SolidColorBrush(Color.FromArgb(200, 30, 41, 59))
+            : new SolidColorBrush(Color.FromArgb(220, 241, 245, 249));
+        var capPen = new Pen(new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(100, 116, 139) : Color.FromRgb(148, 163, 184)), 1.2 * z);
         context.DrawEllipse(capBrush, capPen, new Point(cx - u * 0.4, cy), u * 0.35, u * 0.35);
 
         // 6 MOSFET Bridge IC Packages (3 High-Side at col 1, 3 Low-Side at col 2)
-        var mosfetBrush = new SolidColorBrush(Color.FromRgb(40, 50, 70));
-        var mosfetPen = new Pen(new SolidColorBrush(Color.FromRgb(148, 163, 184)), 0.8 * z);
+        var mosfetBrush = renderContext.IsDark
+            ? new SolidColorBrush(Color.FromRgb(40, 50, 70))
+            : new SolidColorBrush(Color.FromRgb(226, 232, 240));
+        var mosfetPen = new Pen(new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(148, 163, 184) : Color.FromRgb(100, 116, 139)), 0.8 * z);
         double mosW = u * 0.24;
         double mosH = u * 0.32;
         for (int i = -1; i <= 1; i++)
@@ -68,7 +75,7 @@ public class EscRenderer : IDeviceRenderer
         Point pV = new(cx + 2.0 * u, cy);
         Point pW = new(cx + 2.0 * u, cy + u);
 
-        var leadPen = new Pen(renderContext.GetStrokeBrush(Color.FromRgb(200, 215, 235)), 2.0 * z);
+        var leadPen = renderContext.GetLeadPen(2.0);
         context.DrawLine(leadPen, pVbat, new Point(cx - w / 2.0, cy - u));
         context.DrawLine(leadPen, pGnd, new Point(cx - w / 2.0, cy + u));
         context.DrawLine(leadPen, pPwm, new Point(cx - w / 2.0, cy));
@@ -78,12 +85,12 @@ public class EscRenderer : IDeviceRenderer
         context.DrawLine(leadPen, pW, new Point(cx + w / 2.0, cy + u));
 
         // Terminal Pads
-        context.DrawEllipse(new SolidColorBrush(Color.FromRgb(239, 68, 68)), null, pVbat, 3.2 * z, 3.2 * z); // VBAT+ Red
-        context.DrawEllipse(new SolidColorBrush(Color.FromRgb(148, 163, 184)), null, pGnd, 3.2 * z, 3.2 * z); // GND Slate
-        context.DrawEllipse(new SolidColorBrush(Color.FromRgb(245, 158, 11)), null, pPwm, 2.8 * z, 2.8 * z);  // PWM Amber
+        context.DrawEllipse(new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(239, 68, 68) : Color.FromRgb(220, 38, 38)), null, pVbat, 3.2 * z, 3.2 * z); // VBAT+ Red
+        context.DrawEllipse(new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(148, 163, 184) : Color.FromRgb(71, 85, 105)), null, pGnd, 3.2 * z, 3.2 * z); // GND Slate
+        context.DrawEllipse(new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(245, 158, 11) : Color.FromRgb(217, 119, 6)), null, pPwm, 2.8 * z, 2.8 * z);  // PWM Amber
 
-        context.DrawEllipse(new SolidColorBrush(Color.FromRgb(244, 63, 94)), null, pU, 3.2 * z, 3.2 * z);  // Phase U
-        context.DrawEllipse(new SolidColorBrush(Color.FromRgb(250, 204, 21)), null, pV, 3.2 * z, 3.2 * z); // Phase V
-        context.DrawEllipse(new SolidColorBrush(Color.FromRgb(56, 189, 248)), null, pW, 3.2 * z, 3.2 * z); // Phase W
+        context.DrawEllipse(new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(244, 63, 94) : Color.FromRgb(225, 29, 72)), null, pU, 3.2 * z, 3.2 * z);  // Phase U
+        context.DrawEllipse(new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(250, 204, 21) : Color.FromRgb(202, 138, 4)), null, pV, 3.2 * z, 3.2 * z); // Phase V
+        context.DrawEllipse(new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(56, 189, 248) : Color.FromRgb(2, 132, 199)), null, pW, 3.2 * z, 3.2 * z); // Phase W
     }
 }

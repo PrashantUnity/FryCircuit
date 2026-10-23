@@ -11,17 +11,10 @@ public class OpAmpRenderer : IDeviceRenderer
         double u = unitSize;
         double z = renderContext.Zoom;
 
-        var strokeBrush = renderContext.IsPlacingGhost
-            ? new SolidColorBrush(Color.FromArgb(140, 0, 240, 255))
-            : new SolidColorBrush(Color.FromRgb(240, 246, 255));
+        var strokeBrush = renderContext.GetStrokeBrush();
+        var strokePen = renderContext.GetStrokePen(2.8);
 
-        var strokePen = new Pen(strokeBrush, 2.8 * z)
-        {
-            LineCap = PenLineCap.Round,
-            LineJoin = PenLineJoin.Round
-        };
-
-        var fillBrush = new SolidColorBrush(Color.FromRgb(20, 28, 40));
+        var fillBrush = renderContext.GetComponentFillBrush();
 
         // Triangle body: pointing to the right (+X)
         double triLeft = center.X - u * 0.5;
@@ -47,7 +40,8 @@ public class OpAmpRenderer : IDeviceRenderer
         context.DrawLine(strokePen, new Point(triRight, center.Y), new Point(center.X + u, center.Y));
 
         // - and + signs inside opamp
-        var symPen = new Pen(new SolidColorBrush(Color.FromRgb(160, 200, 240)), 2.0 * z) { LineCap = PenLineCap.Round };
+        var symColor = renderContext.IsDark ? Color.FromRgb(160, 200, 240) : Color.FromRgb(71, 85, 105);
+        var symPen = new Pen(new SolidColorBrush(symColor), 2.0 * z) { LineCap = PenLineCap.Round };
 
         // - sign (aligned with inverting pin 0 at Y = center.Y - u)
         context.DrawLine(symPen, new Point(triLeft + u * 0.14, center.Y - u), new Point(triLeft + u * 0.34, center.Y - u));
@@ -57,8 +51,9 @@ public class OpAmpRenderer : IDeviceRenderer
         context.DrawLine(symPen, new Point(triLeft + u * 0.24, center.Y + u - u * 0.1), new Point(triLeft + u * 0.24, center.Y + u + u * 0.1));
 
         // Terminal solder pads
-        context.DrawEllipse(strokeBrush, null, new Point(center.X - u, center.Y - u), 3.2 * z, 3.2 * z);
-        context.DrawEllipse(strokeBrush, null, new Point(center.X - u, center.Y + u), 3.2 * z, 3.2 * z);
-        context.DrawEllipse(strokeBrush, null, new Point(center.X + u, center.Y), 3.2 * z, 3.2 * z);
+        var padBrush = renderContext.GetSolderPadBrush();
+        context.DrawEllipse(padBrush, null, new Point(center.X - u, center.Y - u), 3.2 * z, 3.2 * z);
+        context.DrawEllipse(padBrush, null, new Point(center.X - u, center.Y + u), 3.2 * z, 3.2 * z);
+        context.DrawEllipse(padBrush, null, new Point(center.X + u, center.Y), 3.2 * z, 3.2 * z);
     }
 }

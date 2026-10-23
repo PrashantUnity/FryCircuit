@@ -143,6 +143,28 @@ public sealed record CircuitThemeTokens
     public Color KnobBezel { get; init; }
     public IBrush KnobBezelBrush => new ImmutableSolidColorBrush(KnobBezel);
 
+    // Semantic Device & Badge Tokens
+    public Color DeviceBodyFill { get; init; }
+    public IBrush DeviceBodyFillBrush => new ImmutableSolidColorBrush(DeviceBodyFill);
+
+    public Color DeviceBodySecondary { get; init; }
+    public IBrush DeviceBodySecondaryBrush => new ImmutableSolidColorBrush(DeviceBodySecondary);
+
+    public Color DeviceStroke { get; init; }
+    public IBrush DeviceStrokeBrush => new ImmutableSolidColorBrush(DeviceStroke);
+
+    public Color DeviceLead { get; init; }
+    public IBrush DeviceLeadBrush => new ImmutableSolidColorBrush(DeviceLead);
+
+    public Color BadgeBg { get; init; }
+    public IBrush BadgeBgBrush => new ImmutableSolidColorBrush(BadgeBg);
+
+    public Color BadgeBorder { get; init; }
+    public IBrush BadgeBorderBrush => new ImmutableSolidColorBrush(BadgeBorder);
+
+    public Color BadgeText { get; init; }
+    public IBrush BadgeTextBrush => new ImmutableSolidColorBrush(BadgeText);
+
     public static CircuitThemeTokens DarkDefaults => new()
     {
         IsDark = true,
@@ -193,6 +215,14 @@ public sealed record CircuitThemeTokens
 
         KnobTrack = Color.FromRgb(0x16, 0x20, 0x32),
         KnobBezel = Color.FromRgb(0x24, 0x32, 0x48),
+
+        DeviceBodyFill = Color.FromRgb(0x0F, 0x17, 0x2A),
+        DeviceBodySecondary = Color.FromRgb(0x1E, 0x29, 0x3B),
+        DeviceStroke = Color.FromRgb(0xE2, 0xE8, 0xF0),
+        DeviceLead = Color.FromRgb(0xCB, 0xD5, 0xE1),
+        BadgeBg = Color.FromArgb(0xEB, 0x0F, 0x17, 0x2A),
+        BadgeBorder = Color.FromArgb(0x60, 0x33, 0x41, 0x55),
+        BadgeText = Color.FromRgb(0xE2, 0xE8, 0xF0),
     };
 
     public static CircuitThemeTokens LightDefaults => new()
@@ -223,43 +253,69 @@ public sealed record CircuitThemeTokens
         Warning = Color.FromRgb(0xD9, 0x77, 0x06),
         Danger = Color.FromRgb(0xDC, 0x26, 0x26),
 
-        CanvasBg = Color.FromRgb(0xF9, 0xFB, 0xFC),
+        // Soothing, glare-free matte blueprint paper tone
+        CanvasBg = Color.FromRgb(0xF0, 0xF4, 0xF8),
         CanvasDotMinor = Color.FromRgb(0xCB, 0xD5, 0xE1),
-        CanvasDotMajor = Color.FromArgb(0x33, 0x00, 0x88, 0xCC),
+        CanvasDotMajor = Color.FromArgb(0x33, 0x47, 0x55, 0x69),
         WireNormal = Color.FromRgb(0x47, 0x55, 0x69),
         WireActive = Color.FromRgb(0x05, 0x96, 0x69),
         WireSelected = Color.FromRgb(0x00, 0x88, 0xCC),
 
-        ScopeBg = Color.FromRgb(0x0D, 0x15, 0x20),
-        ScopeGrid = Color.FromRgb(0x1C, 0x2A, 0x3A),
-        ScopeCenter = Color.FromRgb(0x2A, 0x3F, 0x56),
-        ScopeTick = Color.FromRgb(0x38, 0x54, 0x72),
-        ScopeCh1 = Color.FromRgb(0xF5, 0x9E, 0x0B),
-        ScopeCh2 = Color.FromRgb(0x00, 0xB4, 0xD8),
-        ScopeCh3 = Color.FromRgb(0xEC, 0x48, 0x99),
-        ScopeCh4 = Color.FromRgb(0x10, 0xB9, 0x81),
-        ScopeCh5 = Color.FromRgb(0x8B, 0x5C, 0xF6),
-        ScopeCh6 = Color.FromRgb(0xF9, 0x73, 0x16),
-        ScopeCh7 = Color.FromRgb(0x3B, 0x82, 0xF6),
-        ScopeCh8 = Color.FromRgb(0x84, 0xCC, 0x16),
+        // Modern laboratory instrument inverted graticule
+        ScopeBg = Color.FromRgb(0xF1, 0xF5, 0xF9),
+        ScopeGrid = Color.FromRgb(0xE2, 0xE8, 0xF0),
+        ScopeCenter = Color.FromRgb(0xCB, 0xD5, 0xE1),
+        ScopeTick = Color.FromRgb(0x94, 0xA3, 0xB8),
+        ScopeCh1 = Color.FromRgb(0xD9, 0x77, 0x06), // Rich Amber Gold
+        ScopeCh2 = Color.FromRgb(0x02, 0x84, 0xC7), // Oceanic Azure Cyan
+        ScopeCh3 = Color.FromRgb(0xE1, 0x1D, 0x48), // Ruby Rose
+        ScopeCh4 = Color.FromRgb(0x05, 0x96, 0x69), // Forest Emerald
+        ScopeCh5 = Color.FromRgb(0x7C, 0x3A, 0xED),
+        ScopeCh6 = Color.FromRgb(0xEA, 0x58, 0x0C),
+        ScopeCh7 = Color.FromRgb(0x25, 0x63, 0xEB),
+        ScopeCh8 = Color.FromRgb(0x65, 0xA3, 0x0D),
 
-        KnobTrack = Color.FromRgb(0xDC, 0xE4, 0xEC),
-        KnobBezel = Color.FromRgb(0xCA, 0xD6, 0xE2),
+        KnobTrack = Color.FromRgb(0xE2, 0xE8, 0xF0),
+        KnobBezel = Color.FromRgb(0xCB, 0xD5, 0xE1),
+
+        DeviceBodyFill = Color.FromRgb(0xFF, 0xFF, 0xFF),
+        DeviceBodySecondary = Color.FromRgb(0xF1, 0xF5, 0xF9),
+        DeviceStroke = Color.FromRgb(0x1E, 0x29, 0x3B),
+        DeviceLead = Color.FromRgb(0x33, 0x41, 0x55),
+        BadgeBg = Color.FromArgb(0xF4, 0xFF, 0xFF, 0xFF),
+        BadgeBorder = Color.FromArgb(0xC0, 0xCB, 0xD5, 0xE1),
+        BadgeText = Color.FromRgb(0x0F, 0x17, 0x2A),
     };
 
-    public static Color GetDefaultChannelColor(int channelIndex)
+    public static Color GetDefaultChannelColor(int channelIndex, bool isDark = true)
     {
+        if (isDark)
+        {
+            return (channelIndex % 8) switch
+            {
+                1 => Color.FromRgb(245, 158, 11),  // CH1 Amber Gold
+                2 => Color.FromRgb(6, 182, 212),   // CH2 Precision Cyan
+                3 => Color.FromRgb(236, 72, 153),  // CH3 Magenta Pink
+                4 => Color.FromRgb(16, 185, 129),  // CH4 Emerald Green
+                5 => Color.FromRgb(139, 92, 246),  // CH5 Violet Purple
+                6 => Color.FromRgb(249, 115, 22),  // CH6 Vivid Orange
+                7 => Color.FromRgb(59, 130, 246),  // CH7 Electric Blue
+                0 => Color.FromRgb(132, 204, 22),  // CH8 Lime Green
+                _ => Color.FromRgb(245, 158, 11)
+            };
+        }
+
         return (channelIndex % 8) switch
         {
-            1 => Color.FromRgb(245, 158, 11),  // CH1 Amber Gold
-            2 => Color.FromRgb(6, 182, 212),   // CH2 Precision Cyan
-            3 => Color.FromRgb(236, 72, 153),  // CH3 Magenta Pink
-            4 => Color.FromRgb(16, 185, 129),  // CH4 Emerald Green
-            5 => Color.FromRgb(139, 92, 246),  // CH5 Violet Purple
-            6 => Color.FromRgb(249, 115, 22),  // CH6 Vivid Orange
-            7 => Color.FromRgb(59, 130, 246),  // CH7 Electric Blue
-            0 => Color.FromRgb(132, 204, 22),  // CH8 Lime Green
-            _ => Color.FromRgb(245, 158, 11)
+            1 => Color.FromRgb(217, 119, 6),    // CH1 Rich Amber Gold (#D97706)
+            2 => Color.FromRgb(2, 132, 199),    // CH2 Precision Cyan Blue (#0284C7)
+            3 => Color.FromRgb(225, 29, 72),    // CH3 Ruby Rose (#E11D48)
+            4 => Color.FromRgb(5, 150, 105),    // CH4 Forest Emerald (#059669)
+            5 => Color.FromRgb(124, 58, 237),   // CH5 Amethyst Violet (#7C3AED)
+            6 => Color.FromRgb(234, 88, 12),    // CH6 Burnt Rust Orange (#EA580C)
+            7 => Color.FromRgb(37, 99, 235),    // CH7 Cobalt Blue (#2563EB)
+            0 => Color.FromRgb(101, 163, 13),   // CH8 Olive Moss (#65A30D)
+            _ => Color.FromRgb(217, 119, 6)
         };
     }
 
@@ -326,6 +382,14 @@ public sealed record CircuitThemeTokens
 
         Put("CircuitKnobTrack", KnobTrack);
         Put("CircuitKnobBezel", KnobBezel);
+
+        Put("CircuitDeviceBodyFill", DeviceBodyFill);
+        Put("CircuitDeviceBodySecondary", DeviceBodySecondary);
+        Put("CircuitDeviceStroke", DeviceStroke);
+        Put("CircuitDeviceLead", DeviceLead);
+        Put("CircuitBadgeBg", BadgeBg);
+        Put("CircuitBadgeBorder", BadgeBorder);
+        Put("CircuitBadgeText", BadgeText);
 
         return dict;
     }

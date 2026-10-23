@@ -35,20 +35,22 @@ public class SwitchRenderer : IDeviceRenderer
             context.DrawLine(strokePen, contact2, p2);
 
             // Contact pads
-            var padFill = new SolidColorBrush(Color.FromRgb(20, 28, 40));
+            var padFill = renderContext.GetComponentFillBrush() ?? new SolidColorBrush(Color.FromRgb(20, 28, 40));
             context.DrawEllipse(padFill, strokePen, contactCommon, 3.5 * z, 3.5 * z);
             context.DrawEllipse(padFill, strokePen, contact1, 3.5 * z, 3.5 * z);
             context.DrawEllipse(padFill, strokePen, contact2, 3.5 * z, 3.5 * z);
 
             // Switch blade (green when connected)
-            var bladePen = new Pen(new SolidColorBrush(Color.FromRgb(0, 230, 118)), 3.2 * z) { LineCap = PenLineCap.Round };
+            var bladeColor = renderContext.IsDark ? Color.FromRgb(0, 230, 118) : Color.FromRgb(5, 150, 105);
+            var bladePen = new Pen(new SolidColorBrush(bladeColor), 3.2 * z) { LineCap = PenLineCap.Round };
             Point targetContact = isClosed ? contact1 : contact2;
             context.DrawLine(bladePen, contactCommon, targetContact);
 
             // Terminal solder pads
-            context.DrawEllipse(strokeBrush, null, p0, 3.2 * z, 3.2 * z);
-            context.DrawEllipse(strokeBrush, null, p1, 3.2 * z, 3.2 * z);
-            context.DrawEllipse(strokeBrush, null, p2, 3.2 * z, 3.2 * z);
+            var padBrush = renderContext.GetSolderPadBrush();
+            context.DrawEllipse(padBrush, null, p0, 3.2 * z, 3.2 * z);
+            context.DrawEllipse(padBrush, null, p1, 3.2 * z, 3.2 * z);
+            context.DrawEllipse(padBrush, null, p2, 3.2 * z, 3.2 * z);
             return;
         }
 
@@ -62,14 +64,14 @@ public class SwitchRenderer : IDeviceRenderer
         context.DrawLine(strokePen, contactBottom, spstP1);
 
         // Contact pads
-        var spstPadFill = new SolidColorBrush(Color.FromRgb(20, 28, 40));
+        var spstPadFill = renderContext.GetComponentFillBrush() ?? new SolidColorBrush(Color.FromRgb(20, 28, 40));
         context.DrawEllipse(spstPadFill, strokePen, contactTop, 3.5 * z, 3.5 * z);
         context.DrawEllipse(spstPadFill, strokePen, contactBottom, 3.5 * z, 3.5 * z);
 
         // Switch blade
         var bladeBrush = isClosed
-            ? new SolidColorBrush(Color.FromRgb(0, 230, 118))
-            : new SolidColorBrush(Color.FromRgb(255, 170, 0));
+            ? new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(0, 230, 118) : Color.FromRgb(5, 150, 105))
+            : new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(255, 170, 0) : Color.FromRgb(217, 119, 6));
 
         var spstBladePen = new Pen(bladeBrush, 3.2 * z) { LineCap = PenLineCap.Round };
 
@@ -86,7 +88,8 @@ public class SwitchRenderer : IDeviceRenderer
         }
 
         // Terminal solder pads
-        context.DrawEllipse(strokeBrush, null, spstP0, 3.2 * z, 3.2 * z);
-        context.DrawEllipse(strokeBrush, null, spstP1, 3.2 * z, 3.2 * z);
+        var spstPadBrush = renderContext.GetSolderPadBrush();
+        context.DrawEllipse(spstPadBrush, null, spstP0, 3.2 * z, 3.2 * z);
+        context.DrawEllipse(spstPadBrush, null, spstP1, 3.2 * z, 3.2 * z);
     }
 }

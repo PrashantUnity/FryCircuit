@@ -12,15 +12,8 @@ public class MosfetRenderer : IDeviceRenderer
         double u = unitSize;
         double z = renderContext.Zoom;
 
-        var strokeBrush = renderContext.IsPlacingGhost
-            ? new SolidColorBrush(Color.FromArgb(140, 0, 240, 255))
-            : new SolidColorBrush(Color.FromRgb(240, 246, 255));
-
-        var strokePen = new Pen(strokeBrush, 2.8 * z)
-        {
-            LineCap = PenLineCap.Round,
-            LineJoin = PenLineJoin.Round
-        };
+        var strokeBrush = renderContext.GetStrokeBrush();
+        var strokePen = renderContext.GetStrokePen(2.8);
 
         bool isNChannel = (device as MosfetDevice)?.IsNChannel ?? !device.Type.Equals("pmos", StringComparison.OrdinalIgnoreCase);
 
@@ -32,7 +25,8 @@ public class MosfetRenderer : IDeviceRenderer
             double bubbleRadius = 3.5 * z;
             double bubbleCenterX = gX - bubbleRadius;
             context.DrawLine(strokePen, new Point(center.X - u, center.Y), new Point(bubbleCenterX - bubbleRadius, center.Y));
-            context.DrawEllipse(new SolidColorBrush(Color.FromRgb(15, 20, 30)), strokePen, new Point(bubbleCenterX, center.Y), bubbleRadius, bubbleRadius);
+            var bubbleFill = renderContext.GetComponentFillBrush() ?? new SolidColorBrush(Color.FromRgb(15, 20, 30));
+            context.DrawEllipse(bubbleFill, strokePen, new Point(bubbleCenterX, center.Y), bubbleRadius, bubbleRadius);
         }
         else
         {
@@ -69,8 +63,9 @@ public class MosfetRenderer : IDeviceRenderer
         context.DrawLine(arrowPen, new Point(arrowBaseX, center.Y + u * 0.1), new Point(arrowTipX, center.Y));
 
         // Terminal solder pads
-        context.DrawEllipse(strokeBrush, null, new Point(center.X - u, center.Y), 3.2 * z, 3.2 * z);
-        context.DrawEllipse(strokeBrush, null, new Point(center.X + u, center.Y - u), 3.2 * z, 3.2 * z);
-        context.DrawEllipse(strokeBrush, null, new Point(center.X + u, center.Y + u), 3.2 * z, 3.2 * z);
+        var padBrush = renderContext.GetSolderPadBrush();
+        context.DrawEllipse(padBrush, null, new Point(center.X - u, center.Y), 3.2 * z, 3.2 * z);
+        context.DrawEllipse(padBrush, null, new Point(center.X + u, center.Y - u), 3.2 * z, 3.2 * z);
+        context.DrawEllipse(padBrush, null, new Point(center.X + u, center.Y + u), 3.2 * z, 3.2 * z);
     }
 }

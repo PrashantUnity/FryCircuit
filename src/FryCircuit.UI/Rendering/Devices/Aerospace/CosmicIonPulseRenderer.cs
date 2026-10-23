@@ -14,9 +14,13 @@ public class CosmicIonPulseRenderer : IDeviceRenderer
     public void Render(DrawingContext context, Device device, Point center, double size, bool isSelected, DeviceRenderContext renderContext)
     {
         var ion = device as CosmicIonPulseDevice;
-        var strokePen = new Pen(new SolidColorBrush(Color.FromRgb(255, 140, 0)), 2.0 * renderContext.Zoom);
-        var pulsePen = new Pen(new SolidColorBrush(Color.FromRgb(255, 230, 80)), 2.5 * renderContext.Zoom);
-        var bgBrush = new SolidColorBrush(Color.FromArgb(190, 28, 20, 10));
+        var strokeColor = renderContext.IsDark ? Color.FromRgb(255, 140, 0) : Color.FromRgb(217, 119, 6);
+        var strokePen = new Pen(new SolidColorBrush(strokeColor), 2.0 * renderContext.Zoom);
+        var pulseColor = renderContext.IsDark ? Color.FromRgb(255, 230, 80) : Color.FromRgb(202, 138, 4);
+        var pulsePen = new Pen(new SolidColorBrush(pulseColor), 2.5 * renderContext.Zoom);
+        var bgBrush = renderContext.IsDark
+            ? new SolidColorBrush(Color.FromArgb(190, 28, 20, 10))
+            : new SolidColorBrush(Color.FromArgb(200, 254, 243, 199));
 
         double r = size * 0.38;
         var circleRect = new Rect(center.X - r, center.Y - r, r * 2, r * 2);
@@ -48,10 +52,10 @@ public class CosmicIonPulseRenderer : IDeviceRenderer
             ctx.LineTo(new Point(center.X + r * 0.42, center.Y + r * 0.2));
             ctx.EndFigure(isClosed: true);
         }
-        context.DrawGeometry(new SolidColorBrush(Color.FromRgb(255, 230, 80)), null, headGeom);
+        context.DrawGeometry(new SolidColorBrush(pulseColor), null, headGeom);
 
         // Terminals
-        var dotBrush = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+        var dotBrush = renderContext.GetSolderPadBrush();
         context.DrawEllipse(dotBrush, null, new Point(center.X, center.Y - size), 2.5 * renderContext.Zoom, 2.5 * renderContext.Zoom);
         context.DrawEllipse(dotBrush, null, new Point(center.X, center.Y + size), 2.5 * renderContext.Zoom, 2.5 * renderContext.Zoom);
     }

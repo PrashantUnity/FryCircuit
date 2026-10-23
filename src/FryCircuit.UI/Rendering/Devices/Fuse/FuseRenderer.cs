@@ -28,9 +28,9 @@ public class FuseRenderer : IDeviceRenderer
         // Glass cartridge body
         var glassRect = new Rect(center.X - halfW, center.Y - halfH, bodyW, bodyH);
         var glassFill = device.IsBlown
-            ? new SolidColorBrush(Color.FromArgb(180, 35, 18, 18))
-            : new SolidColorBrush(Color.FromArgb(140, 16, 26, 42));
-        var glassPen = new Pen(new SolidColorBrush(Color.FromArgb(160, 120, 150, 180)), 1.5 * z);
+            ? (renderContext.IsDark ? new SolidColorBrush(Color.FromArgb(180, 35, 18, 18)) : new SolidColorBrush(Color.FromArgb(140, 254, 202, 202)))
+            : (renderContext.IsDark ? new SolidColorBrush(Color.FromArgb(140, 16, 26, 42)) : new SolidColorBrush(Color.FromArgb(140, 224, 242, 254)));
+        var glassPen = new Pen(new SolidColorBrush(renderContext.IsDark ? Color.FromArgb(160, 120, 150, 180) : Color.FromArgb(180, 148, 163, 184)), 1.5 * z);
         context.DrawRectangle(glassFill, glassPen, glassRect, 3.0 * z, 3.0 * z);
 
         // Metal chrome end caps
@@ -84,9 +84,10 @@ public class FuseRenderer : IDeviceRenderer
         {
             // Intact fuse link wire with signature S-curve neck
             double current = Math.Abs(device.Current);
-            var wireBrush = current > 0.01
-                ? new SolidColorBrush(Color.FromRgb(255, 215, 110))
-                : new SolidColorBrush(Color.FromRgb(200, 210, 225));
+            var wireColor = current > 0.01
+                ? (renderContext.IsDark ? Color.FromRgb(255, 215, 110) : Color.FromRgb(217, 119, 6))
+                : (renderContext.IsDark ? Color.FromRgb(200, 210, 225) : Color.FromRgb(71, 85, 105));
+            var wireBrush = new SolidColorBrush(wireColor);
             var wirePen = new Pen(wireBrush, 2.2 * z) { LineCap = PenLineCap.Round };
 
             var wireGeom = new StreamGeometry();
@@ -103,8 +104,9 @@ public class FuseRenderer : IDeviceRenderer
         }
 
         // Terminal solder pads
+        var padBrush = renderContext.GetSolderPadBrush();
         double padRadius = (renderContext.IsGlowPass ? 4.0 : 2.5) * z;
-        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y - u), padRadius, padRadius);
-        context.DrawEllipse(strokeBrush, null, new Point(center.X, center.Y + u), padRadius, padRadius);
+        context.DrawEllipse(padBrush, null, new Point(center.X, center.Y - u), padRadius, padRadius);
+        context.DrawEllipse(padBrush, null, new Point(center.X, center.Y + u), padRadius, padRadius);
     }
 }

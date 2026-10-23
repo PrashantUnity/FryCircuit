@@ -15,17 +15,10 @@ public class TunnelDiodeRenderer : IDeviceRenderer
         double u = unitSize;
         double z = renderContext.Zoom;
 
-        var strokeBrush = renderContext.IsPlacingGhost
-            ? new SolidColorBrush(Color.FromArgb(140, 0, 240, 255))
-            : new SolidColorBrush(Color.FromRgb(240, 246, 255));
+        var strokeBrush = renderContext.GetStrokeBrush();
+        var strokePen = renderContext.GetStrokePen(2.5);
 
-        var strokePen = new Pen(strokeBrush, 2.5 * z)
-        {
-            LineCap = PenLineCap.Round,
-            LineJoin = PenLineJoin.Round
-        };
-
-        var fillBrush = new SolidColorBrush(Color.FromRgb(24, 32, 45));
+        var fillBrush = renderContext.GetComponentFillBrush() ?? new SolidColorBrush(Color.FromRgb(24, 32, 45));
 
         // Leads from pins (-1 to -0.35, +0.35 to +1)
         double triLeft = center.X - u * 0.35;
@@ -54,7 +47,8 @@ public class TunnelDiodeRenderer : IDeviceRenderer
         context.DrawLine(strokePen, new Point(cathodeX, center.Y + u * 0.4), new Point(cathodeX - u * 0.15, center.Y + u * 0.4));
 
         // Terminal pads
-        context.DrawEllipse(strokeBrush, null, new Point(center.X - u, center.Y), 3.2 * z, 3.2 * z);
-        context.DrawEllipse(strokeBrush, null, new Point(center.X + u, center.Y), 3.2 * z, 3.2 * z);
+        var padBrush = renderContext.GetSolderPadBrush();
+        context.DrawEllipse(padBrush, null, new Point(center.X - u, center.Y), 3.2 * z, 3.2 * z);
+        context.DrawEllipse(padBrush, null, new Point(center.X + u, center.Y), 3.2 * z, 3.2 * z);
     }
 }

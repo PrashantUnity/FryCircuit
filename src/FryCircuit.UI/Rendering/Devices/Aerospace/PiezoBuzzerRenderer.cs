@@ -26,24 +26,33 @@ public class PiezoBuzzerRenderer : IDeviceRenderer
         Point pTop = new(cx, cy - u);
         Point pBot = new(cx, cy + u);
 
-        var leadPen = new Pen(renderContext.GetStrokeBrush(Color.FromRgb(200, 215, 235)), 2.0 * z);
+        var leadPen = renderContext.GetLeadPen(2.0);
         context.DrawLine(leadPen, pTop, new Point(cx, cy - radius));
         context.DrawLine(leadPen, pBot, new Point(cx, cy + radius));
 
         // Outer Transducer Chamber Body
-        var bodyBrush = new RadialGradientBrush
-        {
-            GradientStops = new GradientStops
+        var bodyBrush = renderContext.IsDark
+            ? new RadialGradientBrush
             {
-                new GradientStop(Color.FromArgb(240, 30, 41, 59), 0.0),
-                new GradientStop(Color.FromArgb(255, 15, 23, 42), 1.0)
+                GradientStops = new GradientStops
+                {
+                    new GradientStop(Color.FromArgb(240, 30, 41, 59), 0.0),
+                    new GradientStop(Color.FromArgb(255, 15, 23, 42), 1.0)
+                }
             }
-        };
-        var bodyPen = renderContext.GetStrokePen(2.2, Color.FromRgb(234, 179, 8)); // Golden warning border
+            : new RadialGradientBrush
+            {
+                GradientStops = new GradientStops
+                {
+                    new GradientStop(Color.FromArgb(240, 248, 250, 252), 0.0),
+                    new GradientStop(Color.FromArgb(255, 226, 232, 240), 1.0)
+                }
+            };
+        var bodyPen = renderContext.GetStrokePen(2.2, Color.FromRgb(234, 179, 8), Color.FromRgb(202, 138, 4)); // Golden warning border
         context.DrawEllipse(bodyBrush, bodyPen, center, radius, radius);
 
         // Center Acoustic Sound Aperture Hole
-        var holeBrush = new SolidColorBrush(Color.FromRgb(2, 6, 23));
+        var holeBrush = new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(2, 6, 23) : Color.FromRgb(203, 213, 225));
         context.DrawEllipse(holeBrush, null, center, radius * 0.35, radius * 0.35);
 
         // Radiating Acoustic Waves when Actively Sounding
@@ -56,7 +65,8 @@ public class PiezoBuzzerRenderer : IDeviceRenderer
             {
                 double waveR = radius + ((w * 0.35 * radius + phase * 4.0 * z) % maxWaveR);
                 byte alpha = (byte)Math.Clamp(200 - (waveR / (radius * 1.6)) * 180, 20, 220);
-                var wavePen = new Pen(new SolidColorBrush(Color.FromArgb(alpha, 250, 204, 21)), 1.5 * z);
+                var waveColor = renderContext.IsDark ? Color.FromArgb(alpha, 250, 204, 21) : Color.FromArgb(alpha, 217, 119, 6);
+                var wavePen = new Pen(new SolidColorBrush(waveColor), 1.5 * z);
 
                 // Right-side sound arc
                 var rightArc = new StreamGeometry();
@@ -70,7 +80,7 @@ public class PiezoBuzzerRenderer : IDeviceRenderer
         }
 
         // Terminal solder pads
-        context.DrawEllipse(new SolidColorBrush(Color.FromRgb(239, 68, 68)), null, pTop, 3.0 * z, 3.0 * z);
-        context.DrawEllipse(new SolidColorBrush(Color.FromRgb(148, 163, 184)), null, pBot, 3.0 * z, 3.0 * z);
+        context.DrawEllipse(new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(239, 68, 68) : Color.FromRgb(220, 38, 38)), null, pTop, 3.0 * z, 3.0 * z);
+        context.DrawEllipse(new SolidColorBrush(renderContext.IsDark ? Color.FromRgb(148, 163, 184) : Color.FromRgb(71, 85, 105)), null, pBot, 3.0 * z, 3.0 * z);
     }
 }

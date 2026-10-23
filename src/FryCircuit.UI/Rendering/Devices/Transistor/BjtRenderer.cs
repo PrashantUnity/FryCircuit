@@ -12,22 +12,16 @@ public class BjtRenderer : IDeviceRenderer
         double u = unitSize;
         double z = renderContext.Zoom;
 
-        var strokeBrush = renderContext.IsPlacingGhost
-            ? new SolidColorBrush(Color.FromArgb(140, 0, 240, 255))
-            : new SolidColorBrush(Color.FromRgb(240, 246, 255));
-
-        var strokePen = new Pen(strokeBrush, 2.8 * z)
-        {
-            LineCap = PenLineCap.Round,
-            LineJoin = PenLineJoin.Round
-        };
+        var strokeBrush = renderContext.GetStrokeBrush();
+        var strokePen = renderContext.GetStrokePen(2.8);
 
         bool isNpn = (device as BjtDevice)?.IsNpn ?? !device.Type.Equals("pnp", StringComparison.OrdinalIgnoreCase);
 
         // Transistor circle frame
         double radius = u * 0.75;
-        var fillBrush = new SolidColorBrush(Color.FromRgb(20, 28, 40));
-        context.DrawEllipse(fillBrush, new Pen(new SolidColorBrush(Color.FromArgb(60, 160, 200, 240)), 1.5 * z), center, radius, radius);
+        var fillBrush = renderContext.GetComponentFillBrush() ?? new SolidColorBrush(Color.FromRgb(20, 28, 40));
+        var framePen = renderContext.GetStrokePen(1.5, Color.FromArgb(60, 160, 200, 240), Color.FromArgb(80, 71, 85, 105));
+        context.DrawEllipse(fillBrush, framePen, center, radius, radius);
 
         // Base vertical bar
         double bX = center.X - u * 0.25;
@@ -62,8 +56,9 @@ public class BjtRenderer : IDeviceRenderer
         }
 
         // Terminal solder pads
-        context.DrawEllipse(strokeBrush, null, new Point(center.X - u, center.Y), 3.2 * z, 3.2 * z);
-        context.DrawEllipse(strokeBrush, null, new Point(center.X + u, center.Y - u), 3.2 * z, 3.2 * z);
-        context.DrawEllipse(strokeBrush, null, new Point(center.X + u, center.Y + u), 3.2 * z, 3.2 * z);
+        var padBrush = renderContext.GetSolderPadBrush();
+        context.DrawEllipse(padBrush, null, new Point(center.X - u, center.Y), 3.2 * z, 3.2 * z);
+        context.DrawEllipse(padBrush, null, new Point(center.X + u, center.Y - u), 3.2 * z, 3.2 * z);
+        context.DrawEllipse(padBrush, null, new Point(center.X + u, center.Y + u), 3.2 * z, 3.2 * z);
     }
 }
